@@ -9,3 +9,7 @@ alertas, conflictos, facciones, tick, visitas, Powerplay, zonas de conflicto y p
 - Se refresca sola cada 5 minutos. Tocando un sistema se ve todo su detalle.
 
 Creado por CMDR ORTEM ED DER (ortemedder@gmail.com) con Claude.
+
+## App en el móvil (Android)
+Abre la web en **Chrome** y pulsa **Instalar app** (o menú ⋮ → *Añadir a pantalla de inicio*).
+Se instala con el emblema de CDSN, se abre a pantalla completa y, sin conexión, enseña los últimos datos guardados.
