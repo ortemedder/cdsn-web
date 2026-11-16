@@ -48,8 +48,11 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div class="tabs"><button id="tTabla" class="on">Tabla</button><button id="tRadar">Radar</button></div>
 <div id="vRadar" hidden><canvas id="rad"></canvas>
 <div class="rbot"><button id="rMas">+</button><button id="rMenos">−</button><button id="rCen" title="Centrar">⌖</button><button id="rPausa" title="Pausa">❚❚</button><span class="sub" id="rInfo"></span></div>
-<div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = alerta grave, amarillo = aviso. Arrastra para mover, pellizca para zoom, toca un sistema para ver su ficha.</div>
+<div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = alerta grave, amarillo = aviso. Arrastra para mover, pellizca para zoom, un toque marca un sistema, dos toques abren su ficha.</div>
 <div class="ral" id="ral"></div><div id="rficha"></div></div>
+<div id="rfull" hidden style="position:fixed;inset:0;z-index:50;background:var(--f);overflow:auto;padding:0 14px 20px">
+<div style="position:sticky;top:0;background:var(--f);padding:10px 0;border-bottom:1px solid var(--l);margin-bottom:10px"><button id="rvolver" style="background:#ff8c00;color:#000;border:0;border-radius:8px;padding:9px 16px;font-weight:700;font-size:15px;cursor:pointer">← Volver</button></div>
+<div id="rfullc"></div></div>
 <div id="vTabla"><div class="ctl"><input type="search" id="q" placeholder="Buscar sistema..."><label><input type="checkbox" id="fc"> solo controlados</label>
 <label><input type="checkbox" id="fa"> solo alertas</label><span class="sub" id="cnt"></span></div>
 <div class="tw"><table><thead><tr id="cab"></tr></thead><tbody id="tb"></tbody></table></div>
@@ -57,8 +60,9 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <footer><span id="pie"></span> · <a href="#" id="verl" style="color:#ff8c00"></a></footer>
 <div id="nov" hidden style="background:var(--p);border:1px solid var(--l);border-radius:8px;margin:0 16px 16px;padding:10px 14px"></div>
 <script>
-const VERSION="v1.3";
+const VERSION="v1.4";
 const NOVEDADES=[
+ ["v1.4","16/11/2026",["Radar: un toque marca el sistema; dos toques abren su ficha completa con botón Volver","Dos toques en vacío centran el radar"]],
  ["v1.3","16/11/2026",["Pestaña Radar, como el de la pantalla del ESP32: barrido, alertas que laten, zoom y ficha al tocar un sistema","Versión y novedades en el pie de página"]],
  ["v1.2","16/11/2026",["Pantalla de arranque con el logo y la firma"]],
  ["v1.1","16/11/2026",["Se puede instalar como app en Android e iPhone"]],
@@ -265,12 +269,23 @@ function tocaEn(x,y){
   let m=null,dm=28*28;for(const o of R_.S){if(!o.niv)continue;const d=(o.sx-x)**2+(o.sy-y)**2;if(d<dm){dm=d;m=o}}
   if(m)return m;dm=22*22;for(const o of R_.S){const d=(o.sx-x)**2+(o.sy-y)**2;if(d<dm){dm=d;m=o}}return m;
 }
-function ficha(o){
-  R_.sel=o.s.sys;const s=o.s,v=s.inf-(s.segunda_inf||0);
-  document.getElementById("rficha").innerHTML=`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b> ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
+function fichaHTML(o){const s=o.s,v=s.inf-(s.segunda_inf||0);
+  return`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b> ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
    ${o.niv?`<div style="margin:4px 0"><span class="tag t${o.niv}">${esc(o.al[1])}</span> <span class="sub">${esc(o.al[2])}</span></div>`:""}
-   <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>${detalle(s)}`;
+   <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>`}
+function ficha(o){   // un toque: linea corta bajo el radar
+  R_.sel=o.s.sys;document.getElementById("rficha").innerHTML=fichaHTML(o)+`<div class="sub">Toca dos veces el sistema para ver la ficha completa</div>`;
+  if(!document.getElementById("rfull").hidden)fichaEntera(o,true);
 }
+function fichaEntera(o,solo){   // dos toques: ficha a pantalla completa
+  R_.sel=o.s.sys;const f=document.getElementById("rfull");
+  document.getElementById("rfullc").innerHTML=fichaHTML(o)+detalle(o.s);
+  if(solo)return;
+  if(f.hidden){f.hidden=false;f.scrollTop=0;document.body.style.overflow="hidden";history.pushState({ficha:1},"")}
+}
+function cierraFicha(){const f=document.getElementById("rfull");if(f.hidden)return;f.hidden=true;document.body.style.overflow=""}
+document.getElementById("rvolver").onclick=()=>history.back();
+addEventListener("popstate",cierraFicha);
 function pintaAlertas(){
   const A=R_.S.filter(o=>o.niv).sort((a,b)=>b.niv-a.niv||a.s.inf-b.s.inf);
   document.getElementById("ral").innerHTML=A.map(o=>`<button data-s="${esc(o.s.sys)}"><span class="tag t${o.niv}">${esc(o.al[1])}</span> ${esc(o.s.sys)}</button>`).join("");
@@ -292,10 +307,13 @@ cv.addEventListener("pointermove",e=>{if(!R_.pt.has(e.pointerId))return;const p=
     const d0=Math.hypot(q[0]-o[0],q[1]-o[1]),d1=Math.hypot(p[0]-o[0],p[1]-o[1]);if(d0>0)zoomEn(d1/d0,(p[0]+o[0])/2,(p[1]+o[1])/2);R_.mov+=99}
   R_.pt.set(e.pointerId,p)});
 const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e.pointerId);
-  if(e.type=="pointerup"&&R_.mov<8&&!R_.pt.size){const o=tocaEn(p[0],p[1]);if(o)ficha(o);else{R_.sel=null;document.getElementById("rficha").innerHTML=""}}};
+  if(e.type=="pointerup"&&R_.mov<8&&!R_.pt.size){const o=tocaEn(p[0],p[1]),t=performance.now(),u=R_.ult;
+    const doble=u&&t-u.t<400&&Math.hypot(p[0]-u.x,p[1]-u.y)<30;R_.ult=doble?null:{t,x:p[0],y:p[1]};
+    if(doble){if(o)fichaEntera(o);else document.getElementById("rCen").click();return}
+    if(o)ficha(o);else{R_.sel=null;document.getElementById("rficha").innerHTML=""}}};
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
-cv.addEventListener("dblclick",()=>document.getElementById("rCen").click());
+cv.addEventListener("dblclick",e=>e.preventDefault());
 function vista(v){
   try{localStorage.setItem("cdsn_vista",v)}catch(e){}
   const r=v=="radar";document.getElementById("vRadar").hidden=!r;document.getElementById("vTabla").hidden=r;
