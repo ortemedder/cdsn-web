@@ -32,19 +32,39 @@ td{padding:6px;border-bottom:1px solid #22180a;vertical-align:top}tr.s{cursor:po
 .bar{height:10px;background:var(--l);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--nm)}.bar i.m{background:var(--n)}
 .dg{display:flex;flex-wrap:wrap;gap:20px}.dg>div{min-width:260px}h3{margin:4px 0 6px;color:var(--v);font-size:12px;text-transform:uppercase}
 svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:var(--l);padding:10px 16px;font-size:12px}
+.tabs{display:flex;gap:8px;padding:0 16px 10px}.tabs button{flex:1;max-width:160px;background:var(--p);color:var(--v);border:1px solid var(--l);border-radius:8px;padding:8px;font-weight:700;font-size:14px;cursor:pointer}
+.tabs button.on{background:#ff8c00;color:#000;border-color:#ff8c00}
+#vRadar{padding:0 12px 12px}#rad{display:block;width:100%;touch-action:none;border-radius:10px;background:#120b02;border:1px solid var(--l)}
+.rbot{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}.rbot button{background:var(--p);color:#ff8c00;border:1px solid var(--l);border-radius:6px;min-width:44px;height:38px;font-size:18px;font-weight:700;cursor:pointer}
+.ral{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.ral button{background:var(--p);border:1px solid var(--l);border-radius:6px;color:var(--b);padding:6px 8px;text-align:left;cursor:pointer;font-size:13px}
+#rficha{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-top:8px}#rficha:empty{display:none}
 </style></head><body>
 <div id="arranque" style="position:fixed;inset:0;z-index:99;background:#0d0904;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .6s">
 <img src="icon-512.png" alt="" style="width:min(55vw,260px);height:auto;border-radius:50%">
 <div style="color:#ff8c00;font-weight:700;letter-spacing:3px;font-size:20px">CABALLEROS DE SION</div>
-<div style="color:#c9a36a;font-size:16px;letter-spacing:1px">by Cmdr Ortem Ed Der</div></div>
+<div style="color:#c9a36a;font-size:16px;letter-spacing:1px">by Cmdr Ortem Ed Der</div><div id="verA" style="color:#6b4a1c;font-size:12px"></div></div>
 <header><img src="icon-192.png" alt="" style="width:34px;height:34px;align-self:center;border-radius:50%"><h1>CABALLEROS DE SION</h1><span id="est">cargando...</span><button id="instalar" style="display:none;margin-left:auto;background:#ff8c00;color:#000;border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer">Instalar app</button><a href="https://inara.cz/elite/minorfaction/36648/" target="_blank" style="color:#b06a10;margin-left:12px">Inara ↗</a></header>
 <div class="cards" id="cards"></div>
-<div class="ctl"><input type="search" id="q" placeholder="Buscar sistema..."><label><input type="checkbox" id="fc"> solo controlados</label>
+<div class="tabs"><button id="tTabla" class="on">Tabla</button><button id="tRadar">Radar</button></div>
+<div id="vRadar" hidden><canvas id="rad"></canvas>
+<div class="rbot"><button id="rMas">+</button><button id="rMenos">−</button><button id="rCen" title="Centrar">⌖</button><button id="rPausa" title="Pausa">❚❚</button><span class="sub" id="rInfo"></span></div>
+<div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = alerta grave, amarillo = aviso. Arrastra para mover, pellizca para zoom, toca un sistema para ver su ficha.</div>
+<div class="ral" id="ral"></div><div id="rficha"></div></div>
+<div id="vTabla"><div class="ctl"><input type="search" id="q" placeholder="Buscar sistema..."><label><input type="checkbox" id="fc"> solo controlados</label>
 <label><input type="checkbox" id="fa"> solo alertas</label><span class="sub" id="cnt"></span></div>
 <div class="tw"><table><thead><tr id="cab"></tr></thead><tbody id="tb"></tbody></table></div>
-<div id="zona"></div>
-<footer id="pie"></footer>
+<div id="zona"></div></div>
+<footer><span id="pie"></span> · <a href="#" id="verl" style="color:#ff8c00"></a></footer>
+<div id="nov" hidden style="background:var(--p);border:1px solid var(--l);border-radius:8px;margin:0 16px 16px;padding:10px 14px"></div>
 <script>
+const VERSION="v1.3";
+const NOVEDADES=[
+ ["v1.3","16/11/2026",["Pestaña Radar, como el de la pantalla del ESP32: barrido, alertas que laten, zoom y ficha al tocar un sistema","Versión y novedades en el pie de página"]],
+ ["v1.2","16/11/2026",["Pantalla de arranque con el logo y la firma"]],
+ ["v1.1","16/11/2026",["Se puede instalar como app en Android e iPhone"]],
+ ["v1.0","12/11/2026",["Primera versión: tabla de sistemas, alertas, tick y Powerplay"]]];
+function novedades(){const n=document.getElementById("nov");if(!n.hidden){n.hidden=true;return}
+  n.innerHTML="<b>Novedades</b>"+NOVEDADES.map(([v,f,c])=>`<div style="margin-top:8px"><b style="color:#ff8c00">${v}</b> <span class="sub">${f}</span><ul style="margin:2px 0 0 18px;padding:0">${c.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");n.hidden=false;n.scrollIntoView({behavior:"smooth"})}
 const FAC="Caballeros de Sion";
 const DATOS="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/faccion.json";   // los sube el escucha de la Orange Pi
 const ES={Expansion:"Expansión",Retreat:"Retirada",War:"Guerra",CivilWar:"Guerra civil",Election:"Elecciones",Boom:"Auge",Bust:"Crisis",
@@ -110,6 +130,7 @@ function pinta(){
     <td class="num az">${f.traf||"—"}</td><td class="num sub">${pob(f.pob||null)}</td><td class="sub">${esc(f.pp)||"—"}</td><td class="num sub">${hace(f.t)}</td><td class="num pk">${f.tick?"~"+hora(f.tick):"—"}</td></tr>`;
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
+  radarDatos();
   document.getElementById("zona").innerHTML=zona();
 }
 function grafica(h){
@@ -172,6 +193,119 @@ for(const id of["q","fc","fa"])document.getElementById(id).oninput=pinta;
 const t0=Date.now();
 function quitaArranque(){const a=document.getElementById("arranque");if(!a)return;setTimeout(()=>{a.style.opacity=0;setTimeout(()=>a.remove(),700)},Math.max(0,1500-(Date.now()-t0)))}
 carga().finally(quitaArranque);setTimeout(quitaArranque,6000);setInterval(carga,300000);
+
+// ---------- RADAR (igual que el de la pantalla del ESP32) ----------
+const R_={cv:document.getElementById("rad"),S:[],cx:0,cz:0,k:1,def:null,ang:0,pausa:false,sel:null,t0:0,on:false,pt:new Map(),mov:0};
+const COL={fondo:"#120b02",rej:"#4a2c08",verde:"#5adc78",amar:"#ffd228",nar:"#ff8c00",rojo:"#ff4632",blanco:"#fff",nmed:"#aa5f0a",ilum:"#ffebb4"};
+const med=v=>{v=[...v].sort((a,b)=>a-b);return v.length?v[v.length>>1]:0};
+function radarDatos(){
+  const ant=R_.S.length;
+  R_.S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&s.pos).map(s=>{const a=alerta(s);return{s,x:s.pos[0],z:s.pos[2],niv:a[0],al:a,luz:0}});
+  if(!ant||!R_.def)vistaDef();
+  pintaAlertas();
+  if(R_.sel){const n=R_.S.find(o=>o.s.sys==R_.sel);if(n)ficha(n)}
+}
+function vistaDef(){
+  const C=R_.S.filter(o=>o.s.ctrl),B=C.length?C:R_.S;
+  const cx=med(B.map(o=>o.x)),cz=med(B.map(o=>o.z));
+  const ds=R_.S.map(o=>Math.hypot(o.x-cx,o.z-cz)).sort((a,b)=>a-b);
+  const d80=ds.length?ds[Math.floor(ds.length*.8)]:50;
+  R_.def={cx,cz,d80:Math.max(d80,1)};R_.cx=cx;R_.cz=cz;R_.k=0;   // k se calcula al conocer el tamaño
+}
+function tam(){
+  const cv=R_.cv,w=cv.clientWidth,h=Math.min(w,Math.round(innerHeight*.72)),dpr=devicePixelRatio||1;
+  if(cv.width!=Math.round(w*dpr)||cv.height!=Math.round(h*dpr)){cv.style.height=h+"px";cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
+  return{w,h,dpr,R:Math.min(w,h)/2-6};
+}
+function aPantalla(o,T){const dx=(o.x-R_.cx)*R_.k,dz=(o.z-R_.cz)*R_.k;return[T.w/2+dx,T.h/2-dz,dx,dz]}
+function dibuja(t){
+  if(!R_.on)return;requestAnimationFrame(dibuja);
+  const T=tam(),g=R_.cv.getContext("2d"),{w,h,R}=T,cx=w/2,cy=h/2;
+  if(!R_.k&&R_.def)R_.k=.9*R/R_.def.d80;
+  const dt=R_.t0?Math.min(100,t-R_.t0):16;R_.t0=t;
+  const antes=R_.ang;if(!R_.pausa)R_.ang=(R_.ang+dt*360/4000)%360;     // una vuelta cada 4 s
+  g.setTransform(T.dpr,0,0,T.dpr,0,0);g.fillStyle=COL.fondo;g.fillRect(0,0,w,h);
+  // estela del barrido
+  const A=a=>(a-90)*Math.PI/180;
+  for(let i=28;i>=0;i--){const a1=R_.ang-(i+1)*2,a2=R_.ang-i*2+.5;
+    g.fillStyle=`rgba(200,110,0,${(.42*(1-i/29)**1.6).toFixed(3)})`;g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,A(a1),A(a2));g.closePath();g.fill()}
+  // rejilla
+  g.strokeStyle=COL.rej;g.lineWidth=1;g.beginPath();
+  for(let i=1;i<=3;i++){g.moveTo(cx+R*i/3,cy);g.arc(cx,cy,R*i/3,0,2*Math.PI)}
+  g.moveTo(cx-R,cy);g.lineTo(cx+R,cy);g.moveTo(cx,cy-R);g.lineTo(cx,cy+R);g.stroke();
+  g.strokeStyle="rgba(255,200,90,.9)";g.lineWidth=2;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+R*Math.cos(A(R_.ang)),cy+R*Math.sin(A(R_.ang)));g.stroke();
+  // sistemas
+  const pulso=(Math.sin(t/160)+1)/2,lab=[];
+  const pasa=a=>{let d=(R_.ang-a+360)%360,b=(R_.ang-antes+360)%360;return d<=b+.01};
+  const L=R_.S.map(o=>{const[x,y,dx,dz]=aPantalla(o,T);o.sx=x;o.sy=y;
+    let a=Math.atan2(dx,dz)*180/Math.PI;if(a<0)a+=360;
+    if(Math.hypot(dx,dz)<=R&&!R_.pausa&&pasa(a))o.luz=1;else o.luz=Math.max(0,o.luz-dt/900);
+    return o});
+  const color=o=>o.s.inf>50?COL.verde:o.s.inf>20?COL.amar:COL.nar;
+  for(const o of L){const{sx:x,sy:y}=o;if(x<-30||y<-30||x>w+30||y>h+30)continue;
+    if(o.niv==2){const r=9+pulso*5;g.strokeStyle=COL.rojo;g.lineWidth=2.5;g.beginPath();g.arc(x,y,r,0,7);g.stroke();
+      if(o.luz>0){g.fillStyle=`rgba(255,70,50,${(o.luz*.35).toFixed(2)})`;g.beginPath();g.arc(x,y,r+8*o.luz,0,7);g.fill()}}
+    else if(o.niv==1){g.strokeStyle=COL.amar;g.lineWidth=2;g.beginPath();g.arc(x,y,10,0,7);g.stroke()}
+    g.fillStyle=o.luz>.05?mezcla(color(o),COL.ilum,o.luz):color(o);
+    if(o.s.ctrl)g.fillRect(x-4,y-4,8,8);else{g.beginPath();g.arc(x,y,3,0,7);g.fill()}
+    if(R_.sel==o.s.sys){g.strokeStyle="#fff";g.lineWidth=1.5;g.strokeRect(x-8,y-8,16,16)}}
+  // nombres: primero alertas, luego controlados, luego el resto (sin solaparse)
+  g.font="12px system-ui,sans-serif";g.textBaseline="middle";const kz=R_.def?R_.k*R_.def.d80/(.9*R):1;
+  for(const pas of[0,1,2]){if(pas==1&&kz<1.4)break;if(pas==2&&kz<3)break;
+    for(const o of L){const ok=pas==0?o.niv>0:pas==1?o.s.ctrl&&!o.niv:!o.s.ctrl&&!o.niv;if(!ok&&!(pas==0&&R_.sel==o.s.sys))continue;
+      const x=o.sx+(o.niv?17:9),y=o.sy,n=o.s.sys,wd=g.measureText(n).width;
+      if(x>w||y<0||y>h||x+wd<0)continue;
+      if(lab.some(r=>x<r[0]+r[2]+4&&r[0]<x+wd+4&&Math.abs(y-r[1])<13))continue;
+      lab.push([x,y,wd]);g.fillStyle=o.niv==2?COL.rojo:o.niv==1?COL.amar:o.s.ctrl?COL.blanco:COL.nmed;g.fillText(n,x,y)}}
+  g.fillStyle=COL.rej;g.font="11px system-ui,sans-serif";g.textBaseline="alphabetic";g.textAlign="right";
+  g.fillText(`anillo ${Math.round(R/3/R_.k)} ly`,w-6,h-6);g.textAlign="left";
+}
+function mezcla(a,b,f){const p=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)),A=p(a),B=p(b);return`rgb(${A.map((v,i)=>Math.round(v+(B[i]-v)*f)).join(",")})`}
+function tocaEn(x,y){
+  let m=null,dm=28*28;for(const o of R_.S){if(!o.niv)continue;const d=(o.sx-x)**2+(o.sy-y)**2;if(d<dm){dm=d;m=o}}
+  if(m)return m;dm=22*22;for(const o of R_.S){const d=(o.sx-x)**2+(o.sy-y)**2;if(d<dm){dm=d;m=o}}return m;
+}
+function ficha(o){
+  R_.sel=o.s.sys;const s=o.s,v=s.inf-(s.segunda_inf||0);
+  document.getElementById("rficha").innerHTML=`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b> ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
+   ${o.niv?`<div style="margin:4px 0"><span class="tag t${o.niv}">${esc(o.al[1])}</span> <span class="sub">${esc(o.al[2])}</span></div>`:""}
+   <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>${detalle(s)}`;
+}
+function pintaAlertas(){
+  const A=R_.S.filter(o=>o.niv).sort((a,b)=>b.niv-a.niv||a.s.inf-b.s.inf);
+  document.getElementById("ral").innerHTML=A.map(o=>`<button data-s="${esc(o.s.sys)}"><span class="tag t${o.niv}">${esc(o.al[1])}</span> ${esc(o.s.sys)}</button>`).join("");
+  document.getElementById("rInfo").textContent=`${R_.S.length} sistemas · ${A.length} alertas`;
+}
+document.getElementById("ral").onclick=e=>{const b=e.target.closest("button");if(!b)return;const o=R_.S.find(o=>o.s.sys==b.dataset.s);if(!o)return;
+  R_.cx=o.x;R_.cz=o.z;ficha(o);document.getElementById("rficha").scrollIntoView({behavior:"smooth",block:"nearest"})};
+function zoomEn(f,px,py){const T=tam();px??=T.w/2;py??=T.h/2;
+  const nk=Math.min(60,Math.max(.02,R_.k*f));const wx=R_.cx+(px-T.w/2)/R_.k,wz=R_.cz-(py-T.h/2)/R_.k;
+  R_.k=nk;R_.cx=wx-(px-T.w/2)/nk;R_.cz=wz+(py-T.h/2)/nk}
+document.getElementById("rMas").onclick=()=>zoomEn(1.5);document.getElementById("rMenos").onclick=()=>zoomEn(1/1.5);
+document.getElementById("rCen").onclick=()=>{if(R_.def){R_.cx=R_.def.cx;R_.cz=R_.def.cz;R_.k=0}};
+document.getElementById("rPausa").onclick=e=>{R_.pausa=!R_.pausa;e.target.textContent=R_.pausa?"▶":"❚❚"};
+const cv=R_.cv,pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);R_.pt.set(e.pointerId,pos(e));R_.mov=0});
+cv.addEventListener("pointermove",e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e),q=R_.pt.get(e.pointerId);
+  if(R_.pt.size==1){R_.cx-=(p[0]-q[0])/R_.k;R_.cz+=(p[1]-q[1])/R_.k;R_.mov+=Math.abs(p[0]-q[0])+Math.abs(p[1]-q[1])}
+  else if(R_.pt.size==2){const o=[...R_.pt.entries()].find(([id])=>id!=e.pointerId)[1];
+    const d0=Math.hypot(q[0]-o[0],q[1]-o[1]),d1=Math.hypot(p[0]-o[0],p[1]-o[1]);if(d0>0)zoomEn(d1/d0,(p[0]+o[0])/2,(p[1]+o[1])/2);R_.mov+=99}
+  R_.pt.set(e.pointerId,p)});
+const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e.pointerId);
+  if(e.type=="pointerup"&&R_.mov<8&&!R_.pt.size){const o=tocaEn(p[0],p[1]);if(o)ficha(o);else{R_.sel=null;document.getElementById("rficha").innerHTML=""}}};
+cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
+cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
+cv.addEventListener("dblclick",()=>document.getElementById("rCen").click());
+function vista(v){
+  try{localStorage.setItem("cdsn_vista",v)}catch(e){}
+  const r=v=="radar";document.getElementById("vRadar").hidden=!r;document.getElementById("vTabla").hidden=r;
+  document.getElementById("tRadar").classList.toggle("on",r);document.getElementById("tTabla").classList.toggle("on",!r);
+  if(r&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(!r)R_.on=false;
+}
+document.getElementById("tTabla").onclick=()=>vista("tabla");document.getElementById("tRadar").onclick=()=>vista("radar");
+try{if(localStorage.getItem("cdsn_vista")=="radar")vista("radar")}catch(e){}
+const vl=document.getElementById("verl");vl.textContent=VERSION+" · novedades";vl.onclick=e=>{e.preventDefault();novedades()};
+document.getElementById("verA").textContent=VERSION;
 // --- app instalable (PWA) ---
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 let aviso=null;const bi=document.getElementById("instalar");
