@@ -1,0 +1,17 @@
+{
+  "name": "Caballeros de Sion · BGS",
+  "short_name": "CDSN",
+  "description": "Estado de la facción Caballeros de Sion en Elite Dangerous: sistemas, influencia, alertas, tick y Powerplay.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0904",
+  "theme_color": "#0d0904",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

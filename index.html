@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Caballeros de Sion · BGS</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0904">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--f:#0d0904;--p:#1a1208;--l:#3a2a12;--n:#ff8c00;--nm:#b06a10;--v:#5adc78;--a:#ffd228;--r:#ff4632;--az:#5aaaff;--ro:#ff6ec8;--b:#f2e6d6}
 *{box-sizing:border-box}body{margin:0;background:var(--f);color:var(--b);font:14px/1.35 system-ui,Segoe UI,Roboto,sans-serif}
@@ -26,7 +33,7 @@ td{padding:6px;border-bottom:1px solid #22180a;vertical-align:top}tr.s{cursor:po
 .dg{display:flex;flex-wrap:wrap;gap:20px}.dg>div{min-width:260px}h3{margin:4px 0 6px;color:var(--v);font-size:12px;text-transform:uppercase}
 svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:var(--l);padding:10px 16px;font-size:12px}
 </style></head><body>
-<header><h1>CABALLEROS DE SION</h1><span id="est">cargando...</span><a href="https://inara.cz/elite/minorfaction/36648/" target="_blank" style="color:#b06a10;margin-left:auto">Inara ↗</a></header>
+<header><img src="icon-192.png" alt="" style="width:34px;height:34px;align-self:center;border-radius:50%"><h1>CABALLEROS DE SION</h1><span id="est">cargando...</span><button id="instalar" style="display:none;margin-left:auto;background:#ff8c00;color:#000;border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer">Instalar app</button><a href="https://inara.cz/elite/minorfaction/36648/" target="_blank" style="color:#b06a10;margin-left:12px">Inara ↗</a></header>
 <div class="cards" id="cards"></div>
 <div class="ctl"><input type="search" id="q" placeholder="Buscar sistema..."><label><input type="checkbox" id="fc"> solo controlados</label>
 <label><input type="checkbox" id="fa"> solo alertas</label><span class="sub" id="cnt"></span></div>
@@ -159,4 +166,11 @@ document.getElementById("cab").onclick=e=>{const k=e.target.dataset.k;if(!k)retu
 document.getElementById("tb").onclick=e=>{const tr=e.target.closest("tr.s");if(!tr)return;const n=tr.dataset.s;abiertos.has(n)?abiertos.delete(n):abiertos.add(n);pinta()};
 for(const id of["q","fc","fa"])document.getElementById(id).oninput=pinta;
 carga();setInterval(carga,300000);
+// --- app instalable (PWA) ---
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+let aviso=null;const bi=document.getElementById("instalar");
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();aviso=e;bi.style.display="inline-block"});
+bi.onclick=async()=>{if(!aviso)return;aviso.prompt();await aviso.userChoice;aviso=null;bi.style.display="none"};
+addEventListener("appinstalled",()=>{bi.style.display="none"});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)carga()});   // al volver a la app, datos nuevos
 </script></body></html>
