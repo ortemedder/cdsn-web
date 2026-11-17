@@ -43,6 +43,9 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 .fav{cursor:pointer;color:#6b4a1c;font-size:16px;padding:0 4px 0 0}.fav.on{color:#ffd228}
 .hoy{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer}.hoy b{font-size:15px}.hoy .acc{color:#5adc78;margin-top:3px}
 .favb{background:var(--p);color:#ffd228;border:1px solid var(--l);border-radius:8px;padding:9px 14px;font-weight:700;font-size:15px;margin-left:8px;cursor:pointer}
+@media(max-width:560px){.tabs{display:grid;grid-template-columns:repeat(3,1fr)}.tabs button{max-width:none;font-size:14px}}
+.vper{display:flex;gap:6px}.vper button{flex:1;max-width:120px;background:var(--p);color:var(--v);border:1px solid var(--l);border-radius:8px;padding:7px 4px;font-weight:700;cursor:pointer}.vper button.on{background:#5aaaff;color:#000;border-color:#5aaaff}
+.spk{display:inline-flex;align-items:flex-end;gap:2px;height:20px}.spk i{display:block;width:5px;background:#5aaaff;border-radius:1px}
 .ppc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.ppk{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:8px 12px;min-width:150px;flex:1;cursor:pointer}.ppk.on{outline:2px solid #ff8c00}.pps{color:var(--v);font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin:6px 0}
 .evo svg{width:100%;height:auto;background:#0f0a04;border:1px solid var(--l);border-radius:6px}
 </style></head><body>
@@ -53,10 +56,11 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <header><img src="icon-192.png" alt="" style="width:34px;height:34px;align-self:center;border-radius:50%"><h1>CABALLEROS DE SION</h1><span id="est">cargando...</span><button id="instalar" style="display:none;margin-left:auto;background:#ff8c00;color:#000;border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer">Instalar app</button><a href="https://inara.cz/elite/minorfaction/36648/" target="_blank" style="color:#b06a10;margin-left:12px">Inara ↗</a></header>
 <div class="cards" id="cards"></div>
 <div id="sinred" hidden style="background:#4a1a0a;color:#ffb27a;padding:8px 16px;font-weight:600"></div>
-<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tEvo" data-v="evo">Evolución</button></div>
+<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
 <div id="vEvo" hidden style="padding:0 16px 12px"></div>
 <div id="vPP" hidden style="padding:0 16px 12px"></div>
+<div id="vVis" hidden style="padding:0 16px 12px"></div>
 <div id="vRadar" hidden><canvas id="rad"></canvas>
 <div class="rbot"><button id="rMas">+</button><button id="rMenos">−</button><button id="rCen" title="Centrar">⌖</button><button id="rPausa" title="Pausa">❚❚</button><span class="sub" id="rInfo"></span></div>
 <div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = alerta grave, amarillo = aviso. Arrastra para mover, pellizca para zoom, un toque marca un sistema, dos toques abren su ficha.</div>
