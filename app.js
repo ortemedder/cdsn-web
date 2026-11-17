@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.8";
 const NOVEDADES=[
- ["v1.8","17/11/2026",["Pestaña Powerplay: potencias en nuestros sistemas, refuerzo y socavamiento, sistemas en peligro y listos para subir","La tabla de Powerplay alrededor pasa a esta pestaña","Pestaña Visitas: sistemas ordenados por los comandantes que pasan por ellos (hoy, ayer, 7 días o 30 días)","Estado de EDDN arriba y pestañas que caben mejor en el móvil"]],
+ ["v1.8","17/11/2026",["Pestaña Powerplay: potencias en nuestros sistemas, refuerzo y socavamiento, sistemas en peligro y listos para subir","La tabla de Powerplay alrededor pasa a esta pestaña","Pestaña Visitas: sistemas ordenados por los comandantes que pasan por ellos (hoy, ayer, 7 días o 30 días)","Aviso POSIBLE ATAQUE (pico de visitas y baja nuestra influencia) y ACTIVIDAD INUSUAL (solo pico de visitas) en la tabla, el radar y Hoy","Estado de EDDN arriba y pestañas que caben mejor en el móvil"]],
  ["v1.7","17/11/2026",["Enlaces a Inara y Spansh en la ficha de cada sistema (para ver el arquitecto y más)"]],
  ["v1.6","17/11/2026",["Pestaña Hoy: qué sistemas necesitan ayuda y qué hacer en cada uno","Pestaña Evolución: gráficas de la facción","Favoritos ⭐: salen primero en la tabla y resaltados en el radar","Aviso claro cuando no hay conexión"]],
  ["v1.5","16/11/2026",["Más protección: la app solo carga cosas de su propia web y de los datos de CDSN","El escucha descarta datos falsos de EDDN y avisa por Discord"]],
@@ -34,6 +34,11 @@ function hace(t){if(!t)return"—";let m=Math.round((now()-t)/60);if(m<1)return"
 function hora(t){return t?new Date(t*1000).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}):"—"}
 function hoyUTC(){return new Date().toISOString().slice(0,10)}
 function proxTick(s){let p=s.tick_prox;if(!p)return 0;while(p<now()-1800)p+=86400;return p}
+// pico de visitas: hoy o ayer al menos el triple de la media de los 7 dias anteriores (y 5 o mas pilotos)
+function pico(s){const t=s.trafico||{},d=n=>{const x=new Date();x.setUTCDate(x.getUTCDate()-n);return t[x.toISOString().slice(0,10)]||0};
+  for(const k of[0,1]){const v=d(k);let m=0;for(let i=k+1;i<=k+7;i++)m+=d(i);m/=7;if(v>=5&&v>=3*Math.max(m,1))return{v,m,dia:k?"ayer":"hoy"}}return null}
+function ataque(s){const p=pico(s);if(!p)return null;const baja=s.prev!=null&&s.prev-s.inf>=1;
+  return{...p,baja,txt:`${p.v} pilotos ${p.dia} (media ${c1(p.m)})`+(baja?` y la influencia baja ${c1(s.prev-s.inf)} puntos`:"")}}
 // alertas: mismas reglas que el radar
 function alerta(s){
   for(const c of s.conflictos||[]){const t=TIPO[(c.tipo||"").toLowerCase()]||"Conflicto";
@@ -42,7 +47,9 @@ function alerta(s){
   if((s.activos||[]).includes("Retreat")||(s.pendientes||[]).includes("Retreat"))return[2,"RETIRADA",`influencia ${c1(s.inf)} %`];
   const vent=s.inf-(s.segunda_inf||0);
   if(s.ctrl&&vent<5)return[2,"VENTAJA BAJA",`solo ${c1(vent)} sobre ${s.segunda}`];
+  const at=ataque(s);if(at&&at.baja)return[2,"POSIBLE ATAQUE",at.txt];
   if(s.prev!=null&&s.prev-s.inf>=3)return[1,"BAJADA",`${c1(s.inf-s.prev)} desde ayer`];
+  if(at)return[1,"ACTIVIDAD INUSUAL",at.txt];
   if((s.pendientes||[]).includes("Expansion"))return[1,"EXPANSIÓN PEND.",""];
   return[0,"",""];
 }
@@ -295,8 +302,10 @@ function tareas(){
     if(hecho)continue;
     if(act.includes("Retreat")||pen.includes("Retreat"))add(95,"RETIRADA",2,`influencia ${c1(s.inf)} %, CDSN puede salir del sistema`,SUBIR);
     else if(s.inf<5)add(85,"RIESGO RETIRADA",2,`influencia ${c1(s.inf)} %, por debajo del 5 %`,SUBIR);
+    else if(ataque(s)?.baja)add(88,"POSIBLE ATAQUE",2,ataque(s).txt+": puede que alguien esté trabajando contra CDSN",SUBIR);
     else if(s.ctrl&&v<5)add(80,"VENTAJA BAJA",2,`solo ${c1(v)} puntos sobre ${s.segunda}: puede haber conflicto por el control`,SUBIR);
     else if(s.prev!=null&&s.prev-s.inf>=3)add(60,"BAJADA",1,`${c1(s.inf-s.prev)} puntos desde ayer`,SUBIR);
+    else if(ataque(s))add(55,"ACTIVIDAD INUSUAL",1,ataque(s).txt+": vigilar la influencia en el próximo tick","Pasar por el sistema y ver qué misiones se están haciendo; si baja la influencia, "+SUBIR.toLowerCase());
     else if(s.ctrl&&v<10)add(50,"VENTAJA AJUSTADA",1,`${c1(v)} puntos sobre ${s.segunda}`,SUBIR);
     else if(pen.includes("Expansion")||act.includes("Expansion"))add(40,"EXPANSIÓN",1,pen.includes("Expansion")?"expansión pendiente":"expansión en curso","Mantener la influencia alta mientras dura");
     else if(s.ctrl&&s.inf>=70)add(30,"CERCA DE EXPANSIÓN",0,`${c1(s.inf)} %, la expansión salta al 75 %`,SUBIR);
