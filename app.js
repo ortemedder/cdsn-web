@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.8";
+const VERSION="v1.8.1";
 const NOVEDADES=[
+ ["v1.8.1","17/11/2026",["Pestaña Visitas: sistemas ordenados por los comandantes que pasan por ellos (hoy, ayer, 7 días o 30 días)","Aviso POSIBLE ATAQUE (pico de visitas y baja nuestra influencia) y ACTIVIDAD INUSUAL (solo pico de visitas) en la tabla, el radar y Hoy","Pestañas en dos filas en el móvil"]],
  ["v1.8","17/11/2026",["Pestaña Powerplay: potencias en nuestros sistemas, refuerzo y socavamiento, sistemas en peligro y listos para subir","La tabla de Powerplay alrededor pasa a esta pestaña","Estado de EDDN arriba y pestañas que caben mejor en el móvil"]],
  ["v1.7","17/11/2026",["Enlaces a Inara y Spansh en la ficha de cada sistema (para ver el arquitecto y más)"]],
  ["v1.6","17/11/2026",["Pestaña Hoy: qué sistemas necesitan ayuda y qué hacer en cada uno","Pestaña Evolución: gráficas de la facción","Favoritos ⭐: salen primero en la tabla y resaltados en el radar","Aviso claro cuando no hay conexión"]],
@@ -34,6 +35,11 @@ function hace(t){if(!t)return"—";let m=Math.round((now()-t)/60);if(m<1)return"
 function hora(t){return t?new Date(t*1000).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}):"—"}
 function hoyUTC(){return new Date().toISOString().slice(0,10)}
 function proxTick(s){let p=s.tick_prox;if(!p)return 0;while(p<now()-1800)p+=86400;return p}
+// pico de visitas: hoy o ayer al menos el triple de la media de los 7 dias anteriores (y 5 o mas pilotos)
+function pico(s){const t=s.trafico||{},d=n=>{const x=new Date();x.setUTCDate(x.getUTCDate()-n);return t[x.toISOString().slice(0,10)]||0};
+  for(const k of[0,1]){const v=d(k);let m=0;for(let i=k+1;i<=k+7;i++)m+=d(i);m/=7;if(v>=5&&v>=3*Math.max(m,1))return{v,m,dia:k?"ayer":"hoy"}}return null}
+function ataque(s){const p=pico(s);if(!p)return null;const baja=s.prev!=null&&s.prev-s.inf>=1;
+  return{...p,baja,txt:`${p.v} pilotos ${p.dia} (media ${c1(p.m)})`+(baja?` y la influencia baja ${c1(s.prev-s.inf)} puntos`:"")}}
 // alertas: mismas reglas que el radar
 function alerta(s){
   for(const c of s.conflictos||[]){const t=TIPO[(c.tipo||"").toLowerCase()]||"Conflicto";
@@ -42,7 +48,9 @@ function alerta(s){
   if((s.activos||[]).includes("Retreat")||(s.pendientes||[]).includes("Retreat"))return[2,"RETIRADA",`influencia ${c1(s.inf)} %`];
   const vent=s.inf-(s.segunda_inf||0);
   if(s.ctrl&&vent<5)return[2,"VENTAJA BAJA",`solo ${c1(vent)} sobre ${s.segunda}`];
+  const at=ataque(s);if(at&&at.baja)return[2,"POSIBLE ATAQUE",at.txt];
   if(s.prev!=null&&s.prev-s.inf>=3)return[1,"BAJADA",`${c1(s.inf-s.prev)} desde ayer`];
+  if(at)return[1,"ACTIVIDAD INUSUAL",at.txt];
   if((s.pendientes||[]).includes("Expansion"))return[1,"EXPANSIÓN PEND.",""];
   return[0,"",""];
 }
@@ -82,7 +90,7 @@ function pinta(){
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
-  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();
+  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();
 }
 function grafica(h){
   if(!h||h.length<2)return'<span class="sub">histórico: aprendiendo...</span>';
@@ -133,7 +141,7 @@ async function carga(){
     const e=D.eddn||null;
     const sub=D.t?hace(D.t):"—", viejo=D.t&&now()-D.t>3600;
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}">datos de hace ${sub}${viejo?" (el escucha no ha subido datos en más de 1 h)":""}</span>`+
-      (e?` · <span style="color:${e.ok&&e.ultimo&&now()-e.ultimo<900?"#5adc78":"#ff4632"}">EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}</span>`:"");
+      (e?` · <span style="color:${e.ok&&e.ultimo&&(D.t||now())-e.ultimo<900?"#5adc78":"#ff4632"}">EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}</span>`:"");
     document.getElementById("pie").textContent=`Escucha EDDN de CDSN · ${Object.keys(D.sistemas||{}).length} sistemas · página actualizada ${new Date().toLocaleTimeString("es-ES")} (se refresca sola cada 5 min)`;
     pinta();sinRed();
   }catch(x){if(D){sinRed(true)}else document.getElementById("est").textContent="no se pudieron leer los datos: "+x}
@@ -264,13 +272,13 @@ const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
-const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",evo:"vEvo"};
+const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo"};
 function vista(v){
   if(!VISTAS[v])v="tabla";try{localStorage.setItem("cdsn_vista",v)}catch(e){}
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
-  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="evo")pintaEvo();
+  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
@@ -295,8 +303,10 @@ function tareas(){
     if(hecho)continue;
     if(act.includes("Retreat")||pen.includes("Retreat"))add(95,"RETIRADA",2,`influencia ${c1(s.inf)} %, CDSN puede salir del sistema`,SUBIR);
     else if(s.inf<5)add(85,"RIESGO RETIRADA",2,`influencia ${c1(s.inf)} %, por debajo del 5 %`,SUBIR);
+    else if(ataque(s)?.baja)add(88,"POSIBLE ATAQUE",2,ataque(s).txt+": puede que alguien esté trabajando contra CDSN",SUBIR);
     else if(s.ctrl&&v<5)add(80,"VENTAJA BAJA",2,`solo ${c1(v)} puntos sobre ${s.segunda}: puede haber conflicto por el control`,SUBIR);
     else if(s.prev!=null&&s.prev-s.inf>=3)add(60,"BAJADA",1,`${c1(s.inf-s.prev)} puntos desde ayer`,SUBIR);
+    else if(ataque(s))add(55,"ACTIVIDAD INUSUAL",1,ataque(s).txt+": vigilar la influencia en el próximo tick","Pasar por el sistema y ver qué misiones se están haciendo; si baja la influencia, "+SUBIR.toLowerCase());
     else if(s.ctrl&&v<10)add(50,"VENTAJA AJUSTADA",1,`${c1(v)} puntos sobre ${s.segunda}`,SUBIR);
     else if(pen.includes("Expansion")||act.includes("Expansion"))add(40,"EXPANSIÓN",1,pen.includes("Expansion")?"expansión pendiente":"expansión en curso","Mantener la influencia alta mientras dura");
     else if(s.ctrl&&s.inf>=70)add(30,"CERCA DE EXPANSIÓN",0,`${c1(s.inf)} %, la expansión salta al 75 %`,SUBIR);
@@ -393,3 +403,21 @@ document.getElementById("vPP").onclick=e=>{
   if(e.target.id=="ppTodas"){e.preventDefault();PPF="";pintaPP();return}
   const k=e.target.closest(".ppk");if(k){PPF=PPF==k.dataset.p?"":k.dataset.p;pintaPP();return}
   const d=e.target.closest("[data-s]");if(d)abreFicha(d.dataset.s)};
+// ---------- pestaña Visitas: sistemas ordenados por comandantes ----------
+let VP=1;   // dias del periodo: 1 hoy, -1 ayer, 7, 30
+const VPS=[[1,"Hoy"],[-1,"Ayer"],[7,"7 días"],[30,"30 días"]];
+function diasAtras(n){const d=new Date();d.setUTCDate(d.getUTCDate()-n);return d.toISOString().slice(0,10)}
+function pintaVis(){
+  if(!D)return;
+  const dias=VP==-1?[diasAtras(1)]:[...Array(VP).keys()].map(diasAtras),ult7=[...Array(7).keys()].map(diasAtras).reverse();
+  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>{const t=s.trafico||{};return{s,n:dias.reduce((a,d)=>a+(t[d]||0),0),serie:ult7.map(d=>t[d]||0)}});
+  const tot=L.reduce((a,o)=>a+o.n,0),con=L.filter(o=>o.n>0).sort((a,b)=>b.n-a.n||b.s.inf-a.s.inf),mx=con.length?con[0].n:1;
+  const sp=v=>{const m=Math.max(1,...v);return`<span class="spk">${v.map(x=>`<i style="height:${x?Math.max(2,Math.round(x/m*18)):1}px;${x?"":"background:#3a2a12"}"></i>`).join("")}</span>`};
+  document.getElementById("vVis").innerHTML=`<div class="vper">${VPS.map(([d,n])=>`<button data-d="${d}" class="${d==VP?"on":""}">${n}</button>`).join("")}</div>
+   <div class="sub" style="margin:6px 0 10px">${tot} visitas en ${con.length} sistemas · ${L.length-con.length} sin visitas. Cuenta pilotos distintos por día que envían datos a EDDN (con EDMC u otras herramientas), así que los reales son más.</div>`+
+   (con.length?`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>#</th><th>Sistema</th><th>Visitas</th><th>7 días</th></tr>`+
+   con.map((o,i)=>{const s=o.s,a=alerta(s);return`<tr class="s g${a[0]}" data-s="${esc(s.sys)}"><td class="sub num">${i+1}</td><td><span class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</span>${a[0]?` <span class="tag t${a[0]}">${esc(a[1])}</span>`:""}<div class="sub">infl. ${c1(s.inf)} %</div></td>
+    <td style="white-space:nowrap"><div class="bar" style="width:min(18vw,160px);display:inline-block;vertical-align:middle"><i style="width:${o.n/mx*100}%;background:#5aaaff"></i></div> <b class="az">${o.n}</b></td><td>${sp(o.serie)}</td></tr>`}).join("")+"</table></div>":"<p>Nadie ha pasado por nuestros sistemas en este periodo (o el escucha aún no lo ha visto).</p>");
+}
+document.getElementById("vVis").onclick=e=>{const b=e.target.closest(".vper button");if(b){VP=+b.dataset.d;pintaVis();return}
+  const tr=e.target.closest("[data-s]");if(tr)abreFicha(tr.dataset.s)};
