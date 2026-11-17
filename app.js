@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.7";
+const VERSION="v1.8";
 const NOVEDADES=[
+ ["v1.8","17/11/2026",["Pestaña Powerplay: potencias en nuestros sistemas, refuerzo y socavamiento, sistemas en peligro y listos para subir","La tabla de Powerplay alrededor pasa a esta pestaña","Estado de EDDN arriba y pestañas que caben mejor en el móvil"]],
  ["v1.7","17/11/2026",["Enlaces a Inara y Spansh en la ficha de cada sistema (para ver el arquitecto y más)"]],
  ["v1.6","17/11/2026",["Pestaña Hoy: qué sistemas necesitan ayuda y qué hacer en cada uno","Pestaña Evolución: gráficas de la facción","Favoritos ⭐: salen primero en la tabla y resaltados en el radar","Aviso claro cuando no hay conexión"]],
  ["v1.5","16/11/2026",["Más protección: la app solo carga cosas de su propia web y de los datos de CDSN","El escucha descarta datos falsos de EDDN y avisa por Discord"]],
@@ -81,8 +82,7 @@ function pinta(){
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
-  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();
-  document.getElementById("zona").innerHTML=zona();
+  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();
 }
 function grafica(h){
   if(!h||h.length<2)return'<span class="sub">histórico: aprendiendo...</span>';
@@ -97,43 +97,43 @@ function grafica(h){
 }
 function detalle(s){
   const fac=(s.todas||[]).map(x=>{const m=x.n==FAC;
-    return`<span class="${m?"ctrl":""}">${esc(x.n)}${x.jug?" <span class='sub'>(jugadores)</span>":""}<br><span class="sub">${esc(x.gov)} · ${esc(x.alg)}${(x.act||[]).length?" · "+x.act.map(es).join(", "):""}${(x.pend||[]).length?" · pend.: "+x.pend.map(es).join(", "):""}</span></span>
+    return`<span class="${m?"ctrl":""}">${esc(x.n)}${x.jug?" <span class='sub'>(jugadores)</span>":""}<br><span class="sub">${esc(x.gov)} · ${esc(x.alg)}${(x.act||[]).length?" · "+esc(x.act.map(es).join(", ")):""}${(x.pend||[]).length?" · pend.: "+esc(x.pend.map(es).join(", ")):""}</span></span>
     <div class="bar"><i class="${m?"m":""}" style="width:${Math.min(100,x.inf)}%"></i></div><span class="num">${c1(x.inf)} %</span>`}).join("");
-  const con=(s.conflictos||[]).map(c=>`${TIPO[(c.tipo||"").toLowerCase()]||c.tipo} (${c.estado=="active"?"activo":c.estado=="pending"?"pendiente":c.estado}) contra <b>${esc(c.contra)}</b>: ${"<span class=up>■</span>".repeat(c.ganados||0)}${"<span class=dn>■</span>".repeat(c.perdidos||0)} ${c.ganados||0}-${c.perdidos||0}`).join("<br>")||"ninguno";
+  const con=(s.conflictos||[]).map(c=>`${esc(TIPO[(c.tipo||"").toLowerCase()]||c.tipo)} (${c.estado=="active"?"activo":c.estado=="pending"?"pendiente":esc(c.estado)}) contra <b>${esc(c.contra)}</b>: ${"<span class=up>■</span>".repeat(c.ganados||0)}${"<span class=dn>■</span>".repeat(c.perdidos||0)} ${c.ganados||0}-${c.perdidos||0}`).join("<br>")||"ninguno";
   const tr=Object.entries(s.trafico||{}).sort().slice(-8).map(([d,n])=>`${d.slice(8)}/${d.slice(5,7)}: <b class=az>${n}</b>`).join(" · ")||"—";
   const k=s.tk||{},vent=(k.vent||[]).map(v=>`${new Date(v[0]*1000).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})} ${hora(v[0])}–${hora(v[1])}`).join("<br>");
   const tk=`último: ${s.tick_ult?hora(s.tick_ult)+(s.tick_marg!=null?" (±"+s.tick_marg+" min)":""):"aún no visto"}<br>
     próximo: <span class=pk>${proxTick(s)?"~"+hora(proxTick(s))+(s.tick_disp!=null?" (±"+s.tick_disp+" min)":""):"—"}</span><br>
     aprendidos: ${s.tick_n||0} bien acotados · ${(k.vent||[]).length} ventanas${vent?"<br><span class=sub>"+vent+"</span>":""}`;
   const si=s.sis||{},pp=s.pp||{};
-  const sis=`población: ${pob(si.pob)}<br>economía: ${limpia(si.eco)}${si.eco2&&si.eco2!="$economy_None;"?" / "+limpia(si.eco2):""}<br>
-    seguridad: ${SEG[si.seg]||limpia(si.seg)} · gobierno: ${limpia(si.gov)} · alianza: ${esc(si.alg||"—")}<br>
+  const sis=`población: ${pob(si.pob)}<br>economía: ${esc(limpia(si.eco))}${si.eco2&&si.eco2!="$economy_None;"?" / "+esc(limpia(si.eco2)):""}<br>
+    seguridad: ${esc(SEG[si.seg]||limpia(si.seg))} · gobierno: ${esc(limpia(si.gov))} · alianza: ${esc(si.alg||"—")}<br>
     coordenadas: ${(s.pos||[]).map(v=>v==null?"?":(+v).toFixed(1)).join(" / ")||"—"}${s.ctrl_n?"<br>controla: "+esc(s.ctrl_n):""}`;
-  const pw=pp.pot||(pp.pots||[]).length?`potencia: <b>${esc(pp.pot||"ninguna")}</b>${pp.est?" ("+esc(pp.est)+")":""}<br>
+  const pw=pp.pot||(pp.pots||[]).length?`potencia: <b>${esc(pp.pot||"ninguna")}</b>${pp.est?" ("+esc(PPE[pp.est]||pp.est)+")":""}<br>
     progreso: ${pct(pp.prog)} · refuerzo: ${pp.ref??"—"} · socavamiento: ${pp.soc??"—"}${(pp.pots||[]).length?"<br><span class=sub>presentes: "+pp.pots.map(esc).join(", ")+"</span>":""}`:"sin Powerplay";
-  const zc=(s.zc||[]).map(z=>`${ZC[z.i]||z.i} <span class=sub>(${hace(z.t)})</span>`).join(" · ")||"no vistas en 24 h";
+  const zc=(s.zc||[]).map(z=>`${esc(ZC[z.i]||z.i)} <span class=sub>(${hace(z.t)})</span>`).join(" · ")||"no vistas en 24 h";
   const pn=Object.entries(s.pn||{}).map(([c,v])=>`<b>${esc(c)}</b> ${esc(v.n||"")} <span class=sub>(${hace(v.t)})</span>`).join("<br>")||"no vistos en 7 días";
   const ay=s.prev!=null?`${c1(s.prev)} % → ${c1(s.inf)} % (${(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)}) · cambio visto hace ${hace(s.t)}${s.prev_t?" · dato anterior hace "+hace(s.prev_t):""}`:"—";
   const B=(t,c)=>`<h3 style="margin-top:10px">${t}</h3>${c}`;
   return`<div class="dg"><div><h3>Facciones</h3><div class="fac">${fac}</div>${B("Sistema",sis)}${B("Powerplay",pw)}</div>
   <div><h3>Influencia</h3>${grafica(s.hinf)}${B("Desde ayer",ay)}${B("Conflictos",con)}
-  ${B("Estados de CDSN","activos: "+((s.activos||[]).map(es).join(", ")||"—")+"<br>pendientes: "+((s.pendientes||[]).map(es).join(", ")||"—")+"<br>recuperando: "+((s.recuperando||[]).map(es).join(", ")||"—"))}</div>
+  ${B("Estados de CDSN","activos: "+esc((s.activos||[]).map(es).join(", ")||"—")+"<br>pendientes: "+esc((s.pendientes||[]).map(es).join(", ")||"—")+"<br>recuperando: "+esc((s.recuperando||[]).map(es).join(", ")||"—"))}</div>
   <div>${B("Tick",tk)}${B("Visitas (pilotos distintos por día)",tr)}${B("Zonas de conflicto",zc)}${B("Portanaves vistos",pn)}
   ${B("Dato","fuente "+esc(s.src||"")+" · hace "+hace(s.t))}</div></div>`;
 }
 function zona(){
-  const Z=Object.entries(D.zona||{});if(!Z.length)return"";
+  const Z=Object.entries(D.zona||{}).filter(([n,z])=>!PPF||z.pot==PPF||(z.pots||[]).includes(PPF));if(!Z.length)return"";
   Z.sort((a,b)=>(a[1].pot||"~").localeCompare(b[1].pot||"~")||a[0].localeCompare(b[0]));
-  return`<h3 style="padding:0 16px">Powerplay alrededor (a menos de 20 ly de tus sistemas)</h3><div class="tw"><table style="min-width:600px"><tr><th>Sistema</th><th>Potencia</th><th>Estado</th><th class=num>Progreso</th><th>Presentes</th><th class=num>Dato</th></tr>`+
-   Z.map(([n,z])=>`<tr><td>${esc(n)}</td><td>${esc(z.pot||"—")}</td><td>${esc(z.est||"—")}</td><td class=num>${pct(z.prog)}</td><td class=sub>${(z.pots||[]).map(esc).join(", ")}</td><td class="num sub">${hace(z.t)}</td></tr>`).join("")+"</table></div>";
+  return`<details><summary class="pps">Powerplay alrededor: ${Z.length} sistemas a menos de 20 ly de los nuestros (toca para ver)</summary><div class="tw" style="padding:6px 0 20px"><table style="min-width:600px"><tr><th>Sistema</th><th>Potencia</th><th>Estado</th><th class=num>Progreso</th><th>Presentes</th><th class=num>Dato</th></tr>`+
+   Z.map(([n,z])=>`<tr><td>${esc(n)}</td><td>${z.pot?ppNom(z.pot):"—"}</td><td>${esc(PPE[z.est]||z.est||"—")}</td><td class=num>${pct(z.prog)}</td><td class=sub>${(z.pots||[]).map(esc).join(", ")}</td><td class="num sub">${hace(z.t)}</td></tr>`).join("")+"</table></div</details>";
 }
 async function carga(){
   try{
     D=await fetch(DATOS+"?"+Date.now()).then(r=>r.json());
-    const e=null;
+    const e=D.eddn||null;
     const sub=D.t?hace(D.t):"—", viejo=D.t&&now()-D.t>3600;
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}">datos de hace ${sub}${viejo?" (el escucha no ha subido datos en más de 1 h)":""}</span>`+
-      (e?` · EDDN ${e.conectado?"conectado":"DESCONECTADO"} · ${e.msgmin} msg/min`:"");
+      (e?` · <span style="color:${e.ok&&e.ultimo&&now()-e.ultimo<900?"#5adc78":"#ff4632"}">EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}</span>`:"");
     document.getElementById("pie").textContent=`Escucha EDDN de CDSN · ${Object.keys(D.sistemas||{}).length} sistemas · página actualizada ${new Date().toLocaleTimeString("es-ES")} (se refresca sola cada 5 min)`;
     pinta();sinRed();
   }catch(x){if(D){sinRed(true)}else document.getElementById("est").textContent="no se pudieron leer los datos: "+x}
@@ -264,13 +264,13 @@ const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
-const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",evo:"vEvo"};
+const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",evo:"vEvo"};
 function vista(v){
   if(!VISTAS[v])v="tabla";try{localStorage.setItem("cdsn_vista",v)}catch(e){}
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
-  if(v=="hoy")pintaHoy();if(v=="evo")pintaEvo();
+  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="evo")pintaEvo();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
@@ -350,3 +350,46 @@ addEventListener("beforeinstallprompt",e=>{e.preventDefault();aviso=e;bi.style.d
 bi.onclick=async()=>{if(!aviso)return;aviso.prompt();await aviso.userChoice;aviso=null;bi.style.display="none"};
 addEventListener("appinstalled",()=>{bi.style.display="none"});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)carga()});   // al volver a la app, datos nuevos
+// ---------- pestaña Powerplay ----------
+const PPE={Exploited:"Explotado",Fortified:"Fortificado",Stronghold:"Bastión",Unoccupied:"Sin ocupar"};
+const PPC={"Jerome Archer":"#d0402a","Li Yong-Rui":"#3fb6e0","Edmund Mahon":"#5adc78","Aisling Duval":"#5aaaff","Zemina Torval":"#3a7bd5",
+ "Pranav Antal":"#ffd228","Felicia Winters":"#ff9b3d","Archon Delaine":"#c0392b","Yuri Grom":"#e67e22","Denton Patreus":"#9fb0c8",
+ "A. Lavigny-Duval":"#a070e0","Nakato Kaine":"#c6e05a"};
+const ppCol=n=>PPC[n]||"#c9a36a";
+const ppNom=n=>`<span style="color:${ppCol(n)};font-weight:600">${esc(n)}</span>`;
+let PPF="";   // filtro por potencia
+function ppBarra(v){if(v==null)return'<span class="sub">—</span>';const w=Math.max(0,Math.min(100,v*100));
+  return`<div class="bar" style="width:90px;display:inline-block;vertical-align:middle"><i style="width:${w}%;background:${v>=1?"#5adc78":"#ff8c00"}"></i></div> <span class="num sub">${pct(v)}</span>`}
+function pintaPP(){
+  if(!D)return;const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null);
+  const con=S.filter(s=>(s.pp||{}).pot),sin=S.filter(s=>!(s.pp||{}).pot);
+  const P={};for(const s of con){const p=s.pp,o=P[p.pot]??={n:p.pot,t:0,c:0,e:{},ref:0,soc:0};o.t++;if(s.ctrl)o.c++;o.e[p.est]=(o.e[p.est]||0)+1;o.ref+=p.ref||0;o.soc+=p.soc||0}
+  const PL=Object.values(P).sort((a,b)=>b.t-a.t);
+  let h=`<div class="sub" style="margin-bottom:8px">${con.length} de nuestros ${S.length} sistemas tienen potencia · ${sin.length} sin ocupar. Toca una potencia para filtrar.</div><div class="ppc">`+
+   PL.map(o=>`<div class="ppk${PPF==o.n?" on":""}" data-p="${esc(o.n)}" style="border-left:4px solid ${ppCol(o.n)}"><b style="color:${ppCol(o.n)}">${esc(o.n)}</b>
+    <div><b style="font-size:20px">${o.t}</b> <span class="sub">sistemas (${o.c} controlados)</span></div>
+    <div class="sub">${["Stronghold","Fortified","Exploited"].filter(k=>o.e[k]).map(k=>`${PPE[k]} ${o.e[k]}`).join(" · ")}</div>
+    <div class="sub">refuerzo <span class="up">${o.ref.toLocaleString("es-ES")}</span> · socav. <span class="dn">${o.soc.toLocaleString("es-ES")}</span></div></div>`).join("")+`</div>`;
+  const F=con.filter(s=>!PPF||s.pp.pot==PPF);
+  // atencion: socavados y listos para subir
+  const peligro=F.filter(s=>(s.pp.soc||0)>(s.pp.ref||0)&&(s.pp.soc||0)>=50).sort((a,b)=>(b.pp.soc-(b.pp.ref||0))-(a.pp.soc-(a.pp.ref||0)));
+  const sube=F.filter(s=>(s.pp.prog||0)>=1);
+  const fila=(s,extra)=>`<div class="hoy" data-s="${esc(s.sys)}"><b style="color:${s.ctrl?"#fff":"#ff8c00"}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</b> ${ppNom(s.pp.pot)} <span class="sub">${esc(PPE[s.pp.est]||s.pp.est||"")}</span><div class="sub">${extra}</div></div>`;
+  if(peligro.length)h+=`<h3>Más socavados que reforzados (${peligro.length})</h3>`+peligro.slice(0,10).map(s=>fila(s,`socavamiento <span class="dn">${s.pp.soc}</span> · refuerzo <span class="up">${s.pp.ref||0}</span> · progreso ${pct(s.pp.prog)}`)).join("");
+  if(sube.length)h+=`<h3>Listos para subir de nivel (${sube.length})</h3>`+sube.map(s=>fila(s,`progreso <span class="up">${pct(s.pp.prog)}</span> · refuerzo ${s.pp.ref||0} · socav. ${s.pp.soc||0}`)).join("");
+  // tabla de nuestros sistemas
+  const O={Stronghold:3,Fortified:2,Exploited:1};
+  F.sort((a,b)=>(FAV.has(b.sys)-FAV.has(a.sys))||a.pp.pot.localeCompare(b.pp.pot)||(O[b.pp.est]||0)-(O[a.pp.est]||0)||(b.pp.prog||0)-(a.pp.prog||0));
+  h+=`<h3>Nuestros sistemas con potencia${PPF?" · "+esc(PPF)+` <a href="#" id="ppTodas" style="color:#ff8c00">(ver todas)</a>`:""}</h3><div class="tw" style="padding:0 0 12px"><table style="min-width:640px"><tr><th>Sistema</th><th>Potencia</th><th>Estado</th><th>Progreso</th><th class=num>Refuerzo</th><th class=num>Socav.</th><th>Presentes</th></tr>`+
+   F.map(s=>`<tr class="s" data-s="${esc(s.sys)}"><td class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</td><td>${ppNom(s.pp.pot)}</td><td>${esc(PPE[s.pp.est]||s.pp.est||"—")}</td><td style="white-space:nowrap">${ppBarra(s.pp.prog)}</td>
+    <td class="num up">${s.pp.ref??"—"}</td><td class="num ${(s.pp.soc||0)>(s.pp.ref||0)?"dn":"sub"}">${s.pp.soc??"—"}</td><td class="sub">${esc((s.pp.pots||[]).filter(x=>x!=s.pp.pot).join(", "))}</td></tr>`).join("")+`</table></div>`;
+  // sin ocupar: quien esta presente
+  if(!PPF&&sin.length){const Q={};for(const s of sin)for(const p of(s.pp||{}).pots||[])Q[p]=(Q[p]||0)+1;
+    h+=`<h3>Sin ocupar (${sin.length})</h3><div class="sub" style="margin-bottom:12px">Potencias presentes que podrían adquirirlos: ${Object.entries(Q).sort((a,b)=>b[1]-a[1]).map(([p,n])=>ppNom(p)+" "+n).join(" · ")||"ninguna"}</div>`}
+  h+=zona();
+  document.getElementById("vPP").innerHTML=h;
+}
+document.getElementById("vPP").onclick=e=>{
+  if(e.target.id=="ppTodas"){e.preventDefault();PPF="";pintaPP();return}
+  const k=e.target.closest(".ppk");if(k){PPF=PPF==k.dataset.p?"":k.dataset.p;pintaPP();return}
+  const d=e.target.closest("[data-s]");if(d)abreFicha(d.dataset.s)};
