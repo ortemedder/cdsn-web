@@ -34,7 +34,7 @@ td{padding:6px;border-bottom:1px solid #22180a;vertical-align:top}tr.s{cursor:po
 .bar{height:10px;background:var(--l);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--nm)}.bar i.m{background:var(--n)}
 .dg{display:flex;flex-wrap:wrap;gap:20px}.dg>div{min-width:260px}h3{margin:4px 0 6px;color:var(--v);font-size:12px;text-transform:uppercase}
 svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:var(--l);padding:10px 16px;font-size:12px}
-.tabs{display:flex;gap:8px;padding:0 16px 10px}.tabs button{flex:1;max-width:160px;min-width:0;padding-left:2px!important;padding-right:2px!important;background:var(--p);color:var(--v);border:1px solid var(--l);border-radius:8px;padding:8px;font-weight:700;font-size:14px;cursor:pointer}
+.tabs{display:flex;gap:6px;padding:0 12px 10px}.tabs button{flex:1;max-width:160px;min-width:0;background:var(--p);color:var(--v);border:1px solid var(--l);border-radius:8px;padding:8px 2px;font-weight:700;font-size:clamp(11px,3.2vw,14px);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs button.on{background:#ff8c00;color:#000;border-color:#ff8c00}
 #vRadar{padding:0 12px 12px}#rad{display:block;width:100%;touch-action:none;border-radius:10px;background:#120b02;border:1px solid var(--l)}
 .rbot{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}.rbot button{background:var(--p);color:#ff8c00;border:1px solid var(--l);border-radius:6px;min-width:44px;height:38px;font-size:18px;font-weight:700;cursor:pointer}
@@ -43,6 +43,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 .fav{cursor:pointer;color:#6b4a1c;font-size:16px;padding:0 4px 0 0}.fav.on{color:#ffd228}
 .hoy{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer}.hoy b{font-size:15px}.hoy .acc{color:#5adc78;margin-top:3px}
 .favb{background:var(--p);color:#ffd228;border:1px solid var(--l);border-radius:8px;padding:9px 14px;font-weight:700;font-size:15px;margin-left:8px;cursor:pointer}
+.ppc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.ppk{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:8px 12px;min-width:150px;flex:1;cursor:pointer}.ppk.on{outline:2px solid #ff8c00}.pps{color:var(--v);font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin:6px 0}
 .evo svg{width:100%;height:auto;background:#0f0a04;border:1px solid var(--l);border-radius:6px}
 </style></head><body>
 <div id="arranque" style="position:fixed;inset:0;z-index:99;background:#0d0904;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .6s">
@@ -52,9 +53,10 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <header><img src="icon-192.png" alt="" style="width:34px;height:34px;align-self:center;border-radius:50%"><h1>CABALLEROS DE SION</h1><span id="est">cargando...</span><button id="instalar" style="display:none;margin-left:auto;background:#ff8c00;color:#000;border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer">Instalar app</button><a href="https://inara.cz/elite/minorfaction/36648/" target="_blank" style="color:#b06a10;margin-left:12px">Inara ↗</a></header>
 <div class="cards" id="cards"></div>
 <div id="sinred" hidden style="background:#4a1a0a;color:#ffb27a;padding:8px 16px;font-weight:600"></div>
-<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tEvo" data-v="evo">Evolución</button></div>
+<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tEvo" data-v="evo">Evolución</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
 <div id="vEvo" hidden style="padding:0 16px 12px"></div>
+<div id="vPP" hidden style="padding:0 16px 12px"></div>
 <div id="vRadar" hidden><canvas id="rad"></canvas>
 <div class="rbot"><button id="rMas">+</button><button id="rMenos">−</button><button id="rCen" title="Centrar">⌖</button><button id="rPausa" title="Pausa">❚❚</button><span class="sub" id="rInfo"></span></div>
 <div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = alerta grave, amarillo = aviso. Arrastra para mover, pellizca para zoom, un toque marca un sistema, dos toques abren su ficha.</div>
@@ -64,8 +66,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div id="rfullc"></div></div>
 <div id="vTabla"><div class="ctl"><input type="search" id="q" placeholder="Buscar sistema..."><label><input type="checkbox" id="fc"> solo controlados</label>
 <label><input type="checkbox" id="fa"> solo alertas</label><label><input type="checkbox" id="ff"> solo ⭐</label><span class="sub" id="cnt"></span></div>
-<div class="tw"><table><thead><tr id="cab"></tr></thead><tbody id="tb"></tbody></table></div>
-<div id="zona"></div></div>
+<div class="tw"><table><thead><tr id="cab"></tr></thead><tbody id="tb"></tbody></table></div></div>
 <footer><span id="pie"></span> · <a href="#" id="verl" style="color:#ff8c00"></a></footer>
 <div id="nov" hidden style="background:var(--p);border:1px solid var(--l);border-radius:8px;margin:0 16px 16px;padding:10px 14px"></div>
 <script src="app.js"></script></body></html>
