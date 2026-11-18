@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.9";
 const NOVEDADES=[
- ["v1.9","18/11/2026",["Alerta de POSIBLE ATAQUE: franja roja arriba mientras dure y tarjeta grande una vez al día (o si empeora), con Ver ficha, Siguiente y Visto","Visitas: periodo de 5 días (igual que el radar del ESP32) y siempre salen los sistemas con pico de visitas"]],
+ ["v1.9","18/11/2026",["Alerta de POSIBLE ATAQUE: franja roja arriba mientras dure y tarjeta grande una vez al día (o si empeora), con Ver ficha, Siguiente y Visto","Visitas: periodo de 5 días (igual que el radar del ESP32) y siempre salen los sistemas con pico de visitas","Historial de posibles ataques en Visitas: cuándo fue, cuántos pilotos y si la influencia se recuperó (con el escucha v9)"]],
  ["v1.8.1","17/11/2026",["Pestaña Visitas: sistemas ordenados por los comandantes que pasan por ellos (hoy, ayer, 7 días o 30 días)","Aviso POSIBLE ATAQUE (pico de visitas y baja nuestra influencia) y ACTIVIDAD INUSUAL (solo pico de visitas) en la tabla, el radar y Hoy","Pestañas en dos filas en el móvil"]],
  ["v1.8","17/11/2026",["Pestaña Powerplay: potencias en nuestros sistemas, refuerzo y socavamiento, sistemas en peligro y listos para subir","La tabla de Powerplay alrededor pasa a esta pestaña","Estado de EDDN arriba y pestañas que caben mejor en el móvil"]],
  ["v1.7","17/11/2026",["Enlaces a Inara y Spansh en la ficha de cada sistema (para ver el arquitecto y más)"]],
@@ -418,7 +418,19 @@ function pintaVis(){
    <div class="sub" style="margin:6px 0 10px">${tot} visitas en ${con.length} sistemas · ${L.length-con.length} sin visitas. Cuenta pilotos distintos por día que envían datos a EDDN (con EDMC u otras herramientas), así que los reales son más.</div>`+
    (con.length?`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>#</th><th>Sistema</th><th>Visitas</th><th>5 días</th></tr>`+
    con.map((o,i)=>{const s=o.s,a=alerta(s);return`<tr class="s g${a[0]}" data-s="${esc(s.sys)}"><td class="sub num">${i+1}</td><td><span class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</span>${a[0]?` <span class="tag t${a[0]}">${esc(a[1])}</span>`:""}<div class="sub">infl. ${c1(s.inf)} %</div></td>
-    <td style="white-space:nowrap"><div class="bar" style="width:min(18vw,160px);display:inline-block;vertical-align:middle"><i style="width:${o.n/mx*100}%;background:#5aaaff"></i></div> <b class="az">${o.n}</b></td><td>${sp(o.serie)}</td></tr>`}).join("")+"</table></div>":"<p>Nadie ha pasado por nuestros sistemas en este periodo (o el escucha aún no lo ha visto).</p>");
+    <td style="white-space:nowrap"><div class="bar" style="width:min(18vw,160px);display:inline-block;vertical-align:middle"><i style="width:${o.n/mx*100}%;background:#5aaaff"></i></div> <b class="az">${o.n}</b></td><td>${sp(o.serie)}</td></tr>`}).join("")+"</table></div>":"<p>Nadie ha pasado por nuestros sistemas en este periodo (o el escucha aún no lo ha visto).</p>")+histAtaques();
+}
+// historial de posibles ataques (lo guarda el escucha v9 en faccion.json: ataques.act y ataques.hist)
+function histAtaques(){
+  const A=D.ataques||{},act=Object.entries(A.act||{}),H=A.hist||[];
+  const f=t=>new Date(t*1000).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})+" "+hora(t);   // dd/mm hh:mm
+  let h=`<h3 style="margin-top:16px">Historial de posibles ataques</h3>`;
+  if(!A.act&&!A.hist)return h+`<p class="sub">Aún no hay historial: lo empieza a guardar el escucha v9.</p>`;
+  if(!act.length&&!H.length)return h+`<p class="sub">Ningún posible ataque registrado.</p>`;
+  h+=`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>Sistema</th><th>Desde</th><th class=num>Pilotos</th><th class=num>Influencia</th></tr>`;
+  for(const[n,a]of act)h+=`<tr class="s g2" data-s="${esc(n)}"><td>${esc(n)}</td><td class=sub>${f(a.ini)}</td><td class="num az">${a.v} <span class=sub>(media ${c1(a.m)})</span></td><td class=num>${c1(a.antes)} → ${c1(a.inf)}<br><span class="tag t2">EN CURSO</span></td></tr>`;
+  for(const a of H)h+=`<tr class="s g${a.res=="recuperada"?0:1}" data-s="${esc(a.sys)}"><td>${esc(a.sys)}</td><td class=sub>${f(a.ini)}<br>a ${f(a.fin)}</td><td class="num az">${a.v} <span class=sub>(media ${c1(a.m)})</span></td><td class=num>${c1(a.antes)} → ${c1(a.inf)}<br><span class="${a.res=="recuperada"?"up":"dn"}">${a.res=="recuperada"?"recuperada":"perdida"} (${a.dif>0?"+":""}${c1(a.dif)})</span></td></tr>`;
+  return h+"</table></div>";
 }
 document.getElementById("vVis").onclick=e=>{const b=e.target.closest(".vper button");if(b){VP=+b.dataset.d;pintaVis();return}
   const tr=e.target.closest("[data-s]");if(tr)abreFicha(tr.dataset.s)};
