@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.9.1";
+const VERSION="v1.9.2";
 const NOVEDADES=[
+ ["v1.9.2","18/11/2026",["Botón ⧉ al lado del nombre de cada sistema para copiarlo al portapapeles (y pegarlo en el mapa de la galaxia)"]],
  ["v1.9.1","18/11/2026",["Franja amarilla fija de ACTIVIDAD INUSUAL (pico de visitas sin bajada de influencia) debajo de la de posible ataque; al tocarla abre Visitas"]],
  ["v1.9","18/11/2026",["Alerta de POSIBLE ATAQUE: franja roja arriba mientras dure y tarjeta grande una vez al día (o si empeora), con Ver ficha, Siguiente y Visto","Visitas: periodo de 5 días (igual que el radar del ESP32) y siempre salen los sistemas con pico de visitas","Historial de posibles ataques en Visitas: cuándo fue, cuántos pilotos y si la influencia se recuperó (con el escucha v9)"]],
  ["v1.8.1","17/11/2026",["Pestaña Visitas: sistemas ordenados por los comandantes que pasan por ellos (hoy, ayer, 7 días o 30 días)","Aviso POSIBLE ATAQUE (pico de visitas y baja nuestra influencia) y ACTIVIDAD INUSUAL (solo pico de visitas) en la tabla, el radar y Hoy","Pestañas en dos filas en el móvil"]],
@@ -37,6 +38,15 @@ function hace(t){if(!t)return"—";let m=Math.round((now()-t)/60);if(m<1)return"
 function hora(t){return t?new Date(t*1000).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}):"—"}
 function hoyUTC(){return new Date().toISOString().slice(0,10)}
 function proxTick(s){let p=s.tick_prox;if(!p)return 0;while(p<now()-1800)p+=86400;return p}
+// ---------- boton para copiar el nombre del sistema ----------
+const CP=n=>`<button class="cp" data-cp="${esc(n)}" title="Copiar nombre" aria-label="Copiar ${esc(n)}">⧉</button>`;
+function copia(t){if(navigator.clipboard&&isSecureContext)return navigator.clipboard.writeText(t);
+  return new Promise((ok,ko)=>{const a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();
+    try{document.execCommand("copy")?ok():ko()}catch(e){ko(e)}a.remove()})}
+let cpT;function tostada(t){let d=document.getElementById("toast");if(!d){d=document.createElement("div");d.id="toast";document.body.appendChild(d)}
+  d.textContent=t;d.classList.add("on");clearTimeout(cpT);cpT=setTimeout(()=>d.classList.remove("on"),1500)}
+document.addEventListener("click",e=>{const b=e.target.closest(".cp");if(!b)return;e.stopPropagation();e.preventDefault();
+  copia(b.dataset.cp).then(()=>{tostada("Copiado: "+b.dataset.cp);b.textContent="✓";setTimeout(()=>b.textContent="⧉",1200)}).catch(()=>tostada("No se pudo copiar"))},true);
 // pico de visitas: hoy o ayer al menos el triple de la media de los 7 dias anteriores (y 5 o mas pilotos)
 function pico(s){const t=s.trafico||{},d=n=>{const x=new Date();x.setUTCDate(x.getUTCDate()-n);return t[x.toISOString().slice(0,10)]||0};
   for(const k of[0,1]){const v=d(k);let m=0;for(let i=k+1;i<=k+7;i++)m+=d(i);m/=7;if(v>=5&&v>=3*Math.max(m,1))return{v,m,dia:k?"ayer":"hoy"}}return null}
@@ -84,7 +94,7 @@ function pinta(){
   document.getElementById("cab").innerHTML=COLS.map(([k,n])=>`<th data-k="${k}" class="${k==orden?"o"+(asc?" as":""):""}">${n}</th>`).join("");
   let h="";
   for(const f of F){const s=f.s;
-    h+=`<tr class="s g${f.niv}" data-s="${esc(s.sys)}"><td><span class="fav${FAV.has(s.sys)?" on":""}" data-fav="${esc(s.sys)}">${FAV.has(s.sys)?"★":"☆"}</span><span class="${s.ctrl?"ctrl":""}">${s.ctrl?"■ ":"· "}${esc(s.sys)}</span></td>
+    h+=`<tr class="s g${f.niv}" data-s="${esc(s.sys)}"><td><span class="fav${FAV.has(s.sys)?" on":""}" data-fav="${esc(s.sys)}">${FAV.has(s.sys)?"★":"☆"}</span><span class="${s.ctrl?"ctrl":""}">${s.ctrl?"■ ":"· "}${esc(s.sys)}</span>${CP(s.sys)}</td>
     <td class="num">${c1(s.inf)} %</td><td class="num ${f.d>0?"up":f.d<0?"dn":""}">${f.d==null?"—":(f.d>0?"+":"")+c1(f.d)}</td>
     <td class="num ${f.vent<5?"dn":f.vent<15?"":"up"}">${c1(f.vent)}</td><td class="sub">${esc(f.est)||"—"}</td>
     <td>${f.niv?`<span class="tag t${f.niv}">${esc(f.a[1])}</span> <span class="sub">${esc(f.a[2])}</span>`:""}</td>
@@ -135,7 +145,7 @@ function zona(){
   const Z=Object.entries(D.zona||{}).filter(([n,z])=>!PPF||z.pot==PPF||(z.pots||[]).includes(PPF));if(!Z.length)return"";
   Z.sort((a,b)=>(a[1].pot||"~").localeCompare(b[1].pot||"~")||a[0].localeCompare(b[0]));
   return`<details><summary class="pps">Powerplay alrededor: ${Z.length} sistemas a menos de 20 ly de los nuestros (toca para ver)</summary><div class="tw" style="padding:6px 0 20px"><table style="min-width:600px"><tr><th>Sistema</th><th>Potencia</th><th>Estado</th><th class=num>Progreso</th><th>Presentes</th><th class=num>Dato</th></tr>`+
-   Z.map(([n,z])=>`<tr><td>${esc(n)}</td><td>${z.pot?ppNom(z.pot):"—"}</td><td>${esc(PPE[z.est]||z.est||"—")}</td><td class=num>${pct(z.prog)}</td><td class=sub>${(z.pots||[]).map(esc).join(", ")}</td><td class="num sub">${hace(z.t)}</td></tr>`).join("")+"</table></div</details>";
+   Z.map(([n,z])=>`<tr><td>${esc(n)}${CP(n)}</td><td>${z.pot?ppNom(z.pot):"—"}</td><td>${esc(PPE[z.est]||z.est||"—")}</td><td class=num>${pct(z.prog)}</td><td class=sub>${(z.pots||[]).map(esc).join(", ")}</td><td class="num sub">${hace(z.t)}</td></tr>`).join("")+"</table></div</details>";
 }
 async function carga(){
   try{
@@ -228,7 +238,7 @@ function tocaEn(x,y){
   if(m)return m;dm=22*22;for(const o of R_.S){const d=(o.sx-x)**2+(o.sy-y)**2;if(d<dm){dm=d;m=o}}return m;
 }
 function fichaHTML(o){const s=o.s,v=s.inf-(s.segunda_inf||0);
-  return`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b> ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
+  return`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b>${CP(s.sys)} ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
    ${o.niv?`<div style="margin:4px 0"><span class="tag t${o.niv}">${esc(o.al[1])}</span> <span class="sub">${esc(o.al[2])}</span></div>`:""}
    <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>
    <div style="margin:6px 0 4px"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a> &nbsp; <a target="_blank" rel="noopener" style="color:#ff8c00" href="https://spansh.co.uk/search/${encodeURIComponent(s.sys)}">Spansh ↗</a> <span class="sub">(arquitecto, estaciones…)</span></div>`}
@@ -318,7 +328,7 @@ function tareas(){
 function pintaHoy(){
   if(!D)return;const L=tareas();
   document.getElementById("vHoy").innerHTML=(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
-   L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b> <span class="tag t${t.cls||1}" ${t.cls?"":'style="background:#5adc78"'}>${esc(t.tag)}</span>
+   L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag t${t.cls||1}" ${t.cls?"":'style="background:#5adc78"'}>${esc(t.tag)}</span>
    <div class="sub">${esc(t.por)}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"");
 }
 document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
@@ -386,14 +396,14 @@ function pintaPP(){
   // atencion: socavados y listos para subir
   const peligro=F.filter(s=>(s.pp.soc||0)>(s.pp.ref||0)&&(s.pp.soc||0)>=50).sort((a,b)=>(b.pp.soc-(b.pp.ref||0))-(a.pp.soc-(a.pp.ref||0)));
   const sube=F.filter(s=>(s.pp.prog||0)>=1);
-  const fila=(s,extra)=>`<div class="hoy" data-s="${esc(s.sys)}"><b style="color:${s.ctrl?"#fff":"#ff8c00"}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</b> ${ppNom(s.pp.pot)} <span class="sub">${esc(PPE[s.pp.est]||s.pp.est||"")}</span><div class="sub">${extra}</div></div>`;
+  const fila=(s,extra)=>`<div class="hoy" data-s="${esc(s.sys)}"><b style="color:${s.ctrl?"#fff":"#ff8c00"}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</b>${CP(s.sys)} ${ppNom(s.pp.pot)} <span class="sub">${esc(PPE[s.pp.est]||s.pp.est||"")}</span><div class="sub">${extra}</div></div>`;
   if(peligro.length)h+=`<h3>Más socavados que reforzados (${peligro.length})</h3>`+peligro.slice(0,10).map(s=>fila(s,`socavamiento <span class="dn">${s.pp.soc}</span> · refuerzo <span class="up">${s.pp.ref||0}</span> · progreso ${pct(s.pp.prog)}`)).join("");
   if(sube.length)h+=`<h3>Listos para subir de nivel (${sube.length})</h3>`+sube.map(s=>fila(s,`progreso <span class="up">${pct(s.pp.prog)}</span> · refuerzo ${s.pp.ref||0} · socav. ${s.pp.soc||0}`)).join("");
   // tabla de nuestros sistemas
   const O={Stronghold:3,Fortified:2,Exploited:1};
   F.sort((a,b)=>(FAV.has(b.sys)-FAV.has(a.sys))||a.pp.pot.localeCompare(b.pp.pot)||(O[b.pp.est]||0)-(O[a.pp.est]||0)||(b.pp.prog||0)-(a.pp.prog||0));
   h+=`<h3>Nuestros sistemas con potencia${PPF?" · "+esc(PPF)+` <a href="#" id="ppTodas" style="color:#ff8c00">(ver todas)</a>`:""}</h3><div class="tw" style="padding:0 0 12px"><table style="min-width:640px"><tr><th>Sistema</th><th>Potencia</th><th>Estado</th><th>Progreso</th><th class=num>Refuerzo</th><th class=num>Socav.</th><th>Presentes</th></tr>`+
-   F.map(s=>`<tr class="s" data-s="${esc(s.sys)}"><td class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</td><td>${ppNom(s.pp.pot)}</td><td>${esc(PPE[s.pp.est]||s.pp.est||"—")}</td><td style="white-space:nowrap">${ppBarra(s.pp.prog)}</td>
+   F.map(s=>`<tr class="s" data-s="${esc(s.sys)}"><td class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}${CP(s.sys)}</td><td>${ppNom(s.pp.pot)}</td><td>${esc(PPE[s.pp.est]||s.pp.est||"—")}</td><td style="white-space:nowrap">${ppBarra(s.pp.prog)}</td>
     <td class="num up">${s.pp.ref??"—"}</td><td class="num ${(s.pp.soc||0)>(s.pp.ref||0)?"dn":"sub"}">${s.pp.soc??"—"}</td><td class="sub">${esc((s.pp.pots||[]).filter(x=>x!=s.pp.pot).join(", "))}</td></tr>`).join("")+`</table></div>`;
   // sin ocupar: quien esta presente
   if(!PPF&&sin.length){const Q={};for(const s of sin)for(const p of(s.pp||{}).pots||[])Q[p]=(Q[p]||0)+1;
@@ -418,7 +428,7 @@ function pintaVis(){
   document.getElementById("vVis").innerHTML=`<div class="vper">${VPS.map(([d,n])=>`<button data-d="${d}" class="${d==VP?"on":""}">${n}</button>`).join("")}</div>
    <div class="sub" style="margin:6px 0 10px">${tot} visitas en ${con.length} sistemas · ${L.length-con.length} sin visitas. Cuenta pilotos distintos por día que envían datos a EDDN (con EDMC u otras herramientas), así que los reales son más.</div>`+
    (con.length?`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>#</th><th>Sistema</th><th>Visitas</th><th>5 días</th></tr>`+
-   con.map((o,i)=>{const s=o.s,a=alerta(s);return`<tr class="s g${a[0]}" data-s="${esc(s.sys)}"><td class="sub num">${i+1}</td><td><span class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</span>${a[0]?` <span class="tag t${a[0]}">${esc(a[1])}</span>`:""}<div class="sub">infl. ${c1(s.inf)} %</div></td>
+   con.map((o,i)=>{const s=o.s,a=alerta(s);return`<tr class="s g${a[0]}" data-s="${esc(s.sys)}"><td class="sub num">${i+1}</td><td><span class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</span>${CP(s.sys)}${a[0]?` <span class="tag t${a[0]}">${esc(a[1])}</span>`:""}<div class="sub">infl. ${c1(s.inf)} %</div></td>
     <td style="white-space:nowrap"><div class="bar" style="width:min(18vw,160px);display:inline-block;vertical-align:middle"><i style="width:${o.n/mx*100}%;background:#5aaaff"></i></div> <b class="az">${o.n}</b></td><td>${sp(o.serie)}</td></tr>`}).join("")+"</table></div>":"<p>Nadie ha pasado por nuestros sistemas en este periodo (o el escucha aún no lo ha visto).</p>")+histAtaques();
 }
 // historial de posibles ataques (lo guarda el escucha v9 en faccion.json: ataques.act y ataques.hist)
@@ -429,7 +439,7 @@ function histAtaques(){
   if(!A.act&&!A.hist)return h+`<p class="sub">Aún no hay historial: lo empieza a guardar el escucha v9.</p>`;
   if(!act.length&&!H.length)return h+`<p class="sub">Ningún posible ataque registrado.</p>`;
   h+=`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>Sistema</th><th>Desde</th><th class=num>Pilotos</th><th class=num>Influencia</th></tr>`;
-  for(const[n,a]of act)h+=`<tr class="s g2" data-s="${esc(n)}"><td>${esc(n)}</td><td class=sub>${f(a.ini)}</td><td class="num az">${a.v} <span class=sub>(media ${c1(a.m)})</span></td><td class=num>${c1(a.antes)} → ${c1(a.inf)}<br><span class="tag t2">EN CURSO</span></td></tr>`;
+  for(const[n,a]of act)h+=`<tr class="s g2" data-s="${esc(n)}"><td>${esc(n)}${CP(n)}</td><td class=sub>${f(a.ini)}</td><td class="num az">${a.v} <span class=sub>(media ${c1(a.m)})</span></td><td class=num>${c1(a.antes)} → ${c1(a.inf)}<br><span class="tag t2">EN CURSO</span></td></tr>`;
   for(const a of H)h+=`<tr class="s g${a.res=="recuperada"?0:1}" data-s="${esc(a.sys)}"><td>${esc(a.sys)}</td><td class=sub>${f(a.ini)}<br>a ${f(a.fin)}</td><td class="num az">${a.v} <span class=sub>(media ${c1(a.m)})</span></td><td class=num>${c1(a.antes)} → ${c1(a.inf)}<br><span class="${a.res=="recuperada"?"up":"dn"}">${a.res=="recuperada"?"recuperada":"perdida"} (${a.dif>0?"+":""}${c1(a.dif)})</span></td></tr>`;
   return h+"</table></div>";
 }
@@ -461,7 +471,7 @@ function pintaAtaque(){
   let tk=proxTick(s),gl=false;if(!tk&&D.tick_global){tk=D.tick_global+86400;while(tk<now()-1800)tk+=86400;gl=true}
   const falta=tk?Math.max(0,tk-now()):0,fx=Math.floor(falta/3600)+" h "+String(Math.round(falta%3600/60)).padStart(2,"0");
   document.getElementById("atkc").innerHTML=`<div class="atkt">POSIBLE ATAQUE</div><div style="padding:12px 14px">
-   <div style="text-align:center;font-size:21px;font-weight:700">${esc(s.sys).toUpperCase()}</div>
+   <div style="text-align:center;font-size:21px;font-weight:700">${esc(s.sys).toUpperCase()}${CP(s.sys)}</div>
    <div style="text-align:center;font-size:13px;color:${s.ctrl?"#5adc78":"#b06a10"}">${s.ctrl?`controlado · ventaja ${c1(v)} sobre ${esc(s.segunda||"?")}`:`no controlado · manda ${esc(s.ctrl_n||s.segunda||"?")}`}</div>
    <div class="atkg"><div><span>Pilotos ${a.dia}</span><b class="az">${a.v}</b> <span style="display:inline;font-size:13px;color:#5aaaff">x${c1(a.v/Math.max(a.m,1))}</span><span>media ${c1(a.m)}</span></div>
    <div><span>Influencia</span><b class="dn">${c1(s.inf-s.prev)}</b><span>desde ayer · ahora ${c1(s.inf)} %</span></div></div>
