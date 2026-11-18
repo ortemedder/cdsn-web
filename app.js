@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.8.1";
+const VERSION="v1.9";
 const NOVEDADES=[
+ ["v1.9","18/11/2026",["Alerta de POSIBLE ATAQUE: franja roja arriba mientras dure y tarjeta grande una vez al día (o si empeora), con Ver ficha, Siguiente y Visto","Visitas: periodo de 5 días (igual que el radar del ESP32) y siempre salen los sistemas con pico de visitas","Historial de posibles ataques en Visitas: cuándo fue, cuántos pilotos y si la influencia se recuperó (con el escucha v9)"]],
  ["v1.8.1","17/11/2026",["Pestaña Visitas: sistemas ordenados por los comandantes que pasan por ellos (hoy, ayer, 7 días o 30 días)","Aviso POSIBLE ATAQUE (pico de visitas y baja nuestra influencia) y ACTIVIDAD INUSUAL (solo pico de visitas) en la tabla, el radar y Hoy","Pestañas en dos filas en el móvil"]],
  ["v1.8","17/11/2026",["Pestaña Powerplay: potencias en nuestros sistemas, refuerzo y socavamiento, sistemas en peligro y listos para subir","La tabla de Powerplay alrededor pasa a esta pestaña","Estado de EDDN arriba y pestañas que caben mejor en el móvil"]],
  ["v1.7","17/11/2026",["Enlaces a Inara y Spansh en la ficha de cada sistema (para ver el arquitecto y más)"]],
@@ -143,7 +144,7 @@ async function carga(){
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}">datos de hace ${sub}${viejo?" (el escucha no ha subido datos en más de 1 h)":""}</span>`+
       (e?` · <span style="color:${e.ok&&e.ultimo&&(D.t||now())-e.ultimo<900?"#5adc78":"#ff4632"}">EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}</span>`:"");
     document.getElementById("pie").textContent=`Escucha EDDN de CDSN · ${Object.keys(D.sistemas||{}).length} sistemas · página actualizada ${new Date().toLocaleTimeString("es-ES")} (se refresca sola cada 5 min)`;
-    pinta();sinRed();
+    pinta();sinRed();revisaAtaques();
   }catch(x){if(D){sinRed(true)}else document.getElementById("est").textContent="no se pudieron leer los datos: "+x}
 }
 document.getElementById("cab").onclick=e=>{const k=e.target.dataset.k;if(!k)return;if(k==orden)asc=!asc;else{orden=k;asc=k=="sys"}pinta()};
@@ -405,19 +406,74 @@ document.getElementById("vPP").onclick=e=>{
   const d=e.target.closest("[data-s]");if(d)abreFicha(d.dataset.s)};
 // ---------- pestaña Visitas: sistemas ordenados por comandantes ----------
 let VP=1;   // dias del periodo: 1 hoy, -1 ayer, 7, 30
-const VPS=[[1,"Hoy"],[-1,"Ayer"],[7,"7 días"],[30,"30 días"]];
+const VPS=[[1,"Hoy"],[-1,"Ayer"],[5,"5 días"],[30,"30 días"]];
 function diasAtras(n){const d=new Date();d.setUTCDate(d.getUTCDate()-n);return d.toISOString().slice(0,10)}
 function pintaVis(){
   if(!D)return;
-  const dias=VP==-1?[diasAtras(1)]:[...Array(VP).keys()].map(diasAtras),ult7=[...Array(7).keys()].map(diasAtras).reverse();
-  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>{const t=s.trafico||{};return{s,n:dias.reduce((a,d)=>a+(t[d]||0),0),serie:ult7.map(d=>t[d]||0)}});
-  const tot=L.reduce((a,o)=>a+o.n,0),con=L.filter(o=>o.n>0).sort((a,b)=>b.n-a.n||b.s.inf-a.s.inf),mx=con.length?con[0].n:1;
+  const dias=VP==-1?[diasAtras(1)]:[...Array(VP).keys()].map(diasAtras),ult5=[...Array(5).keys()].map(diasAtras).reverse();
+  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>{const t=s.trafico||{};const at=ataque(s);return{s,at:at?(at.baja?2:1):0,n:dias.reduce((a,d)=>a+(t[d]||0),0),serie:ult5.map(d=>t[d]||0)}});
+  const tot=L.reduce((a,o)=>a+o.n,0),con=L.filter(o=>o.n>0||o.at).sort((a,b)=>b.at-a.at||b.n-a.n||b.s.inf-a.s.inf),mx=con.length?con[0].n:1;
   const sp=v=>{const m=Math.max(1,...v);return`<span class="spk">${v.map(x=>`<i style="height:${x?Math.max(2,Math.round(x/m*18)):1}px;${x?"":"background:#3a2a12"}"></i>`).join("")}</span>`};
   document.getElementById("vVis").innerHTML=`<div class="vper">${VPS.map(([d,n])=>`<button data-d="${d}" class="${d==VP?"on":""}">${n}</button>`).join("")}</div>
    <div class="sub" style="margin:6px 0 10px">${tot} visitas en ${con.length} sistemas · ${L.length-con.length} sin visitas. Cuenta pilotos distintos por día que envían datos a EDDN (con EDMC u otras herramientas), así que los reales son más.</div>`+
-   (con.length?`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>#</th><th>Sistema</th><th>Visitas</th><th>7 días</th></tr>`+
+   (con.length?`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>#</th><th>Sistema</th><th>Visitas</th><th>5 días</th></tr>`+
    con.map((o,i)=>{const s=o.s,a=alerta(s);return`<tr class="s g${a[0]}" data-s="${esc(s.sys)}"><td class="sub num">${i+1}</td><td><span class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</span>${a[0]?` <span class="tag t${a[0]}">${esc(a[1])}</span>`:""}<div class="sub">infl. ${c1(s.inf)} %</div></td>
-    <td style="white-space:nowrap"><div class="bar" style="width:min(18vw,160px);display:inline-block;vertical-align:middle"><i style="width:${o.n/mx*100}%;background:#5aaaff"></i></div> <b class="az">${o.n}</b></td><td>${sp(o.serie)}</td></tr>`}).join("")+"</table></div>":"<p>Nadie ha pasado por nuestros sistemas en este periodo (o el escucha aún no lo ha visto).</p>");
+    <td style="white-space:nowrap"><div class="bar" style="width:min(18vw,160px);display:inline-block;vertical-align:middle"><i style="width:${o.n/mx*100}%;background:#5aaaff"></i></div> <b class="az">${o.n}</b></td><td>${sp(o.serie)}</td></tr>`}).join("")+"</table></div>":"<p>Nadie ha pasado por nuestros sistemas en este periodo (o el escucha aún no lo ha visto).</p>")+histAtaques();
+}
+// historial de posibles ataques (lo guarda el escucha v9 en faccion.json: ataques.act y ataques.hist)
+function histAtaques(){
+  const A=D.ataques||{},act=Object.entries(A.act||{}),H=A.hist||[];
+  const f=t=>new Date(t*1000).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})+" "+hora(t);   // dd/mm hh:mm
+  let h=`<h3 style="margin-top:16px">Historial de posibles ataques</h3>`;
+  if(!A.act&&!A.hist)return h+`<p class="sub">Aún no hay historial: lo empieza a guardar el escucha v9.</p>`;
+  if(!act.length&&!H.length)return h+`<p class="sub">Ningún posible ataque registrado.</p>`;
+  h+=`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>Sistema</th><th>Desde</th><th class=num>Pilotos</th><th class=num>Influencia</th></tr>`;
+  for(const[n,a]of act)h+=`<tr class="s g2" data-s="${esc(n)}"><td>${esc(n)}</td><td class=sub>${f(a.ini)}</td><td class="num az">${a.v} <span class=sub>(media ${c1(a.m)})</span></td><td class=num>${c1(a.antes)} → ${c1(a.inf)}<br><span class="tag t2">EN CURSO</span></td></tr>`;
+  for(const a of H)h+=`<tr class="s g${a.res=="recuperada"?0:1}" data-s="${esc(a.sys)}"><td>${esc(a.sys)}</td><td class=sub>${f(a.ini)}<br>a ${f(a.fin)}</td><td class="num az">${a.v} <span class=sub>(media ${c1(a.m)})</span></td><td class=num>${c1(a.antes)} → ${c1(a.inf)}<br><span class="${a.res=="recuperada"?"up":"dn"}">${a.res=="recuperada"?"recuperada":"perdida"} (${a.dif>0?"+":""}${c1(a.dif)})</span></td></tr>`;
+  return h+"</table></div>";
 }
 document.getElementById("vVis").onclick=e=>{const b=e.target.closest(".vper button");if(b){VP=+b.dataset.d;pintaVis();return}
   const tr=e.target.closest("[data-s]");if(tr)abreFicha(tr.dataset.s)};
+
+// ---------- alerta de POSIBLE ATAQUE: franja fija y tarjeta grande (una vez al dia o si empeora) ----------
+let ATK=[],atkI=0;
+function diaLocal(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function listaAtaques(){return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&ataque(s)?.baja)
+  .map(s=>({s,a:ataque(s)})).sort((x,y)=>(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)))}
+function vistos(){try{return JSON.parse(localStorage.getItem("cdsn_atk")||"{}")}catch(e){return{}}}
+function marcaVistos(){const V={},h=diaLocal();for(const o of ATK)V[o.s.sys]={dia:h,v:o.a.v,baja:o.s.prev-o.s.inf};try{localStorage.setItem("cdsn_atk",JSON.stringify(V))}catch(e){}}
+function revisaAtaques(){
+  ATK=listaAtaques();
+  const b=document.getElementById("ataque");
+  if(!ATK.length){b.hidden=true;cierraAtaque(false);return}
+  b.innerHTML=`⚠ <b>POSIBLE ATAQUE</b> en ${esc(ATK[0].s.sys)}${ATK.length>1?` y ${ATK.length-1} más`:""} · toca para ver`;b.hidden=false;
+  const V=vistos(),h=diaLocal();
+  const nuevo=ATK.findIndex(o=>{const r=V[o.s.sys];return!r||r.dia!=h||o.a.v>r.v||(o.s.prev-o.s.inf)>r.baja+.05});   // no visto hoy o ha empeorado
+  if(nuevo>=0&&document.getElementById("atk").hidden)abreAtaque(nuevo);
+  else if(!document.getElementById("atk").hidden)pintaAtaque();
+}
+function abreAtaque(i){atkI=i||0;pintaAtaque();document.getElementById("atk").hidden=false}
+function cierraAtaque(marca){const m=document.getElementById("atk");if(m.hidden)return;m.hidden=true;if(marca)marcaVistos()}
+function pintaAtaque(){
+  if(!ATK.length)return;if(atkI>=ATK.length)atkI=0;
+  const{s,a}=ATK[atkI],v=s.inf-(s.segunda_inf||0);
+  let tk=proxTick(s),gl=false;if(!tk&&D.tick_global){tk=D.tick_global+86400;while(tk<now()-1800)tk+=86400;gl=true}
+  const falta=tk?Math.max(0,tk-now()):0,fx=Math.floor(falta/3600)+" h "+String(Math.round(falta%3600/60)).padStart(2,"0");
+  document.getElementById("atkc").innerHTML=`<div class="atkt">POSIBLE ATAQUE</div><div style="padding:12px 14px">
+   <div style="text-align:center;font-size:21px;font-weight:700">${esc(s.sys).toUpperCase()}</div>
+   <div style="text-align:center;font-size:13px;color:${s.ctrl?"#5adc78":"#b06a10"}">${s.ctrl?`controlado · ventaja ${c1(v)} sobre ${esc(s.segunda||"?")}`:`no controlado · manda ${esc(s.ctrl_n||s.segunda||"?")}`}</div>
+   <div class="atkg"><div><span>Pilotos ${a.dia}</span><b class="az">${a.v}</b> <span style="display:inline;font-size:13px;color:#5aaaff">x${c1(a.v/Math.max(a.m,1))}</span><span>media ${c1(a.m)}</span></div>
+   <div><span>Influencia</span><b class="dn">${c1(s.inf-s.prev)}</b><span>desde ayer · ahora ${c1(s.inf)} %</span></div></div>
+   <div class="pk" style="font-size:13px">${tk?`Próximo tick ~${hora(tk)} · en ${fx}${gl?" (galaxia)":""}`:"Próximo tick: aprendiendo..."}</div>
+   <div style="font-size:13px;margin-top:6px">Qué hacer: pasar por ${esc(s.sys)}, ver qué misiones se están haciendo y ${SUBIR.charAt(0).toLowerCase()+SUBIR.slice(1)}.</div>
+   <div class="sub" style="margin-top:6px">dato de hace ${hace(s.t)} · ${atkI+1} de ${ATK.length} posible${ATK.length>1?"s":""} ataque${ATK.length>1?"s":""}</div>
+   <div class="atkb"><button data-a="f">Ver ficha</button>${ATK.length>1?'<button data-a="s">Siguiente</button>':""}<button data-a="v" class="v">Visto</button></div></div>`;
+}
+document.getElementById("ataque").onclick=()=>abreAtaque(0);
+document.getElementById("atk").onclick=e=>{
+  const b=e.target.closest("button[data-a]");if(!b)return;
+  if(b.dataset.a=="s"){atkI=(atkI+1)%ATK.length;pintaAtaque();return}
+  const n=ATK[atkI]?.s.sys;cierraAtaque(true);
+  if(b.dataset.a=="f"&&n)abreFicha(n);
+};
+addEventListener("keydown",e=>{if(e.key=="Escape")cierraAtaque(true)});
