@@ -49,6 +49,8 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 .ppc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.ppk{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:8px 12px;min-width:150px;flex:1;cursor:pointer}.ppk.on{outline:2px solid #ff8c00}.pps{color:var(--v);font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin:6px 0}
 #ataque{background:#2a0b07;border:2px solid var(--r);border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
 #ataque b{color:var(--r)}
+#inusual{background:#2a2207;border:2px solid #ffd228;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
+#inusual b{color:#ffd228}
 #atk{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:14px}
 #atk[hidden]{display:none}
 .atkc{width:min(420px,100%);max-height:100%;overflow:auto;background:var(--f);border:3px solid var(--r);border-radius:12px;animation:late 1s ease-in-out infinite alternate}
@@ -66,6 +68,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div class="cards" id="cards"></div>
 <div id="sinred" hidden style="background:#4a1a0a;color:#ffb27a;padding:8px 16px;font-weight:600"></div>
 <div id="ataque" hidden></div>
+<div id="inusual" hidden></div>
 <div id="atk" hidden><div class="atkc" id="atkc"></div></div>
 <div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
