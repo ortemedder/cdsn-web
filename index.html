@@ -57,6 +57,8 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 #toast{position:fixed;left:50%;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;bottom:24px;transform:translateX(-50%);background:#ff8c00;color:#000;font-weight:700;padding:8px 14px;border-radius:8px;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
 #inusual{background:#2a1407;border:2px solid #ff6400;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
 #inusual b{color:#ff6400}
+#defensa{background:#0b2a12;border:2px solid #5adc78;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
+#defensa b{color:#5adc78}
 #atk{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:14px}
 #atk[hidden]{display:none}
 .atkc{width:min(420px,100%);max-height:100%;overflow:auto;background:var(--f);border:3px solid var(--r);border-radius:12px;animation:late 1s ease-in-out infinite alternate}
@@ -75,6 +77,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div id="sinred" hidden style="background:#4a1a0a;color:#ffb27a;padding:8px 16px;font-weight:600"></div>
 <div id="ataque" hidden></div>
 <div id="inusual" hidden></div>
+<div id="defensa" hidden></div>
 <div id="atk" hidden><div class="atkc" id="atkc"></div></div>
 <div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
