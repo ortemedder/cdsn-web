@@ -29,6 +29,10 @@ td{padding:6px;border-bottom:1px solid #22180a;vertical-align:top}tr.s{cursor:po
 .g2{border-left:3px solid var(--r)}.g1{border-left:3px solid var(--a)}.g0{border-left:3px solid transparent}
 .tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;margin:1px 2px 1px 0}
 .t2{background:var(--r);color:#000}.t1{background:var(--a);color:#000}
+.k-pe{background:#ff4632;color:#fff;animation:parp 1s steps(1) infinite}.k-gr{background:#ff4632;color:#fff}.k-di{background:#ffeb00;color:#000}.k-av{background:#ff6400;color:#fff}.k-fa{background:#5adc78;color:#000}
+@keyframes parp{50%{background:#5a120c;color:#ffb0a6}}
+.b-pe{border-left:3px solid #ff4632;animation:parpb 1s steps(1) infinite}.b-gr{border-left:3px solid #ff4632}.b-di{border-left:3px solid #ffeb00}.b-av{border-left:3px solid #ff6400}.b-fa{border-left:3px solid #5adc78}.b-no{border-left:3px solid transparent}
+@keyframes parpb{50%{border-left-color:#5a120c}}
 .up{color:var(--v)}.dn{color:var(--r)}.pk{color:var(--ro)}.az{color:var(--az)}
 .det td{background:#140e06;padding:10px 14px}.fac{display:grid;grid-template-columns:minmax(150px,260px) 1fr 60px;gap:3px 10px;align-items:center;max-width:720px}
 .bar{height:10px;background:var(--l);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--nm)}.bar i.m{background:var(--n)}
@@ -51,8 +55,8 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 #ataque b{color:var(--r)}
 .cp{background:none;border:1px solid var(--l);color:var(--nm);border-radius:5px;font-size:12px;line-height:1;padding:2px 5px;margin-left:6px;cursor:pointer;vertical-align:middle}.cp:hover{color:#ff8c00;border-color:#ff8c00}
 #toast{position:fixed;left:50%;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;bottom:24px;transform:translateX(-50%);background:#ff8c00;color:#000;font-weight:700;padding:8px 14px;border-radius:8px;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
-#inusual{background:#2a2207;border:2px solid #ffd228;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
-#inusual b{color:#ffd228}
+#inusual{background:#2a1407;border:2px solid #ff6400;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
+#inusual b{color:#ff6400}
 #atk{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:14px}
 #atk[hidden]{display:none}
 .atkc{width:min(420px,100%);max-height:100%;overflow:auto;background:var(--f);border:3px solid var(--r);border-radius:12px;animation:late 1s ease-in-out infinite alternate}
@@ -79,7 +83,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div id="vVis" hidden style="padding:0 16px 12px"></div>
 <div id="vRadar" hidden><canvas id="rad"></canvas>
 <div class="rbot"><button id="rMas">+</button><button id="rMenos">−</button><button id="rCen" title="Centrar">⌖</button><button id="rPausa" title="Pausa">❚❚</button><span class="sub" id="rInfo"></span></div>
-<div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = alerta grave, amarillo = aviso. Arrastra para mover, pellizca para zoom, un toque marca un sistema, dos toques abren su ficha.</div>
+<div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = grave (parpadea si vamos perdiendo un conflicto), amarillo = conflicto empatado, naranja = aviso, verde = defensa en curso o actividad a favor. Arrastra para mover, pellizca para zoom, un toque marca un sistema, dos toques abren su ficha.</div>
 <div class="ral" id="ral"></div><div id="rficha"></div></div>
 <div id="rfull" hidden style="position:fixed;inset:0;z-index:50;background:var(--f);overflow:auto;padding:0 14px 20px">
 <div style="position:sticky;top:0;background:var(--f);padding:10px 0;border-bottom:1px solid var(--l);margin-bottom:10px"><button id="rvolver" style="background:#ff8c00;color:#000;border:0;border-radius:8px;padding:9px 16px;font-weight:700;font-size:15px;cursor:pointer">← Volver</button><button id="rfav" class="favb"></button></div>
