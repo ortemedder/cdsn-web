@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.10";
 const NOVEDADES=[
- ["v1.10","19/11/2026",["Colores de aviso iguales que el radar v2.6: conflictos según el marcador, DEFENSA EN CURSO (verde), DISPUTADO (amarillo) y PERDIENDO (rojo que parpadea), con ⚔","ACTIVIDAD A FAVOR (verde): pico de visitas y sube la influencia (gente propia o ayuda externa)","ACTIVIDAD INUSUAL pasa a naranja; POSIBLE ATAQUE y avisos graves en rojo fijo"]],
+ ["v1.10","19/11/2026",["Avisos de conflicto según el marcador y el día (1–7, con el escucha v10): ⚔ guerra / ✉ elecciones · DEFENSA EN CURSO y A UN DÍA DE GANAR (verde parpadeando), VICTORIA SEGURA (verde), DISPUTADO (amarillo), DÍA DECISIVO y SISTEMA EN DERROTA (rojo parpadeando y alerta grande), PENDIENTE (morado)","La alerta grande dice qué se juega hoy y qué hay en juego","Con un conflicto, las visitas ya no dan POSIBLE ATAQUE","ACTIVIDAD A FAVOR (verde): pico de visitas y sube la influencia (gente propia o ayuda externa)","ACTIVIDAD INUSUAL pasa a naranja; POSIBLE ATAQUE y avisos graves en rojo"]],
  ["v1.9.2","18/11/2026",["Botón ⧉ al lado del nombre de cada sistema para copiarlo al portapapeles (y pegarlo en el mapa de la galaxia)"]],
  ["v1.9.1","18/11/2026",["Franja amarilla fija de ACTIVIDAD INUSUAL (pico de visitas sin bajada de influencia) debajo de la de posible ataque; al tocarla abre Visitas"]],
  ["v1.9","18/11/2026",["Alerta de POSIBLE ATAQUE: franja roja arriba mientras dure y tarjeta grande una vez al día (o si empeora), con Ver ficha, Siguiente y Visto","Visitas: periodo de 5 días (igual que el radar del ESP32) y siempre salen los sistemas con pico de visitas","Historial de posibles ataques en Visitas: cuándo fue, cuántos pilotos y si la influencia se recuperó (con el escucha v9)"]],
@@ -53,20 +53,38 @@ function pico(s){const t=s.trafico||{},d=n=>{const x=new Date();x.setUTCDate(x.g
   for(const k of[0,1]){const v=d(k);let m=0;for(let i=k+1;i<=k+7;i++)m+=d(i);m/=7;if(v>=5&&v>=3*Math.max(m,1))return{v,m,dia:k?"ayer":"hoy"}}return null}
 function ataque(s){const p=pico(s);if(!p)return null;const baja=s.prev!=null&&s.prev-s.inf>=1,sube=s.prev!=null&&s.inf-s.prev>=.5;
   return{...p,baja,sube,txt:`${p.v} pilotos ${p.dia} (media ${c1(p.m)})`+(baja?` y la influencia baja ${c1(s.prev-s.inf)} puntos`:sube?` y la influencia sube ${c1(s.inf-s.prev)} puntos`:"")}}
-// color de cada aviso (igual que el radar): pe = perdiendo (rojo que parpadea), gr = grave (rojo), di = disputado (amarillo),
-// av = aviso (naranja), fa = a favor (verde). TAG pinta la etiqueta, con ⚔ si es un conflicto activo.
-const TAG=a=>a&&a[0]?`<span class="tag k-${a[3]}">${a[4]?"⚔ ":""}${esc(a[1])}</span>`:"";
-// conflicto activo segun el marcador: [titulo, tono]
-const marcador=c=>{const g=c.ganados||0,p=c.perdidos||0;return g>p?["DEFENSA EN CURSO","fa"]:g==p?["DISPUTADO","di"]:["PERDIENDO","pe"]};
-// alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, espadas]
+// color de cada aviso (igual que el radar): gr = grave (rojo), di = disputado (amarillo), av = aviso (naranja),
+// fa = a favor (verde), pu = pendiente (morado). Los conflictos en marcha parpadean. TAG pinta la etiqueta con ⚔ (guerra) o ✉ (elecciones).
+const TAG=a=>a&&a[0]?`<span class="tag k-${a[3]}${a[5]?" parp":""}">${a[4]?a[4]+" ":""}${esc(a[1])}</span>`:"";
+const FILA=a=>`b-${a[3]}${a[5]?" bparp":""}`;   // clase del borde de la fila
+// ---------- conflictos: fase segun marcador y dia (mismas reglas que el escucha v10 y el radar) ----------
+// 7 dias como mucho; gana quien llegue a 4; si nadie llega, gana quien tenga mas. dia = el que se juega (1..7).
+const DIAS_CONF=7;
+function faseConf(g,p,dia){const q=DIAS_CONF+1-dia;if(p+q<g)return"victoria";if(g+q<p)return"sin_remedio";
+  if(p==3||(dia>=DIAS_CONF&&Math.abs(g-p)<=1))return"decisivo";if(g==3&&p<=1)return"a_un_dia";if(g>p)return"defensa";if(g<p)return"derrota";
+  return g==0&&dia<=3?"disputado":"igualado"}
+function finalConf(g,p,dia){if(g>=4)return"victoria";if(p>=4)return"derrota";if(dia>=DIAS_CONF)return g>p?"victoria":p>g?"derrota":"empate";return"sigue"}
+function juegoConf(g,p,dia){const a=finalConf(g+1,p,dia),b=finalConf(g,p+1,dia);if(a=="sigue"&&b=="sigue")return"";
+  return`ganar = ${a} · perder = ${b}`+(dia>=DIAS_CONF?` · sin resultado = ${finalConf(g,p,dia)}`:"")}
+// [titulo, tono, parpadea, alarma]
+const FASES={victoria:["VICTORIA SEGURA","fa",0,0],a_un_dia:["A UN DÍA DE GANAR","fa",1,0],defensa:["DEFENSA EN CURSO","fa",1,0],
+  disputado:["DISPUTADO","di",0,0],igualado:["DISPUTADO","di",1,0],decisivo:["DÍA DECISIVO","gr",1,1],derrota:["SISTEMA EN DERROTA","gr",1,1],sin_remedio:["SISTEMA EN DERROTA","gr",1,1]};
+function conflicto(c){const g=c.ganados||0,p=c.perdidos||0,t=(c.tipo||"").toLowerCase();
+  let dia=c.dia||0,exacto=!!c.dia_exacto;if(!dia){dia=Math.min(DIAS_CONF,g+p+1);exacto=false}
+  const fase=FASES[c.fase]?c.fase:faseConf(g,p,dia),[tit,tono,parp,alarma]=FASES[fase];
+  return{g,p,dia,exacto,fase,tit,tono,parp:!!parp,alarma:!!alarma,ico:t=="election"?"✉":"⚔",tipo:TIPO[t]||"Conflicto",juego:juegoConf(g,p,dia),
+    diaTxt:`día ${exacto?"":"≥"}${dia}/${DIAS_CONF}`}}
+const sinConf=s=>!(s.conflictos||[]).some(c=>c.estado=="active"||c.estado=="pending");
+// alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, icono, parpadea, alarma]
 function alerta(s){
-  for(const c of s.conflictos||[]){const t=TIPO[(c.tipo||"").toLowerCase()]||"Conflicto";
-    if(c.estado=="active"){const[m,k]=marcador(c);return[2,m,`${t} contra ${c.contra} (días ${c.ganados||0}-${c.perdidos||0})`,k,true]}
-    if(c.estado=="pending")return[2,t.toUpperCase()+" PEND.",`contra ${c.contra}`,"gr",false];}
+  for(const c of s.conflictos||[]){const t=TIPO[(c.tipo||"").toLowerCase()]||"Conflicto",ico=(c.tipo||"").toLowerCase()=="election"?"✉":"⚔";
+    if(c.estado=="active"){const k=conflicto(c);
+      return[2,k.tit,`${t} contra ${c.contra} · ${k.diaTxt} · ${k.g}-${k.p}${k.fase=="sin_remedio"?" (sin remedio)":""}${k.juego?" · "+k.juego:""}`,k.tono,k.ico,k.parp,k.alarma]}
+    if(c.estado=="pending")return[2,t.toUpperCase()+" PEND.",`contra ${c.contra} · empieza en el próximo tick`,"pu",ico,false,false];}
   if((s.activos||[]).includes("Retreat")||(s.pendientes||[]).includes("Retreat"))return[2,"RETIRADA",`influencia ${c1(s.inf)} %`,"gr"];
   const vent=s.inf-(s.segunda_inf||0);
   if(s.ctrl&&vent<5)return[2,"VENTAJA BAJA",`solo ${c1(vent)} sobre ${s.segunda}`,"gr"];
-  const at=ataque(s);if(at&&at.baja)return[2,"POSIBLE ATAQUE",at.txt,"gr"];
+  const at=ataque(s);if(at&&at.baja)return[2,"POSIBLE ATAQUE",at.txt,"gr","",false,true];
   if(s.prev!=null&&s.prev-s.inf>=3)return[1,"BAJADA",`${c1(s.inf-s.prev)} desde ayer`,"av"];
   if(at&&!at.sube)return[1,"ACTIVIDAD INUSUAL",at.txt,"av"];
   if(at)return[1,"ACTIVIDAD A FAVOR",at.txt+" (gente propia o ayuda externa)","fa"];
@@ -101,7 +119,7 @@ function pinta(){
   document.getElementById("cab").innerHTML=COLS.map(([k,n])=>`<th data-k="${k}" class="${k==orden?"o"+(asc?" as":""):""}">${n}</th>`).join("");
   let h="";
   for(const f of F){const s=f.s;
-    h+=`<tr class="s b-${f.a[3]}" data-s="${esc(s.sys)}"><td><span class="fav${FAV.has(s.sys)?" on":""}" data-fav="${esc(s.sys)}">${FAV.has(s.sys)?"★":"☆"}</span><span class="${s.ctrl?"ctrl":""}">${s.ctrl?"■ ":"· "}${esc(s.sys)}</span>${CP(s.sys)}</td>
+    h+=`<tr class="s ${FILA(f.a)}" data-s="${esc(s.sys)}"><td><span class="fav${FAV.has(s.sys)?" on":""}" data-fav="${esc(s.sys)}">${FAV.has(s.sys)?"★":"☆"}</span><span class="${s.ctrl?"ctrl":""}">${s.ctrl?"■ ":"· "}${esc(s.sys)}</span>${CP(s.sys)}</td>
     <td class="num">${c1(s.inf)} %</td><td class="num ${f.d>0?"up":f.d<0?"dn":""}">${f.d==null?"—":(f.d>0?"+":"")+c1(f.d)}</td>
     <td class="num ${f.vent<5?"dn":f.vent<15?"":"up"}">${c1(f.vent)}</td><td class="sub">${esc(f.est)||"—"}</td>
     <td>${f.niv?`${TAG(f.a)} <span class="sub">${esc(f.a[2])}</span>`:""}</td>
@@ -175,8 +193,8 @@ carga().finally(quitaArranque);setTimeout(quitaArranque,6000);setInterval(carga,
 // ---------- RADAR (igual que el de la pantalla del ESP32) ----------
 const R_={cv:document.getElementById("rad"),S:[],cx:0,cz:0,k:1,def:null,ang:0,pausa:false,sel:null,t0:0,on:false,pt:new Map(),mov:0};
 const COL={fondo:"#120b02",rej:"#4a2c08",verde:"#5adc78",amar:"#ffd228",nar:"#ff8c00",rojo:"#ff4632",blanco:"#fff",nmed:"#aa5f0a",ilum:"#ffebb4",
-  pe:"#ff4632",gr:"#ff4632",di:"#ffeb00",av:"#ff6400",fa:"#5adc78"};   // colores de los avisos (tono)
-const parp=()=>Math.floor(Date.now()/500)%2==0;   // fase del parpadeo de PERDIENDO
+  gr:"#ff4632",di:"#ffeb00",av:"#ff6400",fa:"#5adc78",pu:"#af5fff"};   // colores de los avisos (tono)
+const parp=()=>Math.floor(Date.now()/500)%2==0;   // fase del parpadeo de los conflictos en marcha
 const med=v=>{v=[...v].sort((a,b)=>a-b);return v.length?v[v.length>>1]:0};
 function radarDatos(){
   const ant=R_.S.length;
@@ -223,7 +241,7 @@ function dibuja(t){
     return o});
   const color=o=>o.s.inf>50?COL.verde:o.s.inf>20?COL.amar:COL.nar;
   for(const o of L){const{sx:x,sy:y}=o;if(x<-30||y<-30||x>w+30||y>h+30)continue;
-    const ca=COL[o.al[3]]||COL.rojo,aro=o.al[3]!="pe"||parp();
+    const ca=COL[o.al[3]]||COL.rojo,aro=!o.al[5]||parp();
     if(o.niv==2&&aro){const r=9+pulso*5;g.strokeStyle=ca;g.lineWidth=2.5;g.beginPath();g.arc(x,y,r,0,7);g.stroke();
       if(o.luz>0){g.fillStyle=`rgba(255,70,50,${(o.luz*.35).toFixed(2)})`;g.beginPath();g.arc(x,y,r+8*o.luz,0,7);g.fill()}}
     else if(o.niv==1&&aro){g.strokeStyle=ca;g.lineWidth=2;g.beginPath();g.arc(x,y,10,0,7);g.stroke()}
@@ -317,11 +335,12 @@ const SUBIR="Subir influencia: misiones de CDSN, comercio con beneficio, bonos y
 function tareas(){
   const L=[];
   for(const s of Object.values(D.sistemas||{})){if(s.fuera||s.inf==null)continue;
-    const v=s.inf-(s.segunda_inf||0),act=s.activos||[],pen=s.pendientes||[],add=(p,tag,k,por,acc,esp)=>L.push({s,p:p+(FAV.has(s.sys)?5:0),tag,k,por,acc,esp});
+    const v=s.inf-(s.segunda_inf||0),act=s.activos||[],pen=s.pendientes||[],add=(p,tag,k,por,acc,ico,parp)=>L.push({s,p:p+(FAV.has(s.sys)?5:0),tag,k,por,acc,ico,parp});
     let hecho=false;
     for(const c of s.conflictos||[]){const t=(c.tipo||"").toLowerCase(),nom=TIPO[t]||"Conflicto";
-      if(c.estado=="active"){const[m,k]=marcador(c);add(k=="pe"?102:k=="di"?100:97,m,k,`${nom} contra ${c.contra} · días ${c.ganados||0}-${c.perdidos||0} (gana quien llegue a 4)`,ACC[t]||SUBIR,true);hecho=true}
-      else if(c.estado=="pending"){add(90,nom.toUpperCase()+" PEND.","gr",`contra ${c.contra} · empieza en el próximo tick`,"Prepararse: "+(ACC[t]||SUBIR).toLowerCase());hecho=true}}
+      if(c.estado=="active"){const k=conflicto(c),pr={decisivo:104,sin_remedio:103,derrota:102,igualado:100,disputado:99,defensa:97,a_un_dia:96,victoria:60}[k.fase];
+        add(pr,k.tit,k.tono,`${nom} contra ${c.contra} · ${k.diaTxt} · ${k.g}-${k.p} (gana quien llegue a 4)`+(k.juego?` · ${k.juego}`:"")+(c.en_juego?` · en juego: ${c.en_juego}`:""),ACC[t]||SUBIR,k.ico,k.parp);hecho=true}
+      else if(c.estado=="pending"){add(90,nom.toUpperCase()+" PEND.","pu",`contra ${c.contra} · empieza en el próximo tick`,"Prepararse: "+(ACC[t]||SUBIR).toLowerCase());hecho=true}}
     if(hecho)continue;
     if(act.includes("Retreat")||pen.includes("Retreat"))add(95,"RETIRADA","gr",`influencia ${c1(s.inf)} %, CDSN puede salir del sistema`,SUBIR);
     else if(s.inf<5)add(85,"RIESGO RETIRADA","gr",`influencia ${c1(s.inf)} %, por debajo del 5 %`,SUBIR);
@@ -339,7 +358,7 @@ function tareas(){
 function pintaHoy(){
   if(!D)return;const L=tareas();
   document.getElementById("vHoy").innerHTML=(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
-   L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}">${t.esp?"⚔ ":""}${esc(t.tag)}</span>
+   L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}${t.parp?" parp":""}">${t.ico?t.ico+" ":""}${esc(t.tag)}</span>
    <div class="sub">${esc(t.por)}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"");
 }
 document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
@@ -433,13 +452,13 @@ function diasAtras(n){const d=new Date();d.setUTCDate(d.getUTCDate()-n);return d
 function pintaVis(){
   if(!D)return;
   const dias=VP==-1?[diasAtras(1)]:[...Array(VP).keys()].map(diasAtras),ult5=[...Array(5).keys()].map(diasAtras).reverse();
-  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>{const t=s.trafico||{};const at=ataque(s);return{s,at:at?(at.baja?3:at.sube?1:2):0,n:dias.reduce((a,d)=>a+(t[d]||0),0),serie:ult5.map(d=>t[d]||0)}});
+  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>{const t=s.trafico||{};const t1=alerta(s)[1];return{s,at:t1=="POSIBLE ATAQUE"?3:t1=="ACTIVIDAD INUSUAL"?2:t1=="ACTIVIDAD A FAVOR"?1:0,n:dias.reduce((a,d)=>a+(t[d]||0),0),serie:ult5.map(d=>t[d]||0)}});
   const tot=L.reduce((a,o)=>a+o.n,0),con=L.filter(o=>o.n>0||o.at).sort((a,b)=>b.at-a.at||b.n-a.n||b.s.inf-a.s.inf),mx=con.length?con[0].n:1;
   const sp=v=>{const m=Math.max(1,...v);return`<span class="spk">${v.map(x=>`<i style="height:${x?Math.max(2,Math.round(x/m*18)):1}px;${x?"":"background:#3a2a12"}"></i>`).join("")}</span>`};
   document.getElementById("vVis").innerHTML=`<div class="vper">${VPS.map(([d,n])=>`<button data-d="${d}" class="${d==VP?"on":""}">${n}</button>`).join("")}</div>
    <div class="sub" style="margin:6px 0 10px">${tot} visitas en ${con.length} sistemas · ${L.length-con.length} sin visitas. Cuenta pilotos distintos por día que envían datos a EDDN (con EDMC u otras herramientas), así que los reales son más.</div>`+
    (con.length?`<div class="tw" style="padding:0 0 12px"><table style="min-width:0"><tr><th>#</th><th>Sistema</th><th>Visitas</th><th>5 días</th></tr>`+
-   con.map((o,i)=>{const s=o.s,a=alerta(s);return`<tr class="s b-${a[3]}" data-s="${esc(s.sys)}"><td class="sub num">${i+1}</td><td><span class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</span>${CP(s.sys)}${a[0]?" "+TAG(a):""}<div class="sub">infl. ${c1(s.inf)} %</div></td>
+   con.map((o,i)=>{const s=o.s,a=alerta(s);return`<tr class="s ${FILA(a)}" data-s="${esc(s.sys)}"><td class="sub num">${i+1}</td><td><span class="${s.ctrl?"ctrl":""}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</span>${CP(s.sys)}${a[0]?" "+TAG(a):""}<div class="sub">infl. ${c1(s.inf)} %</div></td>
     <td style="white-space:nowrap"><div class="bar" style="width:min(18vw,160px);display:inline-block;vertical-align:middle"><i style="width:${o.n/mx*100}%;background:#5aaaff"></i></div> <b class="az">${o.n}</b></td><td>${sp(o.serie)}</td></tr>`}).join("")+"</table></div>":"<p>Nadie ha pasado por nuestros sistemas en este periodo (o el escucha aún no lo ha visto).</p>")+histAtaques();
 }
 // historial de posibles ataques (lo guarda el escucha v9 en faccion.json: ataques.act y ataques.hist)
@@ -457,20 +476,21 @@ function histAtaques(){
 document.getElementById("vVis").onclick=e=>{const b=e.target.closest(".vper button");if(b){VP=+b.dataset.d;pintaVis();return}
   const tr=e.target.closest("[data-s]");if(tr)abreFicha(tr.dataset.s)};
 
-// ---------- alerta de POSIBLE ATAQUE: franja fija y tarjeta grande (una vez al dia o si empeora) ----------
+// ---------- alerta grande: POSIBLE ATAQUE, DÍA DECISIVO o SISTEMA EN DERROTA (franja fija y tarjeta una vez al dia o si empeora) ----------
 let ATK=[],atkI=0;
 function diaLocal(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function listaAtaques(){return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&ataque(s)?.baja)
-  .map(s=>({s,a:ataque(s)})).sort((x,y)=>(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)))}
+function listaAtaques(){const R={"DÍA DECISIVO":3,"SISTEMA EN DERROTA":2,"POSIBLE ATAQUE":1};
+  return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,al:alerta(s),a:ataque(s)})).filter(o=>o.al[6])
+  .sort((x,y)=>(R[y.al[1]]||0)-(R[x.al[1]]||0)||(y.a?y.a.v/Math.max(y.a.m,1):0)-(x.a?x.a.v/Math.max(x.a.m,1):0))}
 function vistos(){try{return JSON.parse(localStorage.getItem("cdsn_atk")||"{}")}catch(e){return{}}}
-function marcaVistos(){const V={},h=diaLocal();for(const o of ATK)V[o.s.sys]={dia:h,v:o.a.v,baja:o.s.prev-o.s.inf};try{localStorage.setItem("cdsn_atk",JSON.stringify(V))}catch(e){}}
+function marcaVistos(){const V={},h=diaLocal();for(const o of ATK)V[o.s.sys]={dia:h,v:o.a?o.a.v:0,baja:o.s.prev-o.s.inf,tit:o.al[1]+o.al[2]};try{localStorage.setItem("cdsn_atk",JSON.stringify(V))}catch(e){}}
 function revisaAtaques(){
   ATK=listaAtaques();
   const b=document.getElementById("ataque");
   if(!ATK.length){b.hidden=true;cierraAtaque(false);return}
-  b.innerHTML=`⚠ <b>POSIBLE ATAQUE</b> en ${esc(ATK[0].s.sys)}${ATK.length>1?` y ${ATK.length-1} más`:""} · toca para ver`;b.hidden=false;
+  b.innerHTML=`⚠ <b>${ATK[0].al[4]?ATK[0].al[4]+" ":""}${esc(ATK[0].al[1])}</b> en ${esc(ATK[0].s.sys)}${ATK.length>1?` y ${ATK.length-1} alerta${ATK.length>2?"s":""} más`:""} · toca para ver`;b.hidden=false;
   const V=vistos(),h=diaLocal();
-  const nuevo=ATK.findIndex(o=>{const r=V[o.s.sys];return!r||r.dia!=h||o.a.v>r.v||(o.s.prev-o.s.inf)>r.baja+.05});   // no visto hoy o ha empeorado
+  const nuevo=ATK.findIndex(o=>{const r=V[o.s.sys];return!r||r.dia!=h||r.tit!=o.al[1]+o.al[2]||(o.a&&o.a.v>r.v)||(!o.al[4]&&(o.s.prev-o.s.inf)>r.baja+.05)});   // no visto hoy o ha cambiado / empeorado
   if(nuevo>=0&&document.getElementById("atk").hidden)abreAtaque(nuevo);
   else if(!document.getElementById("atk").hidden)pintaAtaque();
 }
@@ -478,17 +498,22 @@ function abreAtaque(i){atkI=i||0;pintaAtaque();document.getElementById("atk").hi
 function cierraAtaque(marca){const m=document.getElementById("atk");if(m.hidden)return;m.hidden=true;if(marca)marcaVistos()}
 function pintaAtaque(){
   if(!ATK.length)return;if(atkI>=ATK.length)atkI=0;
-  const{s,a}=ATK[atkI],v=s.inf-(s.segunda_inf||0);
+  const{s,a,al}=ATK[atkI],v=s.inf-(s.segunda_inf||0),c=(s.conflictos||[]).find(x=>x.estado=="active"),k=c&&conflicto(c);
   let tk=proxTick(s),gl=false;if(!tk&&D.tick_global){tk=D.tick_global+86400;while(tk<now()-1800)tk+=86400;gl=true}
   const falta=tk?Math.max(0,tk-now()):0,fx=Math.floor(falta/3600)+" h "+String(Math.round(falta%3600/60)).padStart(2,"0");
-  document.getElementById("atkc").innerHTML=`<div class="atkt">POSIBLE ATAQUE</div><div style="padding:12px 14px">
+  const cuad=k?"<span class=up>■</span>".repeat(k.g)+"<span class=dn>■</span>".repeat(k.p):"";
+  document.getElementById("atkc").innerHTML=`<div class="atkt">${al[4]?al[4]+" ":""}${esc(al[1])}</div><div style="padding:12px 14px">
    <div style="text-align:center;font-size:21px;font-weight:700">${esc(s.sys).toUpperCase()}${CP(s.sys)}</div>
    <div style="text-align:center;font-size:13px;color:${s.ctrl?"#5adc78":"#b06a10"}">${s.ctrl?`controlado · ventaja ${c1(v)} sobre ${esc(s.segunda||"?")}`:`no controlado · manda ${esc(s.ctrl_n||s.segunda||"?")}`}</div>
-   <div class="atkg"><div><span>Pilotos ${a.dia}</span><b class="az">${a.v}</b> <span style="display:inline;font-size:13px;color:#5aaaff">x${c1(a.v/Math.max(a.m,1))}</span><span>media ${c1(a.m)}</span></div>
-   <div><span>Influencia</span><b class="dn">${c1(s.inf-s.prev)}</b><span>desde ayer · ahora ${c1(s.inf)} %</span></div></div>
+   ${k?`<div class="atkg"><div><span>${esc(k.tipo)} contra</span><b style="font-size:15px">${esc(c.contra)}</b></div>
+   <div><span>Marcador · ${k.diaTxt}</span><b>${k.g}-${k.p}</b> ${cuad}</div></div>
+   ${k.juego?`<div style="font-size:15px;font-weight:700;color:#ffeb00;margin-bottom:6px">Hoy: ${esc(k.juego)}</div>`:""}
+   ${c.en_juego?`<div style="font-size:13px;margin-bottom:6px">En juego: <b>${esc(c.en_juego)}</b>${c.en_juego_rival?` · si ganamos: <b>${esc(c.en_juego_rival)}</b>`:""}</div>`:""}`
+   :`<div class="atkg"><div><span>Pilotos ${a.dia}</span><b class="az">${a.v}</b> <span style="display:inline;font-size:13px;color:#5aaaff">x${c1(a.v/Math.max(a.m,1))}</span><span>media ${c1(a.m)}</span></div>
+   <div><span>Influencia</span><b class="dn">${c1(s.inf-s.prev)}</b><span>desde ayer · ahora ${c1(s.inf)} %</span></div></div>`}
    <div class="pk" style="font-size:13px">${tk?`Próximo tick ~${hora(tk)} · en ${fx}${gl?" (galaxia)":""}`:"Próximo tick: aprendiendo..."}</div>
-   <div style="font-size:13px;margin-top:6px">Qué hacer: pasar por ${esc(s.sys)}, ver qué misiones se están haciendo y ${SUBIR.charAt(0).toLowerCase()+SUBIR.slice(1)}.</div>
-   <div class="sub" style="margin-top:6px">dato de hace ${hace(s.t)} · ${atkI+1} de ${ATK.length} posible${ATK.length>1?"s":""} ataque${ATK.length>1?"s":""}</div>
+   <div style="font-size:13px;margin-top:6px">Qué hacer: ${k?esc(ACC[(c.tipo||"").toLowerCase()]||SUBIR):`pasar por ${esc(s.sys)}, ver qué misiones se están haciendo y ${SUBIR.charAt(0).toLowerCase()+SUBIR.slice(1)}`}.</div>
+   <div class="sub" style="margin-top:6px">dato de hace ${hace(s.t)} · alerta ${atkI+1} de ${ATK.length}</div>
    <div class="atkb"><button data-a="f">Ver ficha</button>${ATK.length>1?'<button data-a="s">Siguiente</button>':""}<button data-a="v" class="v">Visto</button></div></div>`;
 }
 document.getElementById("ataque").onclick=()=>abreAtaque(0);
@@ -503,7 +528,7 @@ addEventListener("keydown",e=>{if(e.key=="Escape")cierraAtaque(true)});
 // ---------- franja de ACTIVIDAD INUSUAL (pico de visitas sin bajada de influencia) ----------
 function revisaInusual(){
   const b=document.getElementById("inusual");if(!b||!D)return;
-  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,a:ataque(s)})).filter(o=>o.a&&!o.a.baja&&!o.a.sube)
+  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,a:ataque(s)})).filter(o=>o.a&&alerta(o.s)[1]=="ACTIVIDAD INUSUAL")
     .sort((x,y)=>(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)));
   if(!L.length){b.hidden=true;return}
   const o=L[0];
