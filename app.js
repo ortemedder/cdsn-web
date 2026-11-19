@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.10";
+const VERSION="v1.10.1";
 const NOVEDADES=[
+ ["v1.10.1","19/11/2026",["Franja verde arriba de DEFENSA EN CURSO: avisa a los cmdrs de dónde nos estamos defendiendo (y vamos ganando), con el marcador y el día; al tocarla abre Hoy (o la ficha si es uno solo)","Acerca de en el pie de página: quién lo hace, de dónde salen los datos y contacto"]],
  ["v1.10","19/11/2026",["Avisos de conflicto según el marcador y el día (1–7, con el escucha v10): ⚔ guerra / ✉ elecciones · DEFENSA EN CURSO y A UN DÍA DE GANAR (verde parpadeando), VICTORIA SEGURA (verde), DISPUTADO (amarillo), DÍA DECISIVO y SISTEMA EN DERROTA (rojo parpadeando y alerta grande), PENDIENTE (morado)","La alerta grande dice qué se juega hoy y qué hay en juego","Con un conflicto, las visitas ya no dan POSIBLE ATAQUE","ACTIVIDAD A FAVOR (verde): pico de visitas y sube la influencia (gente propia o ayuda externa)","ACTIVIDAD INUSUAL pasa a naranja; POSIBLE ATAQUE y avisos graves en rojo"]],
  ["v1.9.2","18/11/2026",["Botón ⧉ al lado del nombre de cada sistema para copiarlo al portapapeles (y pegarlo en el mapa de la galaxia)"]],
  ["v1.9.1","18/11/2026",["Franja amarilla fija de ACTIVIDAD INUSUAL (pico de visitas sin bajada de influencia) debajo de la de posible ataque; al tocarla abre Visitas"]],
@@ -180,7 +181,7 @@ async function carga(){
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}">datos de hace ${sub}${viejo?" (el escucha no ha subido datos en más de 1 h)":""}</span>`+
       (e?` · <span style="color:${e.ok&&e.ultimo&&(D.t||now())-e.ultimo<900?"#5adc78":"#ff4632"}">EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}</span>`:"");
     document.getElementById("pie").textContent=`Escucha EDDN de CDSN · ${Object.keys(D.sistemas||{}).length} sistemas · página actualizada ${new Date().toLocaleTimeString("es-ES")} (se refresca sola cada 5 min)`;
-    pinta();sinRed();revisaAtaques();revisaInusual();
+    pinta();sinRed();revisaAtaques();revisaInusual();revisaDefensa();
   }catch(x){if(D){sinRed(true)}else document.getElementById("est").textContent="no se pudieron leer los datos: "+x}
 }
 document.getElementById("cab").onclick=e=>{const k=e.target.dataset.k;if(!k)return;if(k==orden)asc=!asc;else{orden=k;asc=k=="sys"}pinta()};
@@ -322,6 +323,7 @@ function vista(v){
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
+document.getElementById("acerca").onclick=e=>{e.preventDefault();const a=document.getElementById("acd");a.hidden=!a.hidden;if(!a.hidden)a.scrollIntoView({behavior:"smooth"})};
 const vl=document.getElementById("verl");vl.textContent=VERSION+" · novedades";vl.onclick=e=>{e.preventDefault();novedades()};
 document.getElementById("verA").textContent=VERSION;
 // ---------- sin conexion ----------
@@ -536,3 +538,17 @@ function revisaInusual(){
   b.hidden=false;
 }
 document.getElementById("inusual").onclick=()=>vista("vis");
+
+// ---------- franja de DEFENSA EN CURSO (conflictos que vamos ganando: defensa, a un dia de ganar, victoria segura) ----------
+let DEF=[];
+function revisaDefensa(){
+  const b=document.getElementById("defensa");if(!b||!D)return;
+  DEF=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).flatMap(s=>(s.conflictos||[]).filter(c=>c.estado=="active")
+    .map(c=>({s,c,k:conflicto(c)}))).filter(o=>o.k.tono=="fa").sort((x,y)=>(y.k.g-y.k.p)-(x.k.g-x.k.p));
+  if(!DEF.length){b.hidden=true;return}
+  const o=DEF[0],t=o.k.fase=="victoria"?"VICTORIA SEGURA":o.k.fase=="a_un_dia"?"A UN DÍA DE GANAR":"DEFENSA EN CURSO";
+  b.innerHTML=`🛡 ${o.k.ico} <b>${t}</b> en ${esc(o.s.sys)} (${esc(o.k.tipo.toLowerCase())} contra ${esc(o.c.contra)} · ${o.k.g}-${o.k.p} · ${o.k.diaTxt})`+
+    `${DEF.length>1?` y ${DEF.length-1} más`:""} · vamos ganando, ¡ayuda a mantenerlo! · toca para ver`;
+  b.hidden=false;
+}
+document.getElementById("defensa").onclick=()=>{if(DEF.length==1)abreFicha(DEF[0].s.sys);else vista("hoy")};
