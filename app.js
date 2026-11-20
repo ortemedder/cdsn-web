@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.11";
+const VERSION="v1.12";
 const NOVEDADES=[
+ ["v1.12","20/11/2026",["Radar más limpio: la expansión pendiente (es de toda la facción) ya no pone un aro en cada sistema; sale una franja arriba del mapa y al tocarla se ven u ocultan esos sistemas","Los avisos leves (naranja) llevan un aro fino y discreto y su nombre sale al hacer zoom","Los conflictos en marcha ya no se apagan al parpadear: el aro se atenúa"]],
  ["v1.11","20/11/2026",["Radar: cuadro de Leyenda del mapa debajo, que explica cada símbolo (cuadrado/punto, colores de influencia, aros de aviso y sus colores, ⚔ ✉, ★, recuadro, nombres, barrido y anillos). Se abre y se cierra tocando el título y recuerda cómo lo dejaste"]],
  ["v1.10.1","19/11/2026",["Franja verde arriba de DEFENSA EN CURSO: avisa a los cmdrs de dónde nos estamos defendiendo (y vamos ganando), con el marcador y el día; al tocarla abre Hoy (o la ficha si es uno solo)","Acerca de en el pie de página: quién lo hace, de dónde salen los datos y contacto"]],
  ["v1.10","19/11/2026",["Avisos de conflicto según el marcador y el día (1–7, con el escucha v10): ⚔ guerra / ✉ elecciones · DEFENSA EN CURSO y A UN DÍA DE GANAR (verde parpadeando), VICTORIA SEGURA (verde), DISPUTADO (amarillo), DÍA DECISIVO y SISTEMA EN DERROTA (rojo parpadeando y alerta grande), PENDIENTE (morado)","La alerta grande dice qué se juega hoy y qué hay en juego","Con un conflicto, las visitas ya no dan POSIBLE ATAQUE","ACTIVIDAD A FAVOR (verde): pico de visitas y sube la influencia (gente propia o ayuda externa)","ACTIVIDAD INUSUAL pasa a naranja; POSIBLE ATAQUE y avisos graves en rojo"]],
@@ -196,14 +197,14 @@ carga().finally(quitaArranque);setTimeout(quitaArranque,6000);setInterval(carga,
 // leyenda del radar: abierta la primera vez, luego recuerda si la cerraste
 {const l=document.getElementById("rley");let a="1";try{a=localStorage.getItem("cdsn_ley")??"1"}catch(e){}l.open=a=="1";
  l.addEventListener("toggle",()=>{try{localStorage.setItem("cdsn_ley",l.open?"1":"0")}catch(e){}})}
-const R_={cv:document.getElementById("rad"),S:[],cx:0,cz:0,k:1,def:null,ang:0,pausa:false,sel:null,t0:0,on:false,pt:new Map(),mov:0};
+const R_={verExp:false,cv:document.getElementById("rad"),S:[],cx:0,cz:0,k:1,def:null,ang:0,pausa:false,sel:null,t0:0,on:false,pt:new Map(),mov:0};
 const COL={fondo:"#120b02",rej:"#4a2c08",verde:"#5adc78",amar:"#ffd228",nar:"#ff8c00",rojo:"#ff4632",blanco:"#fff",nmed:"#aa5f0a",ilum:"#ffebb4",
   gr:"#ff4632",di:"#ffeb00",av:"#ff6400",fa:"#5adc78",pu:"#af5fff"};   // colores de los avisos (tono)
 const parp=()=>Math.floor(Date.now()/500)%2==0;   // fase del parpadeo de los conflictos en marcha
 const med=v=>{v=[...v].sort((a,b)=>a-b);return v.length?v[v.length>>1]:0};
 function radarDatos(){
   const ant=R_.S.length;
-  R_.S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&s.pos).map(s=>{const a=alerta(s);return{s,x:s.pos[0],z:s.pos[2],niv:a[0],al:a,luz:0}});
+  R_.S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&s.pos).map(s=>{const a=alerta(s);const exp=a[1]=="EXPANSIÓN PEND.";return{s,x:s.pos[0],z:s.pos[2],niv:exp&&!R_.verExp?0:a[0],exp,al:a,luz:0}});
   if(!ant||!R_.def)vistaDef();
   pintaAlertas();
   if(R_.sel){const n=R_.S.find(o=>o.s.sys==R_.sel);if(n)ficha(n)}
@@ -246,10 +247,11 @@ function dibuja(t){
     return o});
   const color=o=>o.s.inf>50?COL.verde:o.s.inf>20?COL.amar:COL.nar;
   for(const o of L){const{sx:x,sy:y}=o;if(x<-30||y<-30||x>w+30||y>h+30)continue;
-    const ca=COL[o.al[3]]||COL.rojo,aro=!o.al[5]||parp();
-    if(o.niv==2&&aro){const r=9+pulso*5;g.strokeStyle=ca;g.lineWidth=2.5;g.beginPath();g.arc(x,y,r,0,7);g.stroke();
+    const ca=COL[o.al[3]]||COL.rojo;g.globalAlpha=o.al[5]&&!parp()?.3:1;   // al parpadear se atenua, no se apaga
+    if(o.niv==2){const r=9+pulso*5;g.strokeStyle=ca;g.lineWidth=2.5;g.beginPath();g.arc(x,y,r,0,7);g.stroke();
       if(o.luz>0){g.fillStyle=`rgba(255,70,50,${(o.luz*.35).toFixed(2)})`;g.beginPath();g.arc(x,y,r+8*o.luz,0,7);g.fill()}}
-    else if(o.niv==1&&aro){g.strokeStyle=ca;g.lineWidth=2;g.beginPath();g.arc(x,y,10,0,7);g.stroke()}
+    else if(o.niv==1){g.globalAlpha=.5;g.strokeStyle=ca;g.lineWidth=1;g.beginPath();g.arc(x,y,8,0,7);g.stroke()}   // aviso leve: fino y discreto
+    g.globalAlpha=1;
     g.fillStyle=o.luz>.05?mezcla(color(o),COL.ilum,o.luz):color(o);
     if(o.s.ctrl)g.fillRect(x-4,y-4,8,8);else{g.beginPath();g.arc(x,y,3,0,7);g.fill()}
     if(FAV.has(o.s.sys)){g.fillStyle="#ffd228";g.font="11px system-ui,sans-serif";g.textBaseline="middle";g.textAlign="center";g.fillText("★",x,y-12);g.textAlign="left"}
@@ -257,7 +259,7 @@ function dibuja(t){
   // nombres: primero alertas, luego controlados, luego el resto (sin solaparse)
   g.font="12px system-ui,sans-serif";g.textBaseline="middle";const kz=R_.def?R_.k*R_.def.d80/(.9*R):1;
   for(const pas of[0,1,2]){if(pas==1&&kz<1.4)break;if(pas==2&&kz<3)break;
-    for(const o of L){const ok=pas==0?o.niv>0:pas==1?o.s.ctrl&&!o.niv:!o.s.ctrl&&!o.niv;if(!ok&&!(pas==0&&(R_.sel==o.s.sys||FAV.has(o.s.sys))))continue;
+    for(const o of L){const ok=pas==0?o.niv>1:pas==1?(o.s.ctrl&&!o.niv)||o.niv==1:!o.s.ctrl&&!o.niv;if(!ok&&!(pas==0&&(R_.sel==o.s.sys||FAV.has(o.s.sys))))continue;
       const x=o.sx+(o.niv?17:9),y=o.sy,n=o.s.sys,wd=g.measureText(n).width;
       if(x>w||y<0||y>h||x+wd<0)continue;
       if(lab.some(r=>x<r[0]+r[2]+4&&r[0]<x+wd+4&&Math.abs(y-r[1])<13))continue;
@@ -289,7 +291,11 @@ function fichaEntera(o,solo){   // dos toques: ficha a pantalla completa
 function cierraFicha(){const f=document.getElementById("rfull");if(f.hidden)return;f.hidden=true;document.body.style.overflow=""}
 document.getElementById("rvolver").onclick=()=>history.back();
 addEventListener("popstate",cierraFicha);
-function pintaAlertas(){
+function franjaExp(){   // la expansion es de toda la faccion: una sola franja; al tocarla se ven u ocultan sus aros
+  const n=R_.S.filter(o=>o.exp).length,f=document.getElementById("rexp");f.hidden=!n;
+  f.innerHTML=`⬆ EXPANSIÓN PENDIENTE · toda la facción <span class="sub">· ${R_.verExp?"toca para ocultar":"toca para ver"} ${n} sistemas</span>`;f.classList.toggle("on",R_.verExp)}
+document.getElementById("rexp").onclick=()=>{R_.verExp=!R_.verExp;for(const o of R_.S)if(o.exp)o.niv=R_.verExp?o.al[0]:0;pintaAlertas()};
+function pintaAlertas(){franjaExp();
   const A=R_.S.filter(o=>o.niv).sort((a,b)=>b.niv-a.niv||a.s.inf-b.s.inf);
   document.getElementById("ral").innerHTML=A.map(o=>`<button data-s="${esc(o.s.sys)}">${TAG(o.al)} ${esc(o.s.sys)}</button>`).join("");
   document.getElementById("rInfo").textContent=`${R_.S.length} sistemas · ${A.length} alertas`;

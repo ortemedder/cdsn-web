@@ -47,6 +47,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 .ley h4{margin:10px 0 4px;color:var(--v);font-size:12px;text-transform:uppercase}.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 14px;margin-bottom:4px}
 .li{display:flex;align-items:center;gap:8px}.li svg{flex:none;background:#120b02;border:1px solid #2a1a06;border-radius:5px}.lic{flex:none;min-width:28px;text-align:center}
 .lparp{animation:parp 1s steps(1) infinite}
+#rexp{background:#2a1a06;border:1px solid #ff6400;color:#ff8c00;border-radius:8px;padding:7px 12px;margin:0 0 8px;font-weight:700;font-size:14px;cursor:pointer}#rexp.on{background:#ff6400;color:#000}#rexp.on .sub{color:#000}
 #rficha{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-top:8px}#rficha:empty{display:none}
 .fav{cursor:pointer;color:#6b4a1c;font-size:16px;padding:0 4px 0 0}.fav.on{color:#ffd228}
 .hoy{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer}.hoy b{font-size:15px}.hoy .acc{color:#5adc78;margin-top:3px}
@@ -88,7 +89,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div id="vEvo" hidden style="padding:0 16px 12px"></div>
 <div id="vPP" hidden style="padding:0 16px 12px"></div>
 <div id="vVis" hidden style="padding:0 16px 12px"></div>
-<div id="vRadar" hidden><canvas id="rad"></canvas>
+<div id="vRadar" hidden><div id="rexp" hidden></div><canvas id="rad"></canvas>
 <div class="rbot"><button id="rMas">+</button><button id="rMenos">−</button><button id="rCen" title="Centrar">⌖</button><button id="rPausa" title="Pausa">❚❚</button><span class="sub" id="rInfo"></span></div>
 <details class="ley" id="rley"><summary>Leyenda del mapa</summary>
 <h4>Sistemas</h4><div class="lg">
@@ -100,12 +101,13 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><rect x="-4" y="-4" width="8" height="8" fill="#ffebb4"/></svg><span>Se ilumina un momento al pasar el barrido</span></div>
 </div><h4>Aros de aviso</h4><div class="lg">
 <div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="9" fill="none" stroke="#ff4632" stroke-width="2.5"><animate attributeName="r" values="9;14;9" dur="1s" repeatCount="indefinite"/></circle><rect x="-4" y="-4" width="8" height="8" fill="#5adc78"/></svg><span>Aro que late: <b>alerta grave</b> (conflicto, retirada, ventaja baja, posible ataque)</span></div>
-<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ff6400" stroke-width="2"/><rect x="-4" y="-4" width="8" height="8" fill="#5adc78"/></svg><span>Aro fijo fino: <b>aviso</b> (bajada, actividad inusual, expansión pendiente)</span></div>
-<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="9" fill="none" stroke="#ff4632" stroke-width="2.5" class="lparp"><animate attributeName="r" values="9;14;9" dur="1s" repeatCount="indefinite"/></circle><rect x="-4" y="-4" width="8" height="8" fill="#ffd228"/></svg><span>Aro que parpadea: <b>conflicto en marcha</b></span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="8" fill="none" stroke="#ff6400" stroke-width="1" opacity=".5"/><rect x="-4" y="-4" width="8" height="8" fill="#5adc78"/></svg><span>Aro fino y tenue: <b>aviso leve</b> (bajada, actividad inusual); su nombre sale al hacer zoom</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="9" fill="none" stroke="#ff4632" stroke-width="2.5" class="lparp"><animate attributeName="r" values="9;14;9" dur="1s" repeatCount="indefinite"/></circle><rect x="-4" y="-4" width="8" height="8" fill="#ffd228"/></svg><span>Aro que parpadea (se atenúa): <b>conflicto en marcha</b></span></div>
 </div><div class="lg">
 <div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ff4632" stroke-width="2"/></svg><span><b style="color:#ff4632">Rojo</b>: grave · día decisivo, sistema en derrota, retirada, ventaja baja, posible ataque</span></div>
 <div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ffeb00" stroke-width="2"/></svg><span><b style="color:#ffeb00">Amarillo</b>: conflicto disputado (empatado)</span></div>
-<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ff6400" stroke-width="2"/></svg><span><b style="color:#ff6400">Naranja</b>: aviso · bajada, actividad inusual, expansión pendiente</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ff6400" stroke-width="2"/></svg><span><b style="color:#ff6400">Naranja</b>: aviso · bajada, actividad inusual</span></div>
+<div class="li"><span class="lic" style="color:#ff8c00">⬆</span><span>Expansión pendiente: es de toda la facción, sale en la franja de arriba; tócala para ver u ocultar sus aros</span></div>
 <div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#5adc78" stroke-width="2"/></svg><span><b style="color:#5adc78">Verde</b>: a favor · defensa en curso, a un día de ganar, victoria segura, actividad a favor</span></div>
 <div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#af5fff" stroke-width="2"/></svg><span><b style="color:#af5fff">Morado</b>: conflicto pendiente (empieza en el próximo tick)</span></div>
 <div class="li"><span class="lic">⚔ ✉</span><span>En la ficha y las etiquetas: ⚔ guerra · ✉ elecciones</span></div>
