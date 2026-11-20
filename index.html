@@ -43,6 +43,10 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 #vRadar{padding:0 12px 12px}#rad{display:block;width:100%;touch-action:none;border-radius:10px;background:#120b02;border:1px solid var(--l)}
 .rbot{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}.rbot button{background:var(--p);color:#ff8c00;border:1px solid var(--l);border-radius:6px;min-width:44px;height:38px;font-size:18px;font-weight:700;cursor:pointer}
 .ral{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.ral button{background:var(--p);border:1px solid var(--l);border-radius:6px;color:var(--b);padding:6px 8px;text-align:left;cursor:pointer;font-size:13px}
+.ley{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:6px 12px;margin:6px 0;font-size:13px}.ley summary{cursor:pointer;color:#ff8c00;font-weight:700;padding:4px 0}
+.ley h4{margin:10px 0 4px;color:var(--v);font-size:12px;text-transform:uppercase}.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 14px;margin-bottom:4px}
+.li{display:flex;align-items:center;gap:8px}.li svg{flex:none;background:#120b02;border:1px solid #2a1a06;border-radius:5px}.lic{flex:none;min-width:28px;text-align:center}
+.lparp{animation:parp 1s steps(1) infinite}
 #rficha{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-top:8px}#rficha:empty{display:none}
 .fav{cursor:pointer;color:#6b4a1c;font-size:16px;padding:0 4px 0 0}.fav.on{color:#ffd228}
 .hoy{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer}.hoy b{font-size:15px}.hoy .acc{color:#5adc78;margin-top:3px}
@@ -86,7 +90,34 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div id="vVis" hidden style="padding:0 16px 12px"></div>
 <div id="vRadar" hidden><canvas id="rad"></canvas>
 <div class="rbot"><button id="rMas">+</button><button id="rMenos">−</button><button id="rCen" title="Centrar">⌖</button><button id="rPausa" title="Pausa">❚❚</button><span class="sub" id="rInfo"></span></div>
-<div class="sub">■ controlado · ● presencia · verde &gt;50 %, amarillo &gt;20 %, naranja menos · aro rojo = grave, amarillo = conflicto empatado, morado = conflicto pendiente, naranja = aviso, verde = defensa en curso o actividad a favor; los conflictos en marcha parpadean. Arrastra para mover, pellizca para zoom, un toque marca un sistema, dos toques abren su ficha.</div>
+<details class="ley" id="rley"><summary>Leyenda del mapa</summary>
+<h4>Sistemas</h4><div class="lg">
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><rect x="-4" y="-4" width="8" height="8" fill="#ccc"/></svg><span>Cuadrado: sistema que <b>controlamos</b></span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="3" fill="#ccc"/></svg><span>Punto: sistema con <b>presencia</b> (no lo controlamos)</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><rect x="-4" y="-4" width="8" height="8" fill="#5adc78"/></svg><span>Verde: influencia de más del 50 %</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><rect x="-4" y="-4" width="8" height="8" fill="#ffd228"/></svg><span>Amarillo: influencia entre 20 y 50 %</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><rect x="-4" y="-4" width="8" height="8" fill="#ff8c00"/></svg><span>Naranja: influencia del 20 % o menos</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><rect x="-4" y="-4" width="8" height="8" fill="#ffebb4"/></svg><span>Se ilumina un momento al pasar el barrido</span></div>
+</div><h4>Aros de aviso</h4><div class="lg">
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="9" fill="none" stroke="#ff4632" stroke-width="2.5"><animate attributeName="r" values="9;14;9" dur="1s" repeatCount="indefinite"/></circle><rect x="-4" y="-4" width="8" height="8" fill="#5adc78"/></svg><span>Aro que late: <b>alerta grave</b> (conflicto, retirada, ventaja baja, posible ataque)</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ff6400" stroke-width="2"/><rect x="-4" y="-4" width="8" height="8" fill="#5adc78"/></svg><span>Aro fijo fino: <b>aviso</b> (bajada, actividad inusual, expansión pendiente)</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="9" fill="none" stroke="#ff4632" stroke-width="2.5" class="lparp"><animate attributeName="r" values="9;14;9" dur="1s" repeatCount="indefinite"/></circle><rect x="-4" y="-4" width="8" height="8" fill="#ffd228"/></svg><span>Aro que parpadea: <b>conflicto en marcha</b></span></div>
+</div><div class="lg">
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ff4632" stroke-width="2"/></svg><span><b style="color:#ff4632">Rojo</b>: grave · día decisivo, sistema en derrota, retirada, ventaja baja, posible ataque</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ffeb00" stroke-width="2"/></svg><span><b style="color:#ffeb00">Amarillo</b>: conflicto disputado (empatado)</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#ff6400" stroke-width="2"/></svg><span><b style="color:#ff6400">Naranja</b>: aviso · bajada, actividad inusual, expansión pendiente</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#5adc78" stroke-width="2"/></svg><span><b style="color:#5adc78">Verde</b>: a favor · defensa en curso, a un día de ganar, victoria segura, actividad a favor</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="10" fill="none" stroke="#af5fff" stroke-width="2"/></svg><span><b style="color:#af5fff">Morado</b>: conflicto pendiente (empieza en el próximo tick)</span></div>
+<div class="li"><span class="lic">⚔ ✉</span><span>En la ficha y las etiquetas: ⚔ guerra · ✉ elecciones</span></div>
+</div><h4>Otros símbolos</h4><div class="lg">
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><text y="4" text-anchor="middle" font-size="13" fill="#ffd228">★</text></svg><span>Estrella: sistema en tus favoritos ⭐</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><rect x="-8" y="-8" width="16" height="16" fill="none" stroke="#fff" stroke-width="1.5"/><rect x="-4" y="-4" width="8" height="8" fill="#5adc78"/></svg><span>Recuadro blanco: sistema marcado (el que has tocado)</span></div>
+<div class="li"><span class="lic"><b style="color:#fff">Abc</b> <b style="color:#aa5f0a">Abc</b> <b style="color:#ff4632">Abc</b></span><span>Nombres: blanco controlado, marrón presencia, en color el del aviso. Con más zoom salen más nombres</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><path d="M0 0L0 -13A13 13 0 0 1 11 -7Z" fill="rgba(200,110,0,.45)"/><line x1="0" y1="0" x2="0" y2="-13" stroke="rgba(255,200,90,.9)" stroke-width="2"/></svg><span>Barrido: da una vuelta cada 4 s (❚❚ lo para)</span></div>
+<div class="li"><svg viewBox="-14 -14 28 28" width="28" height="28"><circle r="5" fill="none" stroke="#4a2c08"/><circle r="9" fill="none" stroke="#4a2c08"/><circle r="13" fill="none" stroke="#4a2c08"/><path d="M-13 0H13M0 -13V13" stroke="#4a2c08"/></svg><span>Anillos: la distancia entre anillos sale abajo a la derecha (en años luz). Arriba del mapa = hacia el centro de la galaxia (Sagittarius A*)</span></div>
+</div>
+<div class="sub" style="margin-top:6px">Arrastra para mover, pellizca (o +/−) para zoom, ⌖ vuelve a centrar. Un toque marca un sistema, dos toques abren su ficha.</div>
+</details>
 <div class="ral" id="ral"></div><div id="rficha"></div></div>
 <div id="rfull" hidden style="position:fixed;inset:0;z-index:50;background:var(--f);overflow:auto;padding:0 14px 20px">
 <div style="position:sticky;top:0;background:var(--f);padding:10px 0;border-bottom:1px solid var(--l);margin-bottom:10px"><button id="rvolver" style="background:#ff8c00;color:#000;border:0;border-radius:8px;padding:9px 16px;font-weight:700;font-size:15px;cursor:pointer">← Volver</button><button id="rfav" class="favb"></button></div>
