@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.12";
+const VERSION="v1.13";
 const NOVEDADES=[
+ ["v1.13","22/11/2026",["Pestaña Gráficos: visitas por día, mapa de horas (a qué hora entra la gente), influencia, saltos de las últimas 48 h, felicidad y resultados de los conflictos; todo para la facción o para un sistema","EXPANSIÓN ENEMIGA: otra facción prepara una expansión cerca y puede entrar en uno de nuestros sistemas (con el escucha v11)","ESTACIÓN DAÑADA / BAJO ATAQUE, SEGURIDAD BAJADA y OPORTUNIDAD (otra facción en retirada en un sistema nuestro) en la tabla, el radar y Hoy","Ficha: felicidad de cada facción, estaciones y su estado, asentamientos de Odyssey, cambios de población y seguridad y expansiones que apuntan al sistema","Hoy: lista de expansiones y retiradas de otras facciones alrededor"]],
  ["v1.12","20/11/2026",["Radar más limpio: la expansión pendiente (es de toda la facción) ya no pone un aro en cada sistema; sale una franja arriba del mapa y al tocarla se ven u ocultan esos sistemas","Los avisos leves (naranja) llevan un aro fino y discreto y su nombre sale al hacer zoom","Los conflictos en marcha ya no se apagan al parpadear: el aro se atenúa"]],
  ["v1.11","20/11/2026",["Radar: cuadro de Leyenda del mapa debajo, que explica cada símbolo (cuadrado/punto, colores de influencia, aros de aviso y sus colores, ⚔ ✉, ★, recuadro, nombres, barrido y anillos). Se abre y se cierra tocando el título y recuerda cómo lo dejaste"]],
  ["v1.10.1","19/11/2026",["Franja verde arriba de DEFENSA EN CURSO: avisa a los cmdrs de dónde nos estamos defendiendo (y vamos ganando), con el marcador y el día; al tocarla abre Hoy (o la ficha si es uno solo)","Acerca de en el pie de página: quién lo hace, de dónde salen los datos y contacto"]],
@@ -77,6 +78,19 @@ function conflicto(c){const g=c.ganados||0,p=c.perdidos||0,t=(c.tipo||"").toLowe
   const fase=FASES[c.fase]?c.fase:faseConf(g,p,dia),[tit,tono,parp,alarma]=FASES[fase];
   return{g,p,dia,exacto,fase,tit,tono,parp:!!parp,alarma:!!alarma,ico:t=="election"?"✉":"⚔",tipo:TIPO[t]||"Conflicto",juego:juegoConf(g,p,dia),
     diaTxt:`día ${exacto?"":"≥"}${dia}/${DIAS_CONF}`}}
+// ---------- datos del escucha v11 ----------
+const FEL={1:["😄","eufórica"],2:["🙂","contenta"],3:["😐","descontenta"],4:["☹️","infeliz"],5:["😫","desesperada"]};
+const felTxt=n=>FEL[n]?FEL[n][0]+" "+FEL[n][1]:"—";
+const EST_ES={UnderRepairs:"en reparación",Damaged:"dañada",Abandoned:"abandonada",UnderAttack:"bajo ataque",Construction:"en construcción",Evacuated:"evacuada"};
+const SEGN={"$SYSTEM_SECURITY_high;":3,"$SYSTEM_SECURITY_medium;":2,"$SYSTEM_SECURITY_low;":1,"$GAlAXY_MAP_INFO_state_anarchy;":0,"$GALAXY_MAP_INFO_state_anarchy;":0,"$GALAXY_MAP_INFO_state_lawless;":0};
+const SEGT=["sin ley","baja","media","alta"];
+// expansiones de otras facciones que pueden llegar a cada sistema nuestro: {sistema: [{n,desde,est,ly}]}
+function amenazas(){const A={};for(const[desde,v]of Object.entries(D.vecinos||{}))for(const e of v.exp||[])for(const[n,ly]of e.obj||[])(A[n]??=[]).push({n:e.n,desde,est:e.est,ly,inf:e.inf});return A}
+let AMZ={};
+const estMal=s=>Object.entries(s.estaciones||{}).filter(([n,e])=>e.estado&&EST_ES[e.estado]&&(e.f==FAC||e.estado=="UnderAttack"||e.estado=="Damaged"));
+function segBaja(s){const h=s.hsis||[];if(h.length<2)return null;const a=h[h.length-2],b=h[h.length-1],x=SEGN[a[2]],y=SEGN[b[2]];
+  return x!=null&&y!=null&&y<x&&now()-b[0]<3*86400?{de:SEGT[x],a:SEGT[y],t:b[0]}:null}
+const retAjena=s=>(s.todas||[]).filter(x=>x.n!=FAC&&[...(x.act||[]),...(x.pend||[])].includes("Retreat"));
 const sinConf=s=>!(s.conflictos||[]).some(c=>c.estado=="active"||c.estado=="pending");
 // alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, icono, parpadea, alarma]
 function alerta(s){
@@ -91,6 +105,9 @@ function alerta(s){
   if(s.prev!=null&&s.prev-s.inf>=3)return[1,"BAJADA",`${c1(s.inf-s.prev)} desde ayer`,"av"];
   if(at&&!at.sube)return[1,"ACTIVIDAD INUSUAL",at.txt,"av"];
   if(at)return[1,"ACTIVIDAD A FAVOR",at.txt+" (gente propia o ayuda externa)","fa"];
+  const em=estMal(s);if(em.length)return[1,em[0][1].estado=="UnderAttack"?"ESTACIÓN BAJO ATAQUE":"ESTACIÓN DAÑADA",`${em[0][0]} ${EST_ES[em[0][1].estado]}${em.length>1?` y ${em.length-1} más`:""}`,"av"];
+  const am=AMZ[s.sys];if(am)return[1,"EXPANSIÓN ENEMIGA",`${am[0].n} desde ${am[0].desde} (${c1(am[0].ly)} al)${am.length>1?` y ${am.length-1} más`:""}`,"av","🛸"];
+  const sb=segBaja(s);if(sb)return[1,"SEGURIDAD BAJADA",`de ${sb.de} a ${sb.a}`,"av"];
   if((s.pendientes||[]).includes("Expansion"))return[1,"EXPANSIÓN PEND.","","av"];
   return[0,"","","no"];
 }
@@ -130,7 +147,7 @@ function pinta(){
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
-  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();
+  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();
 }
 function grafica(h){
   if(!h||h.length<2)return'<span class="sub">histórico: aprendiendo...</span>';
@@ -145,7 +162,7 @@ function grafica(h){
 }
 function detalle(s){
   const fac=(s.todas||[]).map(x=>{const m=x.n==FAC;
-    return`<span class="${m?"ctrl":""}">${esc(x.n)}${x.jug?" <span class='sub'>(jugadores)</span>":""}<br><span class="sub">${esc(x.gov)} · ${esc(x.alg)}${(x.act||[]).length?" · "+esc(x.act.map(es).join(", ")):""}${(x.pend||[]).length?" · pend.: "+esc(x.pend.map(es).join(", ")):""}</span></span>
+    return`<span class="${m?"ctrl":""}">${esc(x.n)}${x.jug?" <span class='sub'>(jugadores)</span>":""}${FEL[x.fel]?` <span title="felicidad: ${FEL[x.fel][1]}">${FEL[x.fel][0]}</span>`:""}<br><span class="sub">${esc(x.gov)} · ${esc(x.alg)}${(x.act||[]).length?" · "+esc(x.act.map(es).join(", ")):""}${(x.pend||[]).length?" · pend.: "+esc(x.pend.map(es).join(", ")):""}</span></span>
     <div class="bar"><i class="${m?"m":""}" style="width:${Math.min(100,x.inf)}%"></i></div><span class="num">${c1(x.inf)} %</span>`}).join("");
   const con=(s.conflictos||[]).map(c=>`${esc(TIPO[(c.tipo||"").toLowerCase()]||c.tipo)} (${c.estado=="active"?"activo":c.estado=="pending"?"pendiente":esc(c.estado)}) contra <b>${esc(c.contra)}</b>: ${"<span class=up>■</span>".repeat(c.ganados||0)}${"<span class=dn>■</span>".repeat(c.perdidos||0)} ${c.ganados||0}-${c.perdidos||0}`).join("<br>")||"ninguno";
   const tr=Object.entries(s.trafico||{}).sort().slice(-8).map(([d,n])=>`${d.slice(8)}/${d.slice(5,7)}: <b class=az>${n}</b>`).join(" · ")||"—";
@@ -156,6 +173,7 @@ function detalle(s){
   const si=s.sis||{},pp=s.pp||{};
   const sis=`población: ${pob(si.pob)}<br>economía: ${esc(limpia(si.eco))}${si.eco2&&si.eco2!="$economy_None;"?" / "+esc(limpia(si.eco2)):""}<br>
     seguridad: ${esc(SEG[si.seg]||limpia(si.seg))} · gobierno: ${esc(limpia(si.gov))} · alianza: ${esc(si.alg||"—")}<br>
+    felicidad de CDSN: ${felTxt(s.fel)}${(s.hsis||[]).length>1?"<br><span class=sub>cambios: "+s.hsis.slice(-4).map(h=>`${new Date(h[0]*1000).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})} ${pob(h[1])} · seg. ${esc(SEGT[SEGN[h[2]]]??limpia(h[2]))}`).join(" → ")+"</span>":""}<br>
     coordenadas: ${(s.pos||[]).map(v=>v==null?"?":(+v).toFixed(1)).join(" / ")||"—"}${s.ctrl_n?"<br>controla: "+esc(s.ctrl_n):""}`;
   const pw=pp.pot||(pp.pots||[]).length?`potencia: <b>${esc(pp.pot||"ninguna")}</b>${pp.est?" ("+esc(PPE[pp.est]||pp.est)+")":""}<br>
     progreso: ${pct(pp.prog)} · refuerzo: ${pp.ref??"—"} · socavamiento: ${pp.soc??"—"}${(pp.pots||[]).length?"<br><span class=sub>presentes: "+pp.pots.map(esc).join(", ")+"</span>":""}`:"sin Powerplay";
@@ -163,10 +181,15 @@ function detalle(s){
   const pn=Object.entries(s.pn||{}).map(([c,v])=>`<b>${esc(c)}</b> ${esc(v.n||"")} <span class=sub>(${hace(v.t)})</span>`).join("<br>")||"no vistos en 7 días";
   const ay=s.prev!=null?`${c1(s.prev)} % → ${c1(s.inf)} % (${(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)}) · cambio visto hace ${hace(s.t)}${s.prev_t?" · dato anterior hace "+hace(s.prev_t):""}`:"—";
   const B=(t,c)=>`<h3 style="margin-top:10px">${t}</h3>${c}`;
+  const ests=Object.entries(s.estaciones||{}).filter(([n,e])=>e.f||e.tipo).sort((a,b)=>(a[1].ls??1e9)-(b[1].ls??1e9)).slice(0,10)
+    .map(([n,e])=>`<span class="${e.f==FAC?"ctrl":""}">${esc(n)}</span> <span class=sub>${esc(e.tipo||"")}${e.ls!=null?" · "+e.ls+" ls":""} · ${esc(e.f||"?")}</span>${e.estado&&EST_ES[e.estado]?` <span class="tag k-av">${esc(EST_ES[e.estado])}</span>`:""}`).join("<br>")||"<span class=sub>aún no vistas (salen al atracar)</span>";
+  const asn=Object.entries(s.asent||{}).sort((a,b)=>(b[1].f==FAC)-(a[1].f==FAC)||a[0].localeCompare(b[0])).slice(0,12)
+    .map(([n,a])=>`<span class="${a.f==FAC?"ctrl":""}">${esc(n)}</span> <span class=sub>${esc(a.cuerpo||"")} · ${esc(a.f)}</span>`).join("<br>");
+  const amz=(AMZ[s.sys]||[]).map(a=>`🛸 <b>${esc(a.n)}</b> desde ${esc(a.desde)} <span class=sub>(${c1(a.ly)} al · ${a.est=="pend"?"pendiente":"en curso"})</span>`).join("<br>");
   return`<div class="dg"><div><h3>Facciones</h3><div class="fac">${fac}</div>${B("Sistema",sis)}${B("Powerplay",pw)}</div>
   <div><h3>Influencia</h3>${grafica(s.hinf)}${B("Desde ayer",ay)}${B("Conflictos",con)}
   ${B("Estados de CDSN","activos: "+esc((s.activos||[]).map(es).join(", ")||"—")+"<br>pendientes: "+esc((s.pendientes||[]).map(es).join(", ")||"—")+"<br>recuperando: "+esc((s.recuperando||[]).map(es).join(", ")||"—"))}</div>
-  <div>${B("Tick",tk)}${B("Visitas (pilotos distintos por día)",tr)}${B("Zonas de conflicto",zc)}${B("Portanaves vistos",pn)}
+  <div>${B("Tick",tk)}${B("Visitas (pilotos distintos por día)",tr)}${B("Zonas de conflicto",zc)}${B("Portanaves vistos",pn)}${B("Estaciones",ests)}${asn?B("Asentamientos (Odyssey)",asn):""}${amz?B("Expansiones que pueden llegar aquí",amz):""}
   ${B("Dato","fuente "+esc(s.src||"")+" · hace "+hace(s.t))}</div></div>`;
 }
 function zona(){
@@ -177,7 +200,7 @@ function zona(){
 }
 async function carga(){
   try{
-    D=await fetch(DATOS+"?"+Date.now()).then(r=>r.json());
+    D=await fetch(DATOS+"?"+Date.now()).then(r=>r.json());AMZ=amenazas();
     const e=D.eddn||null;
     const sub=D.t?hace(D.t):"—", viejo=D.t&&now()-D.t>3600;
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}">datos de hace ${sub}${viejo?" (el escucha no ha subido datos en más de 1 h)":""}</span>`+
@@ -323,13 +346,13 @@ const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
-const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo"};
+const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra"};
 function vista(v){
   if(!VISTAS[v])v="tabla";try{localStorage.setItem("cdsn_vista",v)}catch(e){}
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
-  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();
+  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
@@ -361,9 +384,13 @@ function tareas(){
     else if(s.prev!=null&&s.prev-s.inf>=3)add(60,"BAJADA","av",`${c1(s.inf-s.prev)} puntos desde ayer`,SUBIR);
     else if(ataque(s)?.sube)add(45,"ACTIVIDAD A FAVOR","fa",ataque(s).txt+": alguien trabaja a favor de CDSN (gente propia o ayuda externa)","Seguir así; si no es nuestra gente, averiguar quién nos ayuda");
     else if(ataque(s))add(55,"ACTIVIDAD INUSUAL","av",ataque(s).txt+": vigilar la influencia en el próximo tick","Pasar por el sistema y ver qué misiones se están haciendo; si baja la influencia, "+SUBIR.toLowerCase());
+    else if(estMal(s).length){const[n,e]=estMal(s)[0];add(57,e.estado=="UnderAttack"?"ESTACIÓN BAJO ATAQUE":"ESTACIÓN DAÑADA","av",`${n} está ${EST_ES[e.estado]}${e.f==FAC?" (es nuestra)":""}`,e.estado=="UnderAttack"?"Defender la estación: misiones y combate contra los atacantes":"Ayudar a repararla: misiones de reparación y entregar materiales en la estación")}
+    else if(AMZ[s.sys]){const a=AMZ[s.sys][0];add(56,"EXPANSIÓN ENEMIGA","av",`${a.n} prepara una expansión desde ${a.desde} (a ${c1(a.ly)} al) y este sistema tiene hueco (${(s.todas||[]).length} facciones)`,"Mantener la influencia de CDSN alta para que la facción nueva entre lo más baja posible","🛸")}
+    else if(segBaja(s)){const b=segBaja(s);add(52,"SEGURIDAD BAJADA","av",`la seguridad ha bajado de ${b.de} a ${b.a} hace ${hace(b.t)}: puede haber piratería o misiones en contra`,"Cazar recompensas y entregar los bonos en estaciones de CDSN")}
     else if(s.ctrl&&v<10)add(50,"VENTAJA AJUSTADA","av",`${c1(v)} puntos sobre ${s.segunda}`,SUBIR);
     else if(pen.includes("Expansion")||act.includes("Expansion"))add(40,"EXPANSIÓN","av",pen.includes("Expansion")?"expansión pendiente":"expansión en curso","Mantener la influencia alta mientras dura");
     else if(s.ctrl&&s.inf>=70)add(30,"CERCA DE EXPANSIÓN","fa",`${c1(s.inf)} %, la expansión salta al 75 %`,SUBIR);
+    else if(retAjena(s).length){const r=retAjena(s)[0];add(35,"OPORTUNIDAD","fa",`${r.n} está en retirada (${c1(r.inf)} %): si sale, queda un hueco`,"Trabajar para CDSN mientras dura: su influencia se reparte entre las demás")}
   }
   return L.sort((a,b)=>b.p-a.p||a.s.inf-b.s.inf);
 }
@@ -371,9 +398,20 @@ function pintaHoy(){
   if(!D)return;const L=tareas();
   document.getElementById("vHoy").innerHTML=(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
    L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}${t.parp?" parp":""}">${t.ico?t.ico+" ":""}${esc(t.tag)}</span>
-   <div class="sub">${esc(t.por)}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"");
+   <div class="sub">${esc(t.por)}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
 }
 document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
+// expansiones y retiradas de otras facciones (escucha v11: D.vecinos)
+function alrededor(){
+  const V=Object.entries(D.vecinos||{});if(!D.vecinos)return"";
+  const ex=V.flatMap(([n,v])=>(v.exp||[]).map(e=>({n,v,e}))).sort((a,b)=>(b.e.obj||[]).length-(a.e.obj||[]).length||a.v.ly-b.v.ly);
+  const re=V.flatMap(([n,v])=>(v.ret||[]).map(e=>({n,v,e}))).sort((a,b)=>a.v.ly-b.v.ly);
+  let h=`<h3 style="margin-top:16px">Alrededor: expansiones de otras facciones (${ex.length})</h3>`;
+  h+=ex.length?ex.map(o=>`<div class="hoy" data-s="${esc((o.e.obj||[])[0]?.[0]||(o.v.propio?o.n:o.v.junto))}"><b>🛸 ${esc(o.e.n)}</b> <span class="sub">${o.e.est=="pend"?"pendiente":"en curso"} · ${c1(o.e.inf)} %</span>
+    <div class="sub">desde ${esc(o.n)}${CP(o.n)}${o.v.propio?" (sistema nuestro)":` · a ${c1(o.v.ly)} al de ${esc(o.v.junto)}`}</div>
+    <div class="acc">${(o.e.obj||[]).length?"➜ puede llegar a: "+o.e.obj.map(([n,l])=>`${esc(n)} (${c1(l)} al)`).join(", "):"➜ ninguno de nuestros sistemas tiene hueco a menos de 20 al"}</div></div>`).join(""):`<p class="sub">Ninguna a la vista.</p>`;
+  if(re.length)h+=`<h3>Retiradas de otras facciones (${re.length})</h3><div class="sub" style="margin-bottom:12px">`+re.map(o=>`${esc(o.e.n)} en ${esc(o.n)}${o.v.propio?" <span class=up>(nuestro: hueco si sale)</span>":` (${c1(o.v.ly)} al)`}`).join(" · ")+"</div>";
+  return h}
 function abreFicha(n){const s=(D.sistemas||{})[n];if(!s)return;const a=alerta(s);fichaEntera(R_.S.find(o=>o.s.sys==n)||{s,niv:a[0],al:a})}
 // ---------- pestaña Evolucion ----------
 function guardaDia(){   // cada movil apunta un resumen al dia (para ver la evolucion del numero de sistemas)
@@ -562,3 +600,74 @@ function revisaDefensa(){
   b.hidden=false;
 }
 document.getElementById("defensa").onclick=()=>{if(DEF.length==1)abreFicha(DEF[0].s.sys);else vista("hoy")};
+
+// ---------- pestaña Gráficos (para toda la facción o para un sistema) ----------
+let GS="";   // sistema elegido ("" = toda la facción)
+const AZ="#5aaaff",SUP="#0f0a04";
+const fdm=d=>d.slice(8)+"/"+d.slice(5,7);   // AAAA-MM-DD -> dd/mm
+// barras: items [{l etiqueta, v valor, tip, c color}]; una sola serie -> sin leyenda, el título la nombra
+function barras(items,titulo,o={}){
+  if(!items.length||!items.some(x=>x.v))return`<h3>${titulo}</h3><p class="sub">${o.vacio||"Aún no hay datos."}</p>`;
+  const W=360,H=o.alto||150,L=30,B=22,n=items.length,mx=Math.max(...items.map(x=>x.v),1),bw=(W-L-6)/n,cada=Math.ceil(n/(o.etiquetas||10));
+  const Y=v=>8+(1-v/mx)*(H-B-8);
+  let g=[0,.5,1].map(k=>`<line x1="${L}" x2="${W-6}" y1="${Y(mx*k)}" y2="${Y(mx*k)}" stroke="#2a1a06"/><text x="${L-4}" y="${Y(mx*k)+4}" fill="#b06a10" font-size="10" text-anchor="end">${Math.round(mx*k)}</text>`).join("");
+  items.forEach((x,i)=>{const x0=L+i*bw+1,w=Math.max(1,bw-2),y=Y(x.v),h=H-B-y;
+    g+=`<g data-tip="${esc(x.tip||x.l+": "+x.v)}"><rect x="${L+i*bw}" y="8" width="${bw}" height="${H-B-8}" fill="transparent"/>`+
+      (x.v?`<path d="M${x0},${H-B}V${y+Math.min(3,h)}q0,-3 3,-3h${Math.max(0,w-6)}q3,0 3,3V${H-B}Z" fill="${x.c||o.color||AZ}"/>`:"")+`</g>`;
+    if(i%cada==0||o.todas)g+=`<text x="${L+i*bw+bw/2}" y="${H-7}" fill="#b06a10" font-size="10" text-anchor="middle">${esc(x.l)}</text>`});
+  return`<h3>${titulo}</h3><div class="evo gr"><svg viewBox="0 0 ${W} ${H}">${g}<line x1="${L}" x2="${W-6}" y1="${H-B}" y2="${H-B}" stroke="#4a2c08"/></svg></div>${o.pie?`<div class="sub" style="margin:4px 0 14px">${o.pie}</div>`:'<div style="height:12px"></div>'}`;
+}
+// mapa de horas: dia de la semana x hora (hora de tu móvil), una escala de azul de menos a más
+function mapaHoras(S){
+  const M=[...Array(7)].map(()=>Array(24).fill(0)),dias=new Set();
+  for(const s of S)for(const[d,L]of Object.entries(s.hdia||{})){dias.add(d);const[y,m,dd]=d.split("-").map(Number);
+    L.forEach((v,h)=>{if(!v)return;const t=new Date(Date.UTC(y,m-1,dd,h));M[(t.getDay()+6)%7][t.getHours()]+=v})}
+  if(!dias.size)return`<h3>Mapa de horas</h3><p class="sub">Aún no hay datos: lo empieza a guardar el escucha v11 (14 días de saltos por hora).</p>`;
+  const W=360,H=176,L=26,T=4,cw=(W-L-4)/24,ch=20,mx=Math.max(1,...M.flat()),DS=["L","M","X","J","V","S","D"],DL=["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
+  let g="";M.forEach((fila,r)=>{g+=`<text x="${L-6}" y="${T+r*ch+ch/2+4}" fill="#b06a10" font-size="10" text-anchor="end">${DS[r]}</text>`;
+    fila.forEach((v,h)=>{g+=`<rect data-tip="${DL[r]} ${String(h).padStart(2,"0")}:00–${String(h+1).padStart(2,"0")}:00 · ${v} saltos" x="${L+h*cw+1}" y="${T+r*ch+1}" width="${cw-2}" height="${ch-2}" rx="2" fill="${v?mezcla("#1c2a3a",AZ,Math.sqrt(v/mx)):"#1a1208"}"/>`})});
+  for(const h of[0,6,12,18,23])g+=`<text x="${L+h*cw+cw/2}" y="${T+7*ch+14}" fill="#b06a10" font-size="10" text-anchor="middle">${h}h</text>`;
+  let pk=[0,0,0];M.forEach((f,r)=>f.forEach((v,h)=>{if(v>pk[2])pk=[r,h,v]}));
+  const tot=M.flat().reduce((a,b)=>a+b,0);
+  return`<h3>Mapa de horas · saltos de los últimos ${dias.size} días</h3><div class="evo gr"><svg viewBox="0 0 ${W} ${H}">${g}</svg></div>
+   <div class="sub" style="margin:4px 0 14px">Más oscuro = menos saltos · más claro = más (${tot} en total). Hora de tu móvil. Lo más movido: <b style="color:var(--b)">${DL[pk[0]]} de ${pk[1]}:00 a ${pk[1]+1}:00</b> (${pk[2]} saltos).</div>`;
+}
+function pintaGra(){
+  if(!D)return;const T=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).sort((a,b)=>(FAV.has(b.sys)-FAV.has(a.sys))||a.sys.localeCompare(b.sys));
+  if(GS&&!T.some(s=>s.sys==GS))GS="";
+  const S=GS?T.filter(s=>s.sys==GS):T,uno=GS?S[0]:null;
+  let h=`<div class="ctl" style="padding:0 0 10px"><label for="gSel" style="color:var(--v)">Ver:</label><select id="gSel"><option value="">Toda la facción (${T.length} sistemas)</option>${T.map(s=>`<option value="${esc(s.sys)}"${s.sys==GS?" selected":""}>${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</option>`).join("")}</select>
+   ${uno?`<a href="#" id="gFicha" style="color:#ff8c00">ver ficha</a>`:""}</div><div class="grs">`;
+  // 1) visitas por dia (31 dias)
+  const d31=[...Array(31).keys()].map(diasAtras).reverse();
+  const vis=d31.map(d=>({l:fdm(d),v:S.reduce((a,s)=>a+((s.trafico||{})[d]||0),0)}));vis.forEach(x=>x.tip=`${x.l}: ${x.v} visitas`);
+  const conV=vis.filter(x=>x.v),med=conV.length?conV.reduce((a,x)=>a+x.v,0)/conV.length:0;
+  h+=`<div>${barras(vis,"Visitas por día · últimos 31 días",{etiquetas:6,pie:`Pilotos distintos por día${GS?"":", sumando todos los sistemas"}. Media de los días con visitas: <b style="color:var(--b)">${c1(med)}</b>.`})}</div>`;
+  // 2) mapa de horas
+  h+=`<div>${mapaHoras(S)}</div>`;
+  // 3) influencia
+  if(uno)h+=`<div>${lineas([{n:"CDSN",color:"#ff8c00",p:(uno.hinf||[]).map(p=>[p[0],p[1]])}],"Influencia de CDSN en "+esc(uno.sys),"%")}</div>`;
+  else{const tr=[[0,5],[5,10],[10,20],[20,30],[30,40],[40,50],[50,60],[60,70],[70,101]];
+    h+=`<div>${barras(tr.map(([a,b])=>{const n=T.filter(s=>s.inf>=a&&s.inf<b).length;return{l:b>100?"70+":a+"",v:n,c:a<5?"#ff4632":b<=50?"#ffd228":"#5adc78",tip:`${a}–${b>100?100:b} %: ${n} sistemas`}}),"Sistemas según la influencia de CDSN",{todas:1,pie:'<span style="color:#ff4632">■</span> menos de 5 % (riesgo de retirada) · <span style="color:#ffd228">■</span> 5–50 % · <span style="color:#5adc78">■</span> más del 50 %'})}</div>`}
+  // 4) saltos de las ultimas 48 h
+  const h0=Math.floor(now()/3600)*3600;const sal=[...Array(48).keys()].reverse().map(k=>{const t=h0-k*3600;return{l:hora(t).slice(0,2)+"h",v:S.reduce((a,s)=>a+((s.saltos||{})[t]||0),0),tip:`${new Date(t*1000).toLocaleDateString("es-ES",{weekday:"short"})} ${hora(t)}: ${S.reduce((a,s)=>a+((s.saltos||{})[t]||0),0)} saltos`}});
+  h+=`<div>${barras(sal,"Saltos por hora · últimas 48 h",{etiquetas:8,color:"#ff8c00",pie:"Naves que llegan saltando al sistema (FSDJump) cada hora."})}</div>`;
+  // 5) felicidad
+  if(!uno){const F=[1,2,3,4,5].map(k=>({l:FEL[k][0],v:T.filter(s=>s.fel==k).length,c:k<=2?"#5adc78":k==3?"#ffd228":"#ff4632",tip:`${FEL[k][1]}: ${T.filter(s=>s.fel==k).length} sistemas`}));
+    h+=`<div>${barras(F,"Felicidad de la población de CDSN",{todas:1,alto:130,vacio:"Aún no hay datos: los guarda el escucha v11.",pie:"Cuanto más descontenta, más cuesta mover la influencia. "+[1,2,3,4,5].map(k=>FEL[k].join(" ")).join(" · ")})}</div>`}
+  // 6) conflictos terminados
+  const CH=(D.conflictos_hist||[]).filter(c=>!GS||c.sys==GS);
+  if(D.conflictos_hist){const R=[["ganado","Ganados","#5adc78"],["perdido","Perdidos","#ff4632"],["empate","Empate","#c9a36a"],["desconocido","No se sabe","#6b4a1c"]];
+    h+=`<div>${barras(R.map(([k,l,c])=>({l,v:CH.filter(x=>x.res==k).length,c,tip:`${l}: ${CH.filter(x=>x.res==k).length}`})),`Conflictos terminados (${CH.length})`,{todas:1,alto:130,vacio:"Ningún conflicto terminado todavía.",
+      pie:(()=>{const Q={};for(const c of CH)(Q[c.contra]??=[0,0])[c.res=="ganado"?0:1]++;const L=Object.entries(Q).sort((a,b)=>(b[1][0]+b[1][1])-(a[1][0]+a[1][1])).slice(0,5);
+        return L.length?"Rivales más repetidos: "+L.map(([n,[g,p]])=>`${esc(n)} <span class=up>${g}</span>-<span class=dn>${p}</span>`).join(" · "):""})()})}</div>`}
+  h+=`</div><p class="sub">Toca o pasa el ratón por una barra o una casilla para ver su valor. Los datos salen del escucha de EDDN (las visitas, 31 días; el mapa de horas, 14 días).</p><div id="gtip" hidden></div>`;
+  document.getElementById("vGra").innerHTML=h;
+}
+{const v=document.getElementById("vGra");
+ v.addEventListener("change",e=>{if(e.target.id=="gSel"){GS=e.target.value;pintaGra()}});
+ v.addEventListener("click",e=>{if(e.target.id=="gFicha"){e.preventDefault();abreFicha(GS)}});
+ const tip=e=>{const t=document.getElementById("gtip"),g=e.target.closest("[data-tip]");if(!t)return;if(!g){t.hidden=true;return}
+   t.textContent=g.dataset.tip;t.hidden=false;const r=v.getBoundingClientRect();
+   t.style.left=Math.min(e.clientX-r.left+12,r.width-t.offsetWidth-4)+"px";t.style.top=(e.clientY-r.top-34)+"px"};
+ v.addEventListener("pointermove",tip);v.addEventListener("pointerdown",tip);v.addEventListener("pointerleave",()=>{const t=document.getElementById("gtip");if(t)t.hidden=true})}

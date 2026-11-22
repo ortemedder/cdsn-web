@@ -1,7 +1,7 @@
 # CDSN · web del BGS de Caballeros de Sion
 
 Página con el estado de la facción **Caballeros de Sion** en Elite Dangerous: sistemas, influencia,
-alertas, conflictos, facciones, tick, visitas, Powerplay, zonas de conflicto y portanaves.
+alertas, conflictos, facciones, tick, visitas, Powerplay, zonas de conflicto, portanaves y gráficos (visitas por día, mapa de horas, influencia, saltos, felicidad y conflictos).
 
 - Lee `faccion.json` del repositorio [ortemedder/cdsn-datos](https://github.com/ortemedder/cdsn-datos),
   que sube cada 15 min el escucha de EDDN.

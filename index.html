@@ -52,7 +52,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 .fav{cursor:pointer;color:#6b4a1c;font-size:16px;padding:0 4px 0 0}.fav.on{color:#ffd228}
 .hoy{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer}.hoy b{font-size:15px}.hoy .acc{color:#5adc78;margin-top:3px}
 .favb{background:var(--p);color:#ffd228;border:1px solid var(--l);border-radius:8px;padding:9px 14px;font-weight:700;font-size:15px;margin-left:8px;cursor:pointer}
-@media(max-width:560px){.tabs{display:grid;grid-template-columns:repeat(3,1fr)}.tabs button{max-width:none;font-size:14px}}
+@media(max-width:560px){.tabs{display:grid;grid-template-columns:repeat(4,1fr)}.tabs button{max-width:none;font-size:13px}}
 .vper{display:flex;gap:6px}.vper button{flex:1;max-width:120px;background:var(--p);color:var(--v);border:1px solid var(--l);border-radius:8px;padding:7px 4px;font-weight:700;cursor:pointer}.vper button.on{background:#5aaaff;color:#000;border-color:#5aaaff}
 .spk{display:inline-flex;align-items:flex-end;gap:2px;height:20px}.spk i{display:block;width:5px;background:#5aaaff;border-radius:1px}
 .ppc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.ppk{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:8px 12px;min-width:150px;flex:1;cursor:pointer}.ppk.on{outline:2px solid #ff8c00}.pps{color:var(--v);font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;margin:6px 0}
@@ -71,6 +71,9 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 .atkt{background:#962014;color:#fff;text-align:center;padding:9px;font-size:19px;font-weight:700;letter-spacing:1px}
 .atkg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.atkg div{background:var(--p);border-radius:6px;padding:8px 10px}.atkg span{display:block;color:var(--nm);font-size:11px;text-transform:uppercase}.atkg b{font-size:22px}
 .atkb{display:flex;gap:8px;margin-top:12px}.atkb button{flex:1;background:var(--p);color:#ff8c00;border:1.5px solid #ff8c00;border-radius:7px;padding:10px 4px;font-weight:700;font-size:14px;cursor:pointer}.atkb button.v{background:#962014;color:#fff;border-color:#962014}
+select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 8px;border-radius:6px;max-width:70vw;font-size:14px}
+.grs{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:4px 22px}.grs>div{min-width:0}.gr svg{touch-action:pan-y}
+#gtip{position:absolute;z-index:5;background:#ff8c00;color:#000;font-weight:700;font-size:13px;padding:4px 8px;border-radius:6px;pointer-events:none;white-space:nowrap}#gtip[hidden]{display:none}
 .evo svg{width:100%;height:auto;background:#0f0a04;border:1px solid var(--l);border-radius:6px}
 </style></head><body>
 <div id="arranque" style="position:fixed;inset:0;z-index:99;background:#0d0904;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .6s">
@@ -84,9 +87,10 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 <div id="inusual" hidden></div>
 <div id="defensa" hidden></div>
 <div id="atk" hidden><div class="atkc" id="atkc"></div></div>
-<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button></div>
+<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button><button id="tGra" data-v="gra">Gráficos</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
 <div id="vEvo" hidden style="padding:0 16px 12px"></div>
+<div id="vGra" hidden style="padding:0 16px 12px;position:relative"></div>
 <div id="vPP" hidden style="padding:0 16px 12px"></div>
 <div id="vVis" hidden style="padding:0 16px 12px"></div>
 <div id="vRadar" hidden><div id="rexp" hidden></div><canvas id="rad"></canvas>
