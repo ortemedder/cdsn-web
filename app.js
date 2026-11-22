@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.13.1";
+const VERSION="v1.14";
 const NOVEDADES=[
+ ["v1.14","23/11/2026",["RETIRADA INMINENTE (rojo y alerta grande): CDSN por debajo del 2,5 %, con los días que lleva así (la retirada llega a los 5–6 días)","Qué hacer según el estado del sistema: en Auge el comercio cuenta el doble, en Hambruna o Epidemia el combate no sirve, en Crisis el comercio no saca de ella, en Disturbios o Confinamiento cazar recompensas","Hoy dice si el sistema es fácil (menos de 1 millón de habitantes) o difícil (más de 1.000 millones) de mover","Origen probable de la próxima expansión de CDSN: el sistema más feliz (en Hoy y en Gráficos)"]],
  ["v1.13.1","23/11/2026",["Obras: en Hoy, lista de las obras (construction sites) de nuestros sistemas, y en la ficha de cada sistema sus obras con el enlace a Inara para ver el arquitecto","Las obras terminadas desaparecen solas (con el escucha v11.1 también hay aviso a Discord de obra nueva y obra terminada)"]],
  ["v1.13","22/11/2026",["Pestaña Gráficos: visitas por día, mapa de horas (a qué hora entra la gente), influencia, saltos de las últimas 48 h, felicidad y resultados de los conflictos; todo para la facción o para un sistema","EXPANSIÓN ENEMIGA: otra facción prepara una expansión cerca y puede entrar en uno de nuestros sistemas (con el escucha v11)","ESTACIÓN DAÑADA / BAJO ATAQUE, SEGURIDAD BAJADA y OPORTUNIDAD (otra facción en retirada en un sistema nuestro) en la tabla, el radar y Hoy","Ficha: felicidad de cada facción, estaciones y su estado, asentamientos de Odyssey, cambios de población y seguridad y expansiones que apuntan al sistema","Hoy: lista de expansiones y retiradas de otras facciones alrededor"]],
  ["v1.12","20/11/2026",["Radar más limpio: la expansión pendiente (es de toda la facción) ya no pone un aro en cada sistema; sale una franja arriba del mapa y al tocarla se ven u ocultan esos sistemas","Los avisos leves (naranja) llevan un aro fino y discreto y su nombre sale al hacer zoom","Los conflictos en marcha ya no se apagan al parpadear: el aro se atenúa"]],
@@ -95,6 +96,21 @@ function segBaja(s){const h=s.hsis||[];if(h.length<2)return null;const a=h[h.len
 function obras(s){const E=s.estaciones||{};return Object.entries(E).filter(([n,e])=>/ConstructionDepot/.test(e.tipo||"")||/Construction Site/.test(n))
   .map(([n,e])=>({n:e.obra||(n.includes(":")?n.split(":").slice(1).join(":").trim():n),sitio:n,pl:/Planetary/.test(n+(e.tipo||"")),t:e.t}))
   .filter(o=>!(E[o.n]&&!/ConstructionDepot/.test(E[o.n].tipo||"")))}
+// ---------- reglas del BGS (guía de NovaForce) ----------
+// retirada: por debajo del 2,5 % durante 5-6 dias. dias que lleva por debajo, sacado del historico
+function diasBajo(s){if(s.inf>=2.5)return 0;const h=s.hinf||[];let t=s.t||now();for(let i=h.length-1;i>=0;i--){if(h[i][1]>=2.5)break;t=h[i][0]}return Math.max(0,(now()-t)/86400)}
+const dBajo=s=>{const d=diasBajo(s);return d<1?"menos de 1 día":Math.floor(d)+(Math.floor(d)==1?" día":" días")};
+// que hacer segun el estado del sistema (activos de CDSN)
+function subir(s){const a=s.activos||[];
+  if(a.includes("Famine")||a.includes("Outbreak"))return`Subir influencia SIN combate (en ${a.includes("Famine")?"hambruna":"epidemia"} no cuenta): misiones de CDSN, comercio con beneficio y datos de exploración en sus estaciones`;
+  if(a.includes("Boom"))return"Comercio con beneficio en estaciones de CDSN (en auge cuenta el doble), además de misiones, bonos y exploración";
+  if(a.includes("Bust"))return"Misiones de CDSN, bonos y datos de exploración (en crisis el comercio no saca de ella)";
+  if(a.includes("CivilUnrest")||a.includes("Lockdown"))return"Cazar recompensas y entregar los bonos en estaciones de CDSN (sube la seguridad), además de misiones";
+  return SUBIR}
+// facil o dificil de mover segun la poblacion
+function mover(s){const p=(s.sis||{}).pob;if(!p)return"";return p<1e6?'<span class="up">fácil de mover</span> (poca población)':p>1e9?'<span class="dn">difícil de mover</span> (más de 1.000 millones)':""}
+// la expansion sale del sistema mas feliz de la faccion (a igual felicidad, el de mas influencia)
+function origenExp(){return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&s.fel).sort((a,b)=>a.fel-b.fel||b.inf-a.inf).slice(0,3)}
 const inaraSis=n=>`https://inara.cz/elite/starsystem/?search=${encodeURIComponent(n)}`;
 const retAjena=s=>(s.todas||[]).filter(x=>x.n!=FAC&&[...(x.act||[]),...(x.pend||[])].includes("Retreat"));
 const sinConf=s=>!(s.conflictos||[]).some(c=>c.estado=="active"||c.estado=="pending");
@@ -105,6 +121,7 @@ function alerta(s){
       return[2,k.tit,`${t} contra ${c.contra} · ${k.diaTxt} · ${k.g}-${k.p}${k.fase=="sin_remedio"?" (sin remedio)":""}${k.juego?" · "+k.juego:""}`,k.tono,k.ico,k.parp,k.alarma]}
     if(c.estado=="pending")return[2,t.toUpperCase()+" PEND.",`contra ${c.contra} · empieza en el próximo tick`,"pu",ico,false,false];}
   if((s.activos||[]).includes("Retreat")||(s.pendientes||[]).includes("Retreat"))return[2,"RETIRADA",`influencia ${c1(s.inf)} %`,"gr"];
+  if(s.inf>0&&s.inf<2.5)return[2,"RETIRADA INMINENTE",`${c1(s.inf)} % · ${dBajo(s)} por debajo del 2,5 % (se va a los 5–6)`,"gr","",true,true];
   const vent=s.inf-(s.segunda_inf||0);
   if(s.ctrl&&vent<5)return[2,"VENTAJA BAJA",`solo ${c1(vent)} sobre ${s.segunda}`,"gr"];
   const at=ataque(s);if(at&&at.baja)return[2,"POSIBLE ATAQUE",at.txt,"gr","",false,true];
@@ -379,25 +396,26 @@ function tareas(){
   const L=[];
   for(const s of Object.values(D.sistemas||{})){if(s.fuera||s.inf==null)continue;
     const v=s.inf-(s.segunda_inf||0),act=s.activos||[],pen=s.pendientes||[],add=(p,tag,k,por,acc,ico,parp)=>L.push({s,p:p+(FAV.has(s.sys)?5:0),tag,k,por,acc,ico,parp});
-    let hecho=false;
+    let hecho=false;const SUB=subir(s);
     for(const c of s.conflictos||[]){const t=(c.tipo||"").toLowerCase(),nom=TIPO[t]||"Conflicto";
       if(c.estado=="active"){const k=conflicto(c),pr={decisivo:104,sin_remedio:103,derrota:102,igualado:100,disputado:99,defensa:97,a_un_dia:96,victoria:60}[k.fase];
         add(pr,k.tit,k.tono,`${nom} contra ${c.contra} · ${k.diaTxt} · ${k.g}-${k.p} (gana quien llegue a 4)`+(k.juego?` · ${k.juego}`:"")+(c.en_juego?` · en juego: ${c.en_juego}`:""),ACC[t]||SUBIR,k.ico,k.parp);hecho=true}
       else if(c.estado=="pending"){add(90,nom.toUpperCase()+" PEND.","pu",`contra ${c.contra} · empieza en el próximo tick`,"Prepararse: "+(ACC[t]||SUBIR).toLowerCase());hecho=true}}
     if(hecho)continue;
-    if(act.includes("Retreat")||pen.includes("Retreat"))add(95,"RETIRADA","gr",`influencia ${c1(s.inf)} %, CDSN puede salir del sistema`,SUBIR);
-    else if(s.inf<5)add(85,"RIESGO RETIRADA","gr",`influencia ${c1(s.inf)} %, por debajo del 5 %`,SUBIR);
-    else if(ataque(s)?.baja)add(88,"POSIBLE ATAQUE","gr",ataque(s).txt+": puede que alguien esté trabajando contra CDSN",SUBIR);
-    else if(s.ctrl&&v<5)add(80,"VENTAJA BAJA","gr",`solo ${c1(v)} puntos sobre ${s.segunda}: puede haber conflicto por el control`,SUBIR);
-    else if(s.prev!=null&&s.prev-s.inf>=3)add(60,"BAJADA","av",`${c1(s.inf-s.prev)} puntos desde ayer`,SUBIR);
+    if(act.includes("Retreat")||pen.includes("Retreat"))add(95,"RETIRADA","gr",`influencia ${c1(s.inf)} %, CDSN puede salir del sistema`,SUB);
+    else if(s.inf>0&&s.inf<2.5)add(99,"RETIRADA INMINENTE","gr",`${c1(s.inf)} %, ${dBajo(s)} por debajo del 2,5 %: si sigue así 5–6 días, CDSN sale del sistema`,SUB,"",true);
+    else if(s.inf<5)add(85,"RIESGO RETIRADA","gr",`influencia ${c1(s.inf)} %, por debajo del 5 %`,SUB);
+    else if(ataque(s)?.baja)add(88,"POSIBLE ATAQUE","gr",ataque(s).txt+": puede que alguien esté trabajando contra CDSN",SUB);
+    else if(s.ctrl&&v<5)add(80,"VENTAJA BAJA","gr",`solo ${c1(v)} puntos sobre ${s.segunda}: puede haber conflicto por el control`,SUB);
+    else if(s.prev!=null&&s.prev-s.inf>=3)add(60,"BAJADA","av",`${c1(s.inf-s.prev)} puntos desde ayer`,SUB);
     else if(ataque(s)?.sube)add(45,"ACTIVIDAD A FAVOR","fa",ataque(s).txt+": alguien trabaja a favor de CDSN (gente propia o ayuda externa)","Seguir así; si no es nuestra gente, averiguar quién nos ayuda");
-    else if(ataque(s))add(55,"ACTIVIDAD INUSUAL","av",ataque(s).txt+": vigilar la influencia en el próximo tick","Pasar por el sistema y ver qué misiones se están haciendo; si baja la influencia, "+SUBIR.toLowerCase());
+    else if(ataque(s))add(55,"ACTIVIDAD INUSUAL","av",ataque(s).txt+": vigilar la influencia en el próximo tick","Pasar por el sistema y ver qué misiones se están haciendo; si baja la influencia, "+SUB.toLowerCase());
     else if(estMal(s).length){const[n,e]=estMal(s)[0];add(57,e.estado=="UnderAttack"?"ESTACIÓN BAJO ATAQUE":"ESTACIÓN DAÑADA","av",`${n} está ${EST_ES[e.estado]}${e.f==FAC?" (es nuestra)":""}`,e.estado=="UnderAttack"?"Defender la estación: misiones y combate contra los atacantes":"Ayudar a repararla: misiones de reparación y entregar materiales en la estación")}
     else if(AMZ[s.sys]){const a=AMZ[s.sys][0];add(56,"EXPANSIÓN ENEMIGA","av",`${a.n} prepara una expansión desde ${a.desde} (a ${c1(a.ly)} al) y este sistema tiene hueco (${(s.todas||[]).length} facciones)`,"Mantener la influencia de CDSN alta para que la facción nueva entre lo más baja posible","🛸")}
     else if(segBaja(s)){const b=segBaja(s);add(52,"SEGURIDAD BAJADA","av",`la seguridad ha bajado de ${b.de} a ${b.a} hace ${hace(b.t)}: puede haber piratería o misiones en contra`,"Cazar recompensas y entregar los bonos en estaciones de CDSN")}
-    else if(s.ctrl&&v<10)add(50,"VENTAJA AJUSTADA","av",`${c1(v)} puntos sobre ${s.segunda}`,SUBIR);
-    else if(pen.includes("Expansion")||act.includes("Expansion"))add(40,"EXPANSIÓN","av",pen.includes("Expansion")?"expansión pendiente":"expansión en curso","Mantener la influencia alta mientras dura");
-    else if(s.ctrl&&s.inf>=70)add(30,"CERCA DE EXPANSIÓN","fa",`${c1(s.inf)} %, la expansión salta al 75 %`,SUBIR);
+    else if(s.ctrl&&v<10)add(50,"VENTAJA AJUSTADA","av",`${c1(v)} puntos sobre ${s.segunda}`,SUB);
+    else if(pen.includes("Expansion")||act.includes("Expansion"))add(40,"EXPANSIÓN","av",(pen.includes("Expansion")?"expansión pendiente":"expansión en curso")+(origenExp().length?` · lo más probable es que salga de ${origenExp()[0].sys} (el sistema más feliz)`:""),"Mantener la influencia alta mientras dura");
+    else if(s.ctrl&&s.inf>=70)add(30,"CERCA DE EXPANSIÓN","fa",`${c1(s.inf)} %, la expansión salta al 75 %`,SUB);
     else if(retAjena(s).length){const r=retAjena(s)[0];add(35,"OPORTUNIDAD","fa",`${r.n} está en retirada (${c1(r.inf)} %): si sale, queda un hueco`,"Trabajar para CDSN mientras dura: su influencia se reparte entre las demás")}
   }
   return L.sort((a,b)=>b.p-a.p||a.s.inf-b.s.inf);
@@ -406,7 +424,7 @@ function pintaHoy(){
   if(!D)return;const L=tareas();
   document.getElementById("vHoy").innerHTML=(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
    L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}${t.parp?" parp":""}">${t.ico?t.ico+" ":""}${esc(t.tag)}</span>
-   <div class="sub">${esc(t.por)}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
+   <div class="sub">${esc(t.por)}${mover(t.s)?" · "+mover(t.s):""}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
 }
 document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
 // expansiones y retiradas de otras facciones (escucha v11: D.vecinos)
@@ -540,7 +558,7 @@ document.getElementById("vVis").onclick=e=>{const b=e.target.closest(".vper butt
 // ---------- alerta grande: POSIBLE ATAQUE, DÍA DECISIVO o SISTEMA EN DERROTA (franja fija y tarjeta una vez al dia o si empeora) ----------
 let ATK=[],atkI=0;
 function diaLocal(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function listaAtaques(){const R={"DÍA DECISIVO":3,"SISTEMA EN DERROTA":2,"POSIBLE ATAQUE":1};
+function listaAtaques(){const R={"DÍA DECISIVO":3,"RETIRADA INMINENTE":2.5,"SISTEMA EN DERROTA":2,"POSIBLE ATAQUE":1};
   return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,al:alerta(s),a:ataque(s)})).filter(o=>o.al[6])
   .sort((x,y)=>(R[y.al[1]]||0)-(R[x.al[1]]||0)||(y.a?y.a.v/Math.max(y.a.m,1):0)-(x.a?x.a.v/Math.max(x.a.m,1):0))}
 function vistos(){try{return JSON.parse(localStorage.getItem("cdsn_atk")||"{}")}catch(e){return{}}}
@@ -570,10 +588,12 @@ function pintaAtaque(){
    <div><span>Marcador · ${k.diaTxt}</span><b>${k.g}-${k.p}</b> ${cuad}</div></div>
    ${k.juego?`<div style="font-size:15px;font-weight:700;color:#ffeb00;margin-bottom:6px">Hoy: ${esc(k.juego)}</div>`:""}
    ${c.en_juego?`<div style="font-size:13px;margin-bottom:6px">En juego: <b>${esc(c.en_juego)}</b>${c.en_juego_rival?` · si ganamos: <b>${esc(c.en_juego_rival)}</b>`:""}</div>`:""}`
+   :!a?`<div class="atkg"><div><span>Influencia</span><b class="dn">${c1(s.inf)} %</b><span>retirada por debajo del 2,5 %</span></div>
+   <div><span>Por debajo desde hace</span><b style="font-size:17px">${dBajo(s)}</b><span>se va a los 5–6 días</span></div></div>`
    :`<div class="atkg"><div><span>Pilotos ${a.dia}</span><b class="az">${a.v}</b> <span style="display:inline;font-size:13px;color:#5aaaff">x${c1(a.v/Math.max(a.m,1))}</span><span>media ${c1(a.m)}</span></div>
    <div><span>Influencia</span><b class="dn">${c1(s.inf-s.prev)}</b><span>desde ayer · ahora ${c1(s.inf)} %</span></div></div>`}
    <div class="pk" style="font-size:13px">${tk?`Próximo tick ~${hora(tk)} · en ${fx}${gl?" (galaxia)":""}`:"Próximo tick: aprendiendo..."}</div>
-   <div style="font-size:13px;margin-top:6px">Qué hacer: ${k?esc(ACC[(c.tipo||"").toLowerCase()]||SUBIR):`pasar por ${esc(s.sys)}, ver qué misiones se están haciendo y ${SUBIR.charAt(0).toLowerCase()+SUBIR.slice(1)}`}.</div>
+   <div style="font-size:13px;margin-top:6px">Qué hacer: ${k?esc(ACC[(c.tipo||"").toLowerCase()]||SUBIR):`${a?`pasar por ${esc(s.sys)}, ver qué misiones se están haciendo y `:""}${esc(subir(s).charAt(0).toLowerCase()+subir(s).slice(1))}`}.</div>
    <div class="sub" style="margin-top:6px">dato de hace ${hace(s.t)} · alerta ${atkI+1} de ${ATK.length}</div>
    <div class="atkb"><button data-a="f">Ver ficha</button>${ATK.length>1?'<button data-a="s">Siguiente</button>':""}<button data-a="v" class="v">Visto</button></div></div>`;
 }
@@ -665,7 +685,7 @@ function pintaGra(){
   h+=`<div>${barras(sal,"Saltos por hora · últimas 48 h",{etiquetas:8,color:"#ff8c00",pie:"Naves que llegan saltando al sistema (FSDJump) cada hora."})}</div>`;
   // 5) felicidad
   if(!uno){const F=[1,2,3,4,5].map(k=>({l:FEL[k][0],v:T.filter(s=>s.fel==k).length,c:k<=2?"#5adc78":k==3?"#ffd228":"#ff4632",tip:`${FEL[k][1]}: ${T.filter(s=>s.fel==k).length} sistemas`}));
-    h+=`<div>${barras(F,"Felicidad de la población de CDSN",{todas:1,alto:130,vacio:"Aún no hay datos: los guarda el escucha v11.",pie:"Cuanto más descontenta, más cuesta mover la influencia. "+[1,2,3,4,5].map(k=>FEL[k].join(" ")).join(" · ")})}</div>`}
+    h+=`<div>${barras(F,"Felicidad de la población de CDSN",{todas:1,alto:130,vacio:"Aún no hay datos: los guarda el escucha v11.",pie:(origenExp().length?`La próxima expansión de CDSN saldrá seguramente del sistema más feliz: <b style="color:var(--b)">${origenExp().map(x=>esc(x.sys)+" "+FEL[x.fel][0]).join(" · ")}</b>. `:"")+"Cuanto más descontenta, más cuesta mover la influencia. "+[1,2,3,4,5].map(k=>FEL[k].join(" ")).join(" · ")})}</div>`}
   // 6) conflictos terminados
   const CH=(D.conflictos_hist||[]).filter(c=>!GS||c.sys==GS);
   if(D.conflictos_hist){const R=[["ganado","Ganados","#5adc78"],["perdido","Perdidos","#ff4632"],["empate","Empate","#c9a36a"],["desconocido","No se sabe","#6b4a1c"]];
