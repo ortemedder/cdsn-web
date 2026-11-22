@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.13";
+const VERSION="v1.13.1";
 const NOVEDADES=[
+ ["v1.13.1","23/11/2026",["Obras: en Hoy, lista de las obras (construction sites) de nuestros sistemas, y en la ficha de cada sistema sus obras con el enlace a Inara para ver el arquitecto","Las obras terminadas desaparecen solas (con el escucha v11.1 también hay aviso a Discord de obra nueva y obra terminada)"]],
  ["v1.13","22/11/2026",["Pestaña Gráficos: visitas por día, mapa de horas (a qué hora entra la gente), influencia, saltos de las últimas 48 h, felicidad y resultados de los conflictos; todo para la facción o para un sistema","EXPANSIÓN ENEMIGA: otra facción prepara una expansión cerca y puede entrar en uno de nuestros sistemas (con el escucha v11)","ESTACIÓN DAÑADA / BAJO ATAQUE, SEGURIDAD BAJADA y OPORTUNIDAD (otra facción en retirada en un sistema nuestro) en la tabla, el radar y Hoy","Ficha: felicidad de cada facción, estaciones y su estado, asentamientos de Odyssey, cambios de población y seguridad y expansiones que apuntan al sistema","Hoy: lista de expansiones y retiradas de otras facciones alrededor"]],
  ["v1.12","20/11/2026",["Radar más limpio: la expansión pendiente (es de toda la facción) ya no pone un aro en cada sistema; sale una franja arriba del mapa y al tocarla se ven u ocultan esos sistemas","Los avisos leves (naranja) llevan un aro fino y discreto y su nombre sale al hacer zoom","Los conflictos en marcha ya no se apagan al parpadear: el aro se atenúa"]],
  ["v1.11","20/11/2026",["Radar: cuadro de Leyenda del mapa debajo, que explica cada símbolo (cuadrado/punto, colores de influencia, aros de aviso y sus colores, ⚔ ✉, ★, recuadro, nombres, barrido y anillos). Se abre y se cierra tocando el título y recuerda cómo lo dejaste"]],
@@ -90,6 +91,11 @@ let AMZ={};
 const estMal=s=>Object.entries(s.estaciones||{}).filter(([n,e])=>e.estado&&EST_ES[e.estado]&&(e.f==FAC||e.estado=="UnderAttack"||e.estado=="Damaged"));
 function segBaja(s){const h=s.hsis||[];if(h.length<2)return null;const a=h[h.length-2],b=h[h.length-1],x=SEGN[a[2]],y=SEGN[b[2]];
   return x!=null&&y!=null&&y<x&&now()-b[0]<3*86400?{de:SEGT[x],a:SEGT[y],t:b[0]}:null}
+// obras (construction sites): las que aun no tienen su estacion terminada -> [{n nombre final, sitio, pl planetaria, t}]
+function obras(s){const E=s.estaciones||{};return Object.entries(E).filter(([n,e])=>/ConstructionDepot/.test(e.tipo||"")||/Construction Site/.test(n))
+  .map(([n,e])=>({n:e.obra||(n.includes(":")?n.split(":").slice(1).join(":").trim():n),sitio:n,pl:/Planetary/.test(n+(e.tipo||"")),t:e.t}))
+  .filter(o=>!(E[o.n]&&!/ConstructionDepot/.test(E[o.n].tipo||"")))}
+const inaraSis=n=>`https://inara.cz/elite/starsystem/?search=${encodeURIComponent(n)}`;
 const retAjena=s=>(s.todas||[]).filter(x=>x.n!=FAC&&[...(x.act||[]),...(x.pend||[])].includes("Retreat"));
 const sinConf=s=>!(s.conflictos||[]).some(c=>c.estado=="active"||c.estado=="pending");
 // alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, icono, parpadea, alarma]
@@ -181,7 +187,9 @@ function detalle(s){
   const pn=Object.entries(s.pn||{}).map(([c,v])=>`<b>${esc(c)}</b> ${esc(v.n||"")} <span class=sub>(${hace(v.t)})</span>`).join("<br>")||"no vistos en 7 días";
   const ay=s.prev!=null?`${c1(s.prev)} % → ${c1(s.inf)} % (${(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)}) · cambio visto hace ${hace(s.t)}${s.prev_t?" · dato anterior hace "+hace(s.prev_t):""}`:"—";
   const B=(t,c)=>`<h3 style="margin-top:10px">${t}</h3>${c}`;
-  const ests=Object.entries(s.estaciones||{}).filter(([n,e])=>e.f||e.tipo).sort((a,b)=>(a[1].ls??1e9)-(b[1].ls??1e9)).slice(0,10)
+  const ob=obras(s),obS=new Set(ob.map(o=>o.sitio));
+  const obh=ob.map(o=>`🏗️ <b>${esc(o.n)}</b> <span class=sub>${o.pl?"planetaria":"orbital"} · vista hace ${hace(o.t)}</span>`).join("<br>");
+  const ests=Object.entries(s.estaciones||{}).filter(([n,e])=>(e.f||e.tipo)&&!/ConstructionDepot/.test(e.tipo||"")&&!/Construction Site/.test(n)).sort((a,b)=>(a[1].ls??1e9)-(b[1].ls??1e9)).slice(0,10)
     .map(([n,e])=>`<span class="${e.f==FAC?"ctrl":""}">${esc(n)}</span> <span class=sub>${esc(e.tipo||"")}${e.ls!=null?" · "+e.ls+" ls":""} · ${esc(e.f||"?")}</span>${e.estado&&EST_ES[e.estado]?` <span class="tag k-av">${esc(EST_ES[e.estado])}</span>`:""}`).join("<br>")||"<span class=sub>aún no vistas (salen al atracar)</span>";
   const asn=Object.entries(s.asent||{}).sort((a,b)=>(b[1].f==FAC)-(a[1].f==FAC)||a[0].localeCompare(b[0])).slice(0,12)
     .map(([n,a])=>`<span class="${a.f==FAC?"ctrl":""}">${esc(n)}</span> <span class=sub>${esc(a.cuerpo||"")} · ${esc(a.f)}</span>`).join("<br>");
@@ -189,7 +197,7 @@ function detalle(s){
   return`<div class="dg"><div><h3>Facciones</h3><div class="fac">${fac}</div>${B("Sistema",sis)}${B("Powerplay",pw)}</div>
   <div><h3>Influencia</h3>${grafica(s.hinf)}${B("Desde ayer",ay)}${B("Conflictos",con)}
   ${B("Estados de CDSN","activos: "+esc((s.activos||[]).map(es).join(", ")||"—")+"<br>pendientes: "+esc((s.pendientes||[]).map(es).join(", ")||"—")+"<br>recuperando: "+esc((s.recuperando||[]).map(es).join(", ")||"—"))}</div>
-  <div>${B("Tick",tk)}${B("Visitas (pilotos distintos por día)",tr)}${B("Zonas de conflicto",zc)}${B("Portanaves vistos",pn)}${B("Estaciones",ests)}${asn?B("Asentamientos (Odyssey)",asn):""}${amz?B("Expansiones que pueden llegar aquí",amz):""}
+  <div>${B("Tick",tk)}${B("Visitas (pilotos distintos por día)",tr)}${B("Zonas de conflicto",zc)}${B("Portanaves vistos",pn)}${B("Estaciones",ests)}${ob.length?B(`Obras (${ob.length})`,obh+`<br><a target="_blank" rel="noopener" style="color:#ff8c00" href="${inaraSis(s.sys)}">Ver el arquitecto en Inara ↗</a>`):""}${asn?B("Asentamientos (Odyssey)",asn):""}${amz?B("Expansiones que pueden llegar aquí",amz):""}
   ${B("Dato","fuente "+esc(s.src||"")+" · hace "+hace(s.t))}</div></div>`;
 }
 function zona(){
@@ -403,13 +411,16 @@ function pintaHoy(){
 document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
 // expansiones y retiradas de otras facciones (escucha v11: D.vecinos)
 function alrededor(){
-  const V=Object.entries(D.vecinos||{});if(!D.vecinos)return"";
+  const V=Object.entries(D.vecinos||{});
   const ex=V.flatMap(([n,v])=>(v.exp||[]).map(e=>({n,v,e}))).sort((a,b)=>(b.e.obj||[]).length-(a.e.obj||[]).length||a.v.ly-b.v.ly);
   const re=V.flatMap(([n,v])=>(v.ret||[]).map(e=>({n,v,e}))).sort((a,b)=>a.v.ly-b.v.ly);
-  let h=`<h3 style="margin-top:16px">Alrededor: expansiones de otras facciones (${ex.length})</h3>`;
+  let h="";if(D.vecinos){h=`<h3 style="margin-top:16px">Alrededor: expansiones de otras facciones (${ex.length})</h3>`;
   h+=ex.length?ex.map(o=>`<div class="hoy" data-s="${esc((o.e.obj||[])[0]?.[0]||(o.v.propio?o.n:o.v.junto))}"><b>🛸 ${esc(o.e.n)}</b> <span class="sub">${o.e.est=="pend"?"pendiente":"en curso"} · ${c1(o.e.inf)} %</span>
     <div class="sub">desde ${esc(o.n)}${CP(o.n)}${o.v.propio?" (sistema nuestro)":` · a ${c1(o.v.ly)} al de ${esc(o.v.junto)}`}</div>
-    <div class="acc">${(o.e.obj||[]).length?"➜ puede llegar a: "+o.e.obj.map(([n,l])=>`${esc(n)} (${c1(l)} al)`).join(", "):"➜ ninguno de nuestros sistemas tiene hueco a menos de 20 al"}</div></div>`).join(""):`<p class="sub">Ninguna a la vista.</p>`;
+    <div class="acc">${(o.e.obj||[]).length?"➜ puede llegar a: "+o.e.obj.map(([n,l])=>`${esc(n)} (${c1(l)} al)`).join(", "):"➜ ninguno de nuestros sistemas tiene hueco a menos de 20 al"}</div></div>`).join(""):`<p class="sub">Ninguna a la vista.</p>`;}
+  const OB=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,o:obras(s)})).filter(x=>x.o.length).sort((a,b)=>b.o.length-a.o.length||a.s.sys.localeCompare(b.s.sys));
+  if(OB.length)h+=`<h3>Obras en nuestros sistemas (${OB.reduce((a,x)=>a+x.o.length,0)} en ${OB.length})</h3>`+OB.map(x=>`<div class="hoy" data-s="${esc(x.s.sys)}"><b style="color:${x.s.ctrl?"#fff":"#ff8c00"}">🏗️ ${esc(x.s.sys)}</b>${CP(x.s.sys)} <span class="sub">${x.o.length} obra${x.o.length>1?"s":""}</span>
+    <div class="sub">${x.o.map(o=>esc(o.n)+(o.pl?" (planetaria)":" (orbital)")).join(" · ")}</div></div>`).join("")+`<div class="sub" style="margin-bottom:12px">Salen cuando alguien atraca en la obra. El arquitecto y el avance no llegan por EDDN: se ven en Inara (enlace en la ficha).</div>`;
   if(re.length)h+=`<h3>Retiradas de otras facciones (${re.length})</h3><div class="sub" style="margin-bottom:12px">`+re.map(o=>`${esc(o.e.n)} en ${esc(o.n)}${o.v.propio?" <span class=up>(nuestro: hueco si sale)</span>":` (${c1(o.v.ly)} al)`}`).join(" · ")+"</div>";
   return h}
 function abreFicha(n){const s=(D.sistemas||{})[n];if(!s)return;const a=alerta(s);fichaEntera(R_.S.find(o=>o.s.sys==n)||{s,niv:a[0],al:a})}
