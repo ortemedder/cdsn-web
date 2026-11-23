@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.18";
+const VERSION="v1.19";
 const NOVEDADES=[
+ ["v1.19","23/11/2026",["Pestaña Consejos: cómo subir la influencia de CDSN, qué la hace bajar, cómo ganar guerras y elecciones, los umbrales del BGS y consejos de comercio, exploración y colonización (de las guías de NEWP y pruebas de jugadores)","Arriba de Consejos, los conflictos en marcha y los sistemas cerca de la retirada o de la expansión, con qué hacer en cada uno"]],
  ["v1.18","23/11/2026",["Contador de visitas anónimo (GoatCounter): cuenta cuánta gente entra y qué pestañas mira, sin cookies y sin saber quién es"]],
  ["v1.17","23/11/2026",["Franja amarilla 📌 arriba en todas las pestañas mientras haya una noticia fija; al tocarla abre La Crónica","Hemeroteca al final de La Crónica: todas las noticias fijas anteriores con sus fechas, para leerlas enteras (con el escucha v11.7)"]],
  ["v1.16","23/11/2026",["Noticia fija arriba de La Crónica: se escribe a mano en el archivo noticia_fija.txt de cdsn-datos (en GitHub, desde el navegador o el móvil)","Pestaña Crónica: La Crónica de Sion, el periódico de CDSN. Todos los avisos del escucha (los mismos de Discord) como últimas noticias, con su hora y minuto, portada con la noticia más importante y secciones (conflictos, expansión, obras, estaciones, población…). Toca una noticia para abrir la ficha del sistema. Necesita el escucha v11.6"]],
@@ -177,7 +178,7 @@ function pinta(){
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
-  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();
+  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();
 }
 function grafica(h){
   if(!h||h.length<2)return'<span class="sub">histórico: aprendiendo...</span>';
@@ -382,7 +383,7 @@ const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
-const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro"};
+const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro",con:"vCon"};
 // ---------- contador de visitas anonimo (GoatCounter, cdsngoatcountercom.goatcounter.com) ----------
 // Sin cookies ni scripts de fuera: una imagen de 1 pixel por pagina y por pestaña vista (una vez por pestaña y carga).
 const CONTADOR="https://cdsngoatcountercom.goatcounter.com/count",CONTADAS=new Set();
@@ -394,7 +395,7 @@ function vista(v){
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
-  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();
+  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
@@ -850,3 +851,57 @@ function hemeroteca(){
   for(const x of H)h+=`<div class="hemeI"><span class="hemeF">${f(x.desde)}<br>– ${f(x.hasta)}</span><details><summary><b>${negritas(x.tit)}</b> <span class="sub">▸ leer</span></summary><div class="porE" style="margin-top:4px">${negritas(x.txt||"").replace(/\n/g,"<br>")||"<i>(sin texto)</i>"}</div></details></div>`;
   if(!FIJA.length&&!H.length)h+=`<p class="sub">Aún no hay comunicados guardados${D.hemeroteca?"":" (la hemeroteca la guarda el escucha v11.7)"}.</p>`;
   return h+`</div>`}
+
+// ---------- pestaña Consejos: como ayudar a CDSN (guias de NEWP y pruebas de jugadores) ----------
+const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
+<li>Haz misiones de <b>Caballeros de Sion</b> y elige siempre la recompensa de <b>influencia</b> (+INF). Mira quién da cada misión: el tablón tiene las de todas las facciones.</li>
+<li><b>Mezcla</b> actividades: misiones, comercio con beneficio, datos de exploración y recompensas de CDSN. Repetir siempre lo mismo rinde cada vez menos.</li>
+<li>Vende con <b>beneficio</b> en estaciones de CDSN (también lo minado) y entrega allí los datos en Cartografía Universal.</li>
+<li>Entrega <b>antes del tick</b>: cuenta para el día en que se entrega.</li>
+<li>Los sistemas <b>pequeños</b> (poca población) se mueven más rápido: ahí cunde más el trabajo.</li>
+<li>Donar dinero o mercancía no paga, pero sube mucho la reputación y abre mejores misiones.</li></ul>
+<h3>Lo que hace bajar a CDSN</h3><ul>
+<li>Fallar o abandonar misiones de CDSN.</li>
+<li>Vender con <b>pérdidas</b> o en el <b>mercado negro</b> de sus estaciones.</li>
+<li>Cometer delitos en sus sistemas.</li>
+<li>Cobrar en sus sistemas recompensas de <b>otras facciones</b> (escáner de órdenes de muerte): pueden mover la influencia de quien controla.</li></ul>
+<h3>⚔ Guerras</h3><ul>
+<li>Duran de 4 a 7 días. Gana el primero que gana <b>4 días</b>, o el que ya no puede ser alcanzado. El marcador sale en la tabla y en Hoy.</li>
+<li>Cada día va de tick a tick y lo gana el bando con más actividad de guerra: <b>zonas de conflicto ganadas</b>, bonos de combate y misiones de combate.</li>
+<li>Lo que más pesa es <b>ganar zonas de conflicto</b>; los bonos sirven sobre todo para desempatar.</li>
+<li>Truco: gana una zona <b>antes del tick</b> y entrega los bonos <b>después</b>: puede contar para dos días.</li>
+<li>Zonas: baja (solo ganar), media (Fuerzas Especiales o corresponsales), alta (2–3 objetivos, capitanes y naves capitales si hay superpotencia).</li>
+<li>Durante la guerra la influencia está <b>congelada</b>. Al acabar, la diferencia queda en 8, 4 o 0 puntos según los días ganados, y el que pierde se queda sin el activo en disputa.</li></ul>
+<h3>✉ Elecciones</h3><ul>
+<li>Se ganan <b>sin violencia</b>: misiones, comercio con beneficio y datos de exploración en estaciones de CDSN.</li>
+<li>Mismo marcador que la guerra: gana quien llegue a 4 días.</li></ul>
+<h3>Umbrales del BGS</h3><div class="tw" style="padding:0"><table><tr><th>Influencia</th><th>Qué pasa</th></tr>
+<tr><td class=num>75 % o más</td><td>Expansión a un sistema cercano (aviso CERCA DE EXPANSIÓN desde el 70 %)</td></tr>
+<tr><td class=num>Igual que otra, &gt; 7 %</td><td>Guerra o elecciones; la influencia queda congelada</td></tr>
+<tr><td class=num>5 % o menos</td><td>Aviso RIESGO RETIRADA</td></tr>
+<tr><td class=num>2,5 % o menos</td><td>Retirada: si sigue así 5–6 días, CDSN sale del sistema</td></tr>
+<tr><td class=num>1 %</td><td>Mínimo; nunca baja de ahí</td></tr></table></div>
+<h3>Según el estado del sistema</h3><ul>
+<li><b>Auge</b>: las misiones de comercio ayudan más.</li>
+<li><b>Fallo de infraestructura</b>: sube la demanda de comida y maquinaria; buen momento para llevarlas.</li>
+<li>Expansión, retirada y brotes bajan la riqueza del sistema.</li></ul>
+<h3>Otros consejos</h3><ul>
+<li><b>Comercio</b>: mercados actualizados hace menos de 6 horas y no vender más de lo que piden. Rutas en Spansh o Inara.</li>
+<li><b>Exploración</b>: los mundos tipo Tierra y acuáticos terraformables pagan más (hasta 3,2 M con DSS y primer descubrimiento).</li>
+<li><b>Colonización</b>: si se coloniza expandiendo desde un sistema de CDSN, la primera estación es de CDSN. Reclamar cuesta 25 M y solo a menos de 15 al.</li>
+<li><b>En Abierto</b>: ante un ganker, sométete a la interdicción, 4 pips a escudos y 2 a motores, y salto de alta estela. Nunca te desconectes en combate.</li></ul>
+<div class="fnt">El BGS no tiene manuales oficiales: esto sale de las guías de <a href="https://newp.io/faction" target="_blank" rel="noopener">NEWP</a> y de pruebas de jugadores en el foro de Frontier e Inara.</div>`;
+function pintaCon(){const v=document.getElementById("vCon");if(!v)return;const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null);
+  const fila=(s,tag,k,txt,acc,parp)=>`<div class="hoy" data-s="${esc(s.sys)}"><b style="color:${s.ctrl?"#fff":"#ff8c00"}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</b>${CP(s.sys)} <span class="tag k-${k}${parp?" parp":""}">${esc(tag)}</span> <span class="sub">${txt}</span><div class="acc">${acc}</div></div>`;
+  let ya="";
+  for(const s of S)for(const c of s.conflictos||[]){if(c.estado!="active"&&c.estado!="pending")continue;const t=(c.tipo||"").toLowerCase(),el=t=="election";
+    const acc=el?"Elecciones: misiones, comercio con beneficio y datos de exploración en estaciones de CDSN":"Guerra: gana zonas de conflicto a favor de CDSN (antes del tick) y entrega los bonos";
+    if(c.estado=="pending"){ya+=fila(s,(el?"✉ ":"⚔ ")+(TIPO[t]||"Conflicto").toUpperCase()+" PEND.","pu",`contra ${esc(c.contra)} · empieza en el próximo tick`,acc);continue}
+    const k=conflicto(c);ya+=fila(s,k.ico+" "+k.tit,k.tono,`contra ${esc(c.contra)} · ${k.diaTxt} · ${k.g}-${k.p}${k.juego?" · "+esc(k.juego):""}`,acc,k.parp)}
+  const L=S.filter(s=>sinConf(s)&&(s.inf<5||(s.ctrl&&s.inf>=70))).sort((a,b)=>(a.inf<5?a.inf:200-a.inf)-(b.inf<5?b.inf:200-b.inf));
+  const ot=L.map(s=>s.inf<5?fila(s,s.inf>0&&s.inf<2.5?"RETIRADA INMINENTE":"RIESGO RETIRADA","gr",`influencia ${c1(s.inf)} %`,SUBIR,s.inf>0&&s.inf<2.5)
+    :fila(s,"CERCA DE EXPANSIÓN","fa",`${c1(s.inf)} %, la expansión salta al 75 %`,"Seguir subiendo influencia aquí para expandir CDSN")).join("");
+  const nr=L.filter(s=>s.inf<5).length,ne=L.length-nr;
+  v.innerHTML=`<div class="cons"><h3>Ahora mismo</h3>${ya||'<p class="sub">Ningún conflicto en marcha.</p>'}`+
+   (L.length?`<details class="ley"><summary>Cerca de la retirada (${nr}) o de la expansión (${ne}) · toca para ver</summary>${ot}</details>`:"")+CONS_TXT+"</div>";
+  v.onclick=e=>{const d=e.target.closest("[data-s]");if(d&&!e.target.closest(".cp"))abreFicha(d.dataset.s)}}
