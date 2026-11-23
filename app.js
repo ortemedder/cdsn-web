@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.16";
+const VERSION="v1.17";
 const NOVEDADES=[
+ ["v1.17","23/11/2026",["Franja amarilla 📌 arriba en todas las pestañas mientras haya una noticia fija; al tocarla abre La Crónica","Hemeroteca al final de La Crónica: todas las noticias fijas anteriores con sus fechas, para leerlas enteras (con el escucha v11.7)"]],
  ["v1.16","23/11/2026",["Noticia fija arriba de La Crónica: se escribe a mano en el archivo noticia_fija.txt de cdsn-datos (en GitHub, desde el navegador o el móvil)","Pestaña Crónica: La Crónica de Sion, el periódico de CDSN. Todos los avisos del escucha (los mismos de Discord) como últimas noticias, con su hora y minuto, portada con la noticia más importante y secciones (conflictos, expansión, obras, estaciones, población…). Toca una noticia para abrir la ficha del sistema. Necesita el escucha v11.6"]],
  ["v1.15.1","23/11/2026",["Visitas de 60 días (con el escucha v11.3): la gráfica de visitas por día enseña 60 días y compara los últimos 30 con los 30 anteriores","Pestaña Visitas: nuevo periodo de 60 días"]],
  ["v1.15","23/11/2026",["Gráficos en 6 pestañas: Influencia, Actividad, Conflictos, Estados y población, Alrededor y Powerplay, y Tick","Nuevos: sistemas más visitados, atraques y motivos de denegación, portanaves, zonas de conflicto, marcador día a día de los conflictos activos, rivales más peligrosos, estados, seguridad, población, economías, gobiernos y alianzas vecinas, potencias, expansiones enemigas, candidatos para expandirnos, obras y la hora del tick","Toca una fila con un sistema para abrir su ficha"]],
@@ -234,6 +235,7 @@ async function carga(){
     try{const t=await fetch(FIJA_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");   // las lineas con # no salen; --- separa noticias
       FIJA=t.split(/^---\s*$/m).map(b=>b.split("\n").filter(l=>!l.trim().startsWith("#")).join("\n").trim()).filter(Boolean)
         .map(b=>{const[a,...r]=b.split("\n");return[a.trim(),r.join("\n").trim()]})}catch(x){}
+    revisaFija();
     const e=D.eddn||null;
     const sub=D.t?hace(D.t):"—", viejo=D.t&&now()-D.t>3600;
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}">datos de hace ${sub}${viejo?" (el escucha no ha subido datos en más de 1 h)":""}</span>`+
@@ -791,7 +793,7 @@ function pintaGra(){
 
 // ---------- pestaña Crónica: La Crónica de Sion (los avisos del escucha v11.6 como periódico) ----------
 // D.noticias = [[hora, texto, seccion, urgente, sistema], ...] (las 300 ultimas, la mas nueva al final)
-const SECS=[["","Todas"],["conflictos","⚔ Conflictos"],["expansion","🛸 Expansión"],["obras","🏗 Obras"],["estaciones","🏢 Estaciones"],["poblacion","👥 Población"],["actividad","📈 Actividad"],["thargoides","👾 Thargoides"],["resumen","📊 Resúmenes"]];
+const SECS=[["","Todas"],["cronica","📌 Almirante"],["conflictos","⚔ Conflictos"],["expansion","🛸 Expansión"],["obras","🏗 Obras"],["estaciones","🏢 Estaciones"],["poblacion","👥 Población"],["actividad","📈 Actividad"],["thargoides","👾 Thargoides"],["resumen","📊 Resúmenes"]];
 let CS="";   // seccion elegida
 const negritas=t=>esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
 const sinMarcas=t=>String(t).replace(/\*\*/g,"").replace(/^[^\p{L}\p{N}]+/u,"").trim();   // sin negritas ni el icono del principio
@@ -806,7 +808,7 @@ function pintaCro(){
   let h=`<div class="cro"><div class="cab"><div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
     <div class="cab3"><span>${esc((x=>x.charAt(0).toUpperCase()+x.slice(1))(fechaJuego(D.t||now())))}</span><span>Edición de las ${ed}</span><span>${N.length} noticias</span></div></div>`;
   for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 NOTICIA FIJA</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;
-  if(!D.noticias){v.innerHTML=h+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p></div>`;return}
+  if(!D.noticias){v.innerHTML=h+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+hemeroteca()+`</div>`;return}
   // portada: la urgente mas reciente de las ultimas 24 h; si no hay, la ultima que no sea un resumen
   const P=N.find(n=>n[3]&&now()-n[0]<86400)||N.find(n=>n[2]!="resumen");
   if(P&&!CS){const tx=sinMarcas(P[1]);let[tit,...resto]=tx.split(" · ");
@@ -822,7 +824,22 @@ function pintaCro(){
     for(const n of L){const d=diaTit(n[0]);if(d!=dia){dia=d;h+=`<div class="crod">${esc(d.charAt(0).toUpperCase()+d.slice(1))}</div>`}
       h+=`<div class="cron${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}</span><span>${negritas(n[1])}</span></div>`}
     h+=`</div>`}
+  h+=hemeroteca();
   v.innerHTML=h+`<div class="sub" style="text-align:center;margin:14px 0 4px">Las ${(D.noticias||[]).length} últimas noticias del escucha de EDDN · toca una para abrir la ficha del sistema</div></div>`;
 }
 document.getElementById("vCro").onclick=e=>{const b=e.target.closest(".csec button");if(b){CS=b.dataset.c;pintaCro();return}
   const n=e.target.closest("[data-s]");if(n&&(D.sistemas||{})[n.dataset.s])abreFicha(n.dataset.s)};
+
+// ---------- noticia fija: franja arriba y hemeroteca (escucha v11.7: D.fija y D.hemeroteca) ----------
+function revisaFija(){const b=document.getElementById("fijaBar");if(!b)return;
+  if(!FIJA.length){b.hidden=true;return}
+  b.innerHTML=`📌 <b>${esc(FIJA[0][0])}</b>${FIJA.length>1?` y ${FIJA.length-1} más`:""} · toca para leer`;b.hidden=false}
+document.getElementById("fijaBar").onclick=()=>{vista("cro");scrollTo({top:document.getElementById("vCro").offsetTop-10,behavior:"smooth"})};
+function hemeroteca(){
+  const f=t=>new Date(t*1000).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"2-digit"}),H=D.hemeroteca||[];
+  let h=`<div class="heme"><div class="hemeT">HEMEROTECA · Comunicados del Almirante</div>`;
+  const desde=(D.fija||{}).desde;
+  for(const[t]of FIJA)h+=`<div class="hemeI"><span class="hemeF">📌 AHORA${desde?"<br>desde "+f(desde):""}</span><span><b>${negritas(t)}</b></span></div>`;
+  for(const x of H)h+=`<div class="hemeI"><span class="hemeF">${f(x.desde)}<br>– ${f(x.hasta)}</span><details><summary><b>${negritas(x.tit)}</b> <span class="sub">▸ leer</span></summary><div class="porE" style="margin-top:4px">${negritas(x.txt||"").replace(/\n/g,"<br>")||"<i>(sin texto)</i>"}</div></details></div>`;
+  if(!FIJA.length&&!H.length)h+=`<p class="sub">Aún no hay comunicados guardados${D.hemeroteca?"":" (la hemeroteca la guarda el escucha v11.7)"}.</p>`;
+  return h+`</div>`}
