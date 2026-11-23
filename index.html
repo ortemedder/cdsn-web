@@ -76,6 +76,19 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 .gtab{flex-wrap:wrap;margin-bottom:12px}.gtab button{flex:1 1 30%;max-width:none;font-size:13px}
 .hbr{display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,38%) auto;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid #22180a}.hbr[data-s]{cursor:pointer}.hbr[data-s]:hover{background:#1f160a}.hbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hbl .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hbr b.num{min-width:28px}
 .cas{display:inline-block;width:18px;height:18px;margin-left:3px;border-radius:3px;text-align:center;font-size:11px;font-weight:700;line-height:18px;color:#000;vertical-align:middle}
+.cro{max-width:860px;margin:0 auto;font-family:Georgia,"Times New Roman",serif}
+.cab{text-align:center;border-top:4px double #b06a10;border-bottom:4px double #b06a10;padding:10px 0 6px;margin-bottom:12px}
+.cab1{font-size:clamp(26px,7vw,46px);font-weight:700;letter-spacing:2px;color:#f2e6d6;line-height:1.1}.cab2{font-style:italic;color:#c9a36a;margin:2px 0 6px}
+.cab3{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px solid #3a2a12;padding-top:5px;font-size:12px;color:#b06a10}
+.fija{border:2px solid #ffd228;background:#1d1606;padding:10px 14px;margin-bottom:12px;font-family:Georgia,"Times New Roman",serif}.fija .porK{color:#ffd228}
+.por{border:1px solid #3a2a12;border-left:4px solid #ff8c00;background:#140e06;padding:10px 14px;margin-bottom:12px;cursor:pointer}.por.urg{border-left-color:#ff4632}
+.porK{font-size:11px;letter-spacing:2px;color:#ff8c00;font-weight:700}.por.urg .porK{color:#ff4632}
+.porT{font-size:clamp(19px,5vw,26px);font-weight:700;line-height:1.2;margin:4px 0;text-transform:uppercase}.porE{font-size:15px;color:#e0d2bf}.porF{font-size:12px;color:#b06a10;margin-top:6px}
+.csec{flex-wrap:wrap;margin-bottom:8px;font-family:system-ui,sans-serif}.csec button{flex:1 1 auto;max-width:none;font-size:12px;padding:6px 8px}
+.crol{column-width:380px;column-gap:28px;column-rule:1px solid #2a1a06}
+.crod{break-after:avoid;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#5adc78;border-bottom:1px solid #3a2a12;margin:10px 0 4px;padding-bottom:2px}
+.cron{break-inside:avoid;display:grid;grid-template-columns:44px 1fr;gap:6px;padding:5px 0;border-bottom:1px dotted #2a1a06;font-size:14px;line-height:1.35}.cron[data-s]{cursor:pointer}.cron[data-s]:hover{background:#1f160a}
+.cron.urg{color:#ffb3a8}.croh{font-family:ui-monospace,Consolas,monospace;color:#ff6ec8;font-size:12px;padding-top:2px}
 #gtip{position:absolute;z-index:5;background:#ff8c00;color:#000;font-weight:700;font-size:13px;padding:4px 8px;border-radius:6px;pointer-events:none;white-space:nowrap}#gtip[hidden]{display:none}
 .evo svg{width:100%;height:auto;background:#0f0a04;border:1px solid var(--l);border-radius:6px}
 </style></head><body>
@@ -90,10 +103,11 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 <div id="inusual" hidden></div>
 <div id="defensa" hidden></div>
 <div id="atk" hidden><div class="atkc" id="atkc"></div></div>
-<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button><button id="tGra" data-v="gra">Gráficos</button></div>
+<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button><button id="tGra" data-v="gra">Gráficos</button><button id="tCro" data-v="cro">Crónica</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
 <div id="vEvo" hidden style="padding:0 16px 12px"></div>
 <div id="vGra" hidden style="padding:0 16px 12px;position:relative"></div>
+<div id="vCro" hidden style="padding:0 16px 12px"></div>
 <div id="vPP" hidden style="padding:0 16px 12px"></div>
 <div id="vVis" hidden style="padding:0 16px 12px"></div>
 <div id="vRadar" hidden><div id="rexp" hidden></div><canvas id="rad"></canvas>
