@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.15";
+const VERSION="v1.15.1";
 const NOVEDADES=[
+ ["v1.15.1","23/11/2026",["Visitas de 60 días (con el escucha v11.3): la gráfica de visitas por día enseña 60 días y compara los últimos 30 con los 30 anteriores","Pestaña Visitas: nuevo periodo de 60 días"]],
  ["v1.15","23/11/2026",["Gráficos en 6 pestañas: Influencia, Actividad, Conflictos, Estados y población, Alrededor y Powerplay, y Tick","Nuevos: sistemas más visitados, atraques y motivos de denegación, portanaves, zonas de conflicto, marcador día a día de los conflictos activos, rivales más peligrosos, estados, seguridad, población, economías, gobiernos y alianzas vecinas, potencias, expansiones enemigas, candidatos para expandirnos, obras y la hora del tick","Toca una fila con un sistema para abrir su ficha"]],
  ["v1.14","23/11/2026",["RETIRADA INMINENTE (rojo y alerta grande): CDSN por debajo del 2,5 %, con los días que lleva así (la retirada llega a los 5–6 días)","Qué hacer según el estado del sistema: en Auge el comercio cuenta el doble, en Hambruna o Epidemia el combate no sirve, en Crisis el comercio no saca de ella, en Disturbios o Confinamiento cazar recompensas","Hoy dice si el sistema es fácil (menos de 1 millón de habitantes) o difícil (más de 1.000 millones) de mover","Origen probable de la próxima expansión de CDSN: el sistema más feliz (en Hoy y en Gráficos)"]],
  ["v1.13.1","23/11/2026",["Obras: en Hoy, lista de las obras (construction sites) de nuestros sistemas, y en la ficha de cada sistema sus obras con el enlace a Inara para ver el arquitecto","Las obras terminadas desaparecen solas (con el escucha v11.1 también hay aviso a Discord de obra nueva y obra terminada)"]],
@@ -527,7 +528,7 @@ document.getElementById("vPP").onclick=e=>{
   const d=e.target.closest("[data-s]");if(d)abreFicha(d.dataset.s)};
 // ---------- pestaña Visitas: sistemas ordenados por comandantes ----------
 let VP=1;   // dias del periodo: 1 hoy, -1 ayer, 7, 30
-const VPS=[[1,"Hoy"],[-1,"Ayer"],[5,"5 días"],[30,"30 días"]];
+const VPS=[[1,"Hoy"],[-1,"Ayer"],[5,"5 días"],[30,"30 días"],[60,"60 días"]];
 function diasAtras(n){const d=new Date();d.setUTCDate(d.getUTCDate()-n);return d.toISOString().slice(0,10)}
 function pintaVis(){
   if(!D)return;
@@ -692,10 +693,10 @@ function pintaGra(){
   let h=`<div class="ctl" style="padding:0 0 10px"><label for="gSel" style="color:var(--v)">Ver:</label><select id="gSel"><option value="">Toda la facción (${T.length} sistemas)</option>${T.map(s=>`<option value="${esc(s.sys)}"${s.sys==GS?" selected":""}>${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</option>`).join("")}</select>
    ${uno?`<a href="#" id="gFicha" style="color:#ff8c00">ver ficha</a>`:""}</div>`;
   // 1) visitas por dia (31 dias)
-  const d31=[...Array(31).keys()].map(diasAtras).reverse();
-  const vis=d31.map(d=>({l:fdm(d),v:S.reduce((a,s)=>a+((s.trafico||{})[d]||0),0)}));vis.forEach(x=>x.tip=`${x.l}: ${x.v} visitas`);
+  const d60=[...Array(60).keys()].map(diasAtras).reverse();
+  const vis=d60.map(d=>({l:fdm(d),v:S.reduce((a,s)=>a+((s.trafico||{})[d]||0),0)}));vis.forEach(x=>x.tip=`${x.l}: ${x.v} visitas`);
   const conV=vis.filter(x=>x.v),med=conV.length?conV.reduce((a,x)=>a+x.v,0)/conV.length:0;
-  h+="§act§";h+=`<div>${barras(vis,"Visitas por día · últimos 31 días",{etiquetas:6,pie:`Pilotos distintos por día${GS?"":", sumando todos los sistemas"}. Media de los días con visitas: <b style="color:var(--b)">${c1(med)}</b>.`})}</div>`;
+  h+="§act§";h+=`<div>${barras(vis,"Visitas por día · últimos 60 días",{etiquetas:6,pie:`Pilotos distintos por día${GS?"":", sumando todos los sistemas"}. Media de los días con visitas: <b style="color:var(--b)">${c1(med)}</b>.`+(()=>{const a=vis.slice(-30).reduce((x,y)=>x+y.v,0),b=vis.slice(0,30).reduce((x,y)=>x+y.v,0);return b?` Últimos 30 días: <b style="color:var(--b)">${a}</b> · 30 anteriores: ${b} (<span class="${a>=b?"up":"dn"}">${a>=b?"+":""}${Math.round((a-b)/b*100)} %</span>).`:` Últimos 30 días: <b style="color:var(--b)">${a}</b> (aún no hay 30 días anteriores para comparar).`})()})}</div>`;
   // 2) mapa de horas
   h+=`<div>${mapaHoras(S)}</div>`;
   // 3) influencia
