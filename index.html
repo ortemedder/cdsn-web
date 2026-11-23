@@ -89,6 +89,10 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 .crod{break-after:avoid;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#5adc78;border-bottom:1px solid #3a2a12;margin:10px 0 4px;padding-bottom:2px}
 .cron{break-inside:avoid;display:grid;grid-template-columns:44px 1fr;gap:6px;padding:5px 0;border-bottom:1px dotted #2a1a06;font-size:14px;line-height:1.35}.cron[data-s]{cursor:pointer}.cron[data-s]:hover{background:#1f160a}
 .cron.urg{color:#ffb3a8}.croh{font-family:ui-monospace,Consolas,monospace;color:#ff6ec8;font-size:12px;padding-top:2px}
+#fijaBar{background:#2a2306;border:2px solid #ffd228;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}#fijaBar b{color:#ffd228}
+.heme{margin-top:18px;border-top:4px double #b06a10;padding-top:8px}.hemeT{text-align:center;font-weight:700;letter-spacing:2px;color:#ffd228;margin-bottom:6px}
+.hemeI{display:grid;grid-template-columns:86px 1fr;gap:8px;padding:6px 0;border-bottom:1px dotted #2a1a06;font-size:14px}.hemeF{font-size:12px;color:#b06a10;font-family:ui-monospace,Consolas,monospace}
+.hemeI summary{cursor:pointer;list-style:none}.hemeI summary::-webkit-details-marker{display:none}
 #gtip{position:absolute;z-index:5;background:#ff8c00;color:#000;font-weight:700;font-size:13px;padding:4px 8px;border-radius:6px;pointer-events:none;white-space:nowrap}#gtip[hidden]{display:none}
 .evo svg{width:100%;height:auto;background:#0f0a04;border:1px solid var(--l);border-radius:6px}
 </style></head><body>
@@ -102,6 +106,7 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 <div id="ataque" hidden></div>
 <div id="inusual" hidden></div>
 <div id="defensa" hidden></div>
+<div id="fijaBar" hidden></div>
 <div id="atk" hidden><div class="atkc" id="atkc"></div></div>
 <div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button><button id="tGra" data-v="gra">Gráficos</button><button id="tCro" data-v="cro">Crónica</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
