@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.17";
+const VERSION="v1.18";
 const NOVEDADES=[
+ ["v1.18","23/11/2026",["Contador de visitas anónimo (GoatCounter): cuenta cuánta gente entra y qué pestañas mira, sin cookies y sin saber quién es"]],
  ["v1.17","23/11/2026",["Franja amarilla 📌 arriba en todas las pestañas mientras haya una noticia fija; al tocarla abre La Crónica","Hemeroteca al final de La Crónica: todas las noticias fijas anteriores con sus fechas, para leerlas enteras (con el escucha v11.7)"]],
  ["v1.16","23/11/2026",["Noticia fija arriba de La Crónica: se escribe a mano en el archivo noticia_fija.txt de cdsn-datos (en GitHub, desde el navegador o el móvil)","Pestaña Crónica: La Crónica de Sion, el periódico de CDSN. Todos los avisos del escucha (los mismos de Discord) como últimas noticias, con su hora y minuto, portada con la noticia más importante y secciones (conflictos, expansión, obras, estaciones, población…). Toca una noticia para abrir la ficha del sistema. Necesita el escucha v11.6"]],
  ["v1.15.1","23/11/2026",["Visitas de 60 días (con el escucha v11.3): la gráfica de visitas por día enseña 60 días y compara los últimos 30 con los 30 anteriores","Pestaña Visitas: nuevo periodo de 60 días"]],
@@ -382,8 +383,14 @@ cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suel
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
 const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro"};
+// ---------- contador de visitas anonimo (GoatCounter, cdsngoatcountercom.goatcounter.com) ----------
+// Sin cookies ni scripts de fuera: una imagen de 1 pixel por pagina y por pestaña vista (una vez por pestaña y carga).
+const CONTADOR="https://cdsngoatcountercom.goatcounter.com/count",CONTADAS=new Set();
+function contarVisita(v){if(CONTADAS.has(v)||!/github\.io$/.test(location.hostname))return;CONTADAS.add(v);
+  try{const q=new URLSearchParams({p:"/"+(v=="tabla"?"":v),t:"CDSN · "+v,r:CONTADAS.size==1?document.referrer:"",s:screen.width,rnd:Math.random().toString(36).slice(2)});
+    new Image().src=CONTADOR+"?"+q}catch(e){}}
 function vista(v){
-  if(!VISTAS[v])v="tabla";try{localStorage.setItem("cdsn_vista",v)}catch(e){}
+  if(!VISTAS[v])v="tabla";contarVisita(v);try{localStorage.setItem("cdsn_vista",v)}catch(e){}
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
