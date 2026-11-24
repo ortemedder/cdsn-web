@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.21";
+const VERSION="v1.21.1";
 const NOVEDADES=[
+ ["v1.21.1","25/11/2026",["Consejos corregidos: el truco del tick (zona el día que se gana, bonos el día que se cobran), cómo funciona la retirada y a quién da influencia cobrar recompensas","Consejos nuevos: misiones de masacre y asesinato, y cuidado con matar naves de seguridad"]],
  ["v1.21","24/11/2026",["La Crónica con imágenes: cada noticia lleva su dibujo (guerra, elecciones, retirada, obras, vecindario…)","En las noticias importantes, imagen con datos reales: el marcador de los 7 días de la guerra, la influencia de la última semana o el alcance de una expansión vecina","Y debajo, qué hacer para ayudar (bonos de combate, misiones de CDSN, comercio…)"]],
  ["v1.20","24/11/2026",["La Crónica más limpia: lo nuestro primero. Las expansiones de otras facciones van a la nueva sección 🔭 Vecindario (ya no llenan «Todas» ni la portada), y con el escucha v11.8 salen una sola vez por facción, con aviso cuando terminan y cuando una facción llega a un sistema nuestro","Resumen del día nuevo y corto: controlados, los que más suben y bajan, conflictos, ventajas justas, riesgo de retirada, cerca de expandirnos y vecindario. Toca «ver resumen» para leerlo entero"]],
  ["v1.19","23/11/2026",["Pestaña Consejos: cómo subir la influencia de CDSN, qué la hace bajar, cómo ganar guerras y elecciones, los umbrales del BGS y consejos de comercio, exploración y colonización (de las guías de NEWP y pruebas de jugadores)","Arriba de Consejos, los conflictos en marcha y los sistemas cerca de la retirada o de la expansión, con qué hacer en cada uno"]],
@@ -929,17 +930,19 @@ const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
 <li>Vende con <b>beneficio</b> en estaciones de CDSN (también lo minado) y entrega allí los datos en Cartografía Universal.</li>
 <li>Entrega <b>antes del tick</b>: cuenta para el día en que se entrega.</li>
 <li>Los sistemas <b>pequeños</b> (poca población) se mueven más rápido: ahí cunde más el trabajo.</li>
-<li>Donar dinero o mercancía no paga, pero sube mucho la reputación y abre mejores misiones.</li></ul>
+<li>Donar dinero o mercancía no paga, pero sube mucho la reputación y abre mejores misiones.</li>
+<li>Misiones de <b>masacre</b> (matar piratas) y de <b>asesinato</b> (señores piratas) de CDSN, en paz o en guerra: con +INF suben muchísimo. Además, las recompensas de esos piratas que haya emitido <b>CDSN</b> también le dan influencia al cobrarlas en el sistema.</li></ul>
 <h3>Lo que hace bajar a CDSN</h3><ul>
 <li>Fallar o abandonar misiones de CDSN.</li>
 <li>Vender con <b>pérdidas</b> o en el <b>mercado negro</b> de sus estaciones.</li>
 <li>Cometer delitos en sus sistemas.</li>
-<li>Cobrar en sus sistemas recompensas de <b>otras facciones</b> (escáner de órdenes de muerte): pueden mover la influencia de quien controla.</li></ul>
+<li>Cobrar en sus sistemas recompensas emitidas por <b>otras facciones</b> (escáner de órdenes de muerte): la influencia va a la facción que <b>emitió</b> la recompensa, no a CDSN ni al dueño de la estación.</li>
+<li>Matar <b>naves de seguridad</b> (Autoridad del Sistema) en sistemas de CDSN: es de lo que más hunde a la facción que controla y puede traer <b>Disturbios</b> o <b>Confinamiento</b>.</li></ul>
 <h3>⚔ Guerras</h3><ul>
 <li>Duran de 4 a 7 días. Gana el primero que gana <b>4 días</b>, o el que ya no puede ser alcanzado. El marcador sale en la tabla y en Hoy.</li>
 <li>Cada día va de tick a tick y lo gana el bando con más actividad de guerra: <b>zonas de conflicto ganadas</b>, bonos de combate y misiones de combate.</li>
 <li>Lo que más pesa es <b>ganar zonas de conflicto</b>; los bonos sirven sobre todo para desempatar.</li>
-<li>Truco: gana una zona <b>antes del tick</b> y entrega los bonos <b>después</b>: puede contar para dos días.</li>
+<li>Truco: la <b>zona ganada</b> suma al marcador el día en que la ganas (al acabar la batalla) y los <b>bonos</b> el día en que los cobras. Gana la zona <b>antes del tick</b> y cobra los bonos <b>después</b>: cuenta para dos días.</li>
 <li>Zonas: baja (solo ganar), media (Fuerzas Especiales o corresponsales), alta (2–3 objetivos, capitanes y naves capitales si hay superpotencia).</li>
 <li>Durante la guerra la influencia está <b>congelada</b>. Al acabar, la diferencia queda en 8, 4 o 0 puntos según los días ganados, y el que pierde se queda sin el activo en disputa.</li></ul>
 <h3>✉ Elecciones</h3><ul>
@@ -949,7 +952,7 @@ const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
 <tr><td class=num>75 % o más</td><td>Expansión a un sistema cercano (aviso CERCA DE EXPANSIÓN desde el 70 %)</td></tr>
 <tr><td class=num>Igual que otra, &gt; 7 %</td><td>Guerra o elecciones; la influencia queda congelada</td></tr>
 <tr><td class=num>5 % o menos</td><td>Aviso RIESGO RETIRADA</td></tr>
-<tr><td class=num>2,5 % o menos</td><td>Retirada: si sigue así 5–6 días, CDSN sale del sistema</td></tr>
+<tr><td class=num>Menos del 2,5 %</td><td>Retirada: 1 día pendiente y unos 5–6 activos. Si en el último tick CDSN sigue por debajo del 2,5 %, sale del sistema; si ha subido, se salva</td></tr>
 <tr><td class=num>1 %</td><td>Mínimo; nunca baja de ahí</td></tr></table></div>
 <h3>Según el estado del sistema</h3><ul>
 <li><b>Auge</b>: las misiones de comercio ayudan más.</li>
