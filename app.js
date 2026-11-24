@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.20";
+const VERSION="v1.21";
 const NOVEDADES=[
+ ["v1.21","24/11/2026",["La Crónica con imágenes: cada noticia lleva su dibujo (guerra, elecciones, retirada, obras, vecindario…)","En las noticias importantes, imagen con datos reales: el marcador de los 7 días de la guerra, la influencia de la última semana o el alcance de una expansión vecina","Y debajo, qué hacer para ayudar (bonos de combate, misiones de CDSN, comercio…)"]],
  ["v1.20","24/11/2026",["La Crónica más limpia: lo nuestro primero. Las expansiones de otras facciones van a la nueva sección 🔭 Vecindario (ya no llenan «Todas» ni la portada), y con el escucha v11.8 salen una sola vez por facción, con aviso cuando terminan y cuando una facción llega a un sistema nuestro","Resumen del día nuevo y corto: controlados, los que más suben y bajan, conflictos, ventajas justas, riesgo de retirada, cerca de expandirnos y vecindario. Toca «ver resumen» para leerlo entero"]],
  ["v1.19","23/11/2026",["Pestaña Consejos: cómo subir la influencia de CDSN, qué la hace bajar, cómo ganar guerras y elecciones, los umbrales del BGS y consejos de comercio, exploración y colonización (de las guías de NEWP y pruebas de jugadores)","Arriba de Consejos, los conflictos en marcha y los sistemas cerca de la retirada o de la expansión, con qué hacer en cada uno"]],
  ["v1.18","23/11/2026",["Contador de visitas anónimo (GoatCounter): cuenta cuánta gente entra y qué pestañas mira, sin cookies y sin saber quién es"]],
@@ -823,21 +824,89 @@ function pintaCro(){
   if(P&&!CS){const tx=sinMarcas(P[1]);let[tit,...resto]=tx.split(" · ");
     const k=tit.indexOf(" desde ");if(k>0){resto.unshift(tit.slice(k+1));tit=tit.slice(0,k)}   // titular corto: "X prepara una expansión" / "desde ..."
     resto=resto.map(x=>x.charAt(0).toUpperCase()+x.slice(1));
+    const di=datosImg(P,320),ac=accion(P);
     h+=`<div class="por${P[3]?" urg":""}"${P[4]?` data-s="${esc(P[4])}"`:""}><div class="porK">${P[3]?"ÚLTIMA HORA":"PORTADA"}</div>
-      <div class="porT">${icono(P[1])} ${esc(tit)}</div>${resto.length?`<div class="porE">${esc(resto.join(" · "))}</div>`:""}
+      <div class="porG">${ilus(tipoNot(P),120)}<div><div class="porT">${icono(P[1])} ${esc(tit)}</div>${resto.length?`<div class="porE">${esc(resto.join(" · "))}</div>`:""}</div></div>
+      ${di?`<div class="porD">${di}</div>`:""}${ac?`<div class="acc">${ac}</div>`:""}
       <div class="porF">${diaTit(P[0])}, ${hora(P[0])}${P[4]?" · "+esc(P[4]):""}</div></div>`}
   h+=`<div class="vper csec">${SECS.map(([k,n])=>`<button data-c="${k}" class="${k==CS?"on":""}">${n}</button>`).join("")}</div>`;
   const L=N.filter(n=>CS?n[2]==CS:n[2]!="vecindario");   // v1.20: «Todas» = lo nuestro; lo de otras facciones en Vecindario
   if(!L.length)h+=`<p class="sub" style="text-align:center;margin:16px">Sin noticias en esta sección.</p>`;
   else{h+=`<div class="crol">`;let dia="";
     for(const n of L){const d=diaTit(n[0]);if(d!=dia){dia=d;h+=`<div class="crod">${esc(d.charAt(0).toUpperCase()+d.slice(1))}</div>`}
-      h+=`<div class="cron${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}</span><span>${negritas(n[1])}${n[5]?`<details><summary class="sub">▸ ver resumen</summary><div class="porE">${negritas(n[5]).replace(/\n/g,"<br>")}</div></details>`:""}</span></div>`}
+      const k_=tipoNot(n),gr=["guerra","elecciones","retirada","llega","vecindario"].includes(k_),di=gr?datosImg(n,260):"",ac=gr||k_=="resumen"?accion(n):"";
+      h+=`<div class="cron${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}${ilus(k_,40)}</span><span>${negritas(n[1])}${di?`<div class="crdat">${di}</div>`:""}${ac?`<div class="acc">${ac}</div>`:""}${n[5]?`<details><summary class="sub">ver resumen</summary><div class="porE">${negritas(n[5]).replace(/\n/g,"<br>")}</div></details>`:""}</span></div>`}
     h+=`</div>`}
   h+=hemeroteca();
   v.innerHTML=h+`<div class="sub" style="text-align:center;margin:14px 0 4px">Las ${(D.noticias||[]).length} últimas noticias del escucha de EDDN · toca una para abrir la ficha del sistema</div></div>`;
 }
 document.getElementById("vCro").onclick=e=>{const b=e.target.closest(".csec button");if(b){CS=b.dataset.c;pintaCro();return}
   const n=e.target.closest("[data-s]");if(n&&(D.sistemas||{})[n.dataset.s])abreFicha(n.dataset.s)};
+
+// ---------- v1.21: La Cronica con imagenes: dibujo por tipo, imagen con datos y que hacer ----------
+function tipoNot(n){const x=String(n[1]),i=icono(x),s=n[2];
+  if(s=="cronica")return"almirante";if(s=="resumen")return"resumen";if(s=="vecindario")return"vecindario";if(s=="thargoides")return"thargoides";
+  if(i.startsWith("🛬"))return"llega";if(i.startsWith("🏁"))return"fin";if(i.startsWith("✉"))return"elecciones";
+  if(i.startsWith("🚨")&&/Retirada/.test(x)||/ya no está/.test(x)||/Riesgo de retirada/.test(x))return"retirada";
+  if(s=="conflictos"&&!i.startsWith("📉")&&!i.startsWith("⬆")&&!i.startsWith("🔻")&&!i.startsWith("🕵"))return/Elecciones/.test(x)?"elecciones":"guerra";
+  if(i.startsWith("🆕")||(i.startsWith("📣")&&/Expansión/.test(x)))return"nuestra";
+  if(i.startsWith("🏃"))return"huida";
+  return{obras:"obra",estaciones:"estacion",poblacion:"poblacion",actividad:"actividad",conflictos:"rival",expansion:"nuestra"}[s]||"otra"}
+const IL={   // dibujos de 100x70
+ fin:`<path d="M30 10 L30 62" stroke="#f2e6d6" stroke-width="2.5"/><path d="M32 10 h36 v22 h-36Z" fill="#f2e6d6"/><path d="M32 10 h9 v5.5 h-9Z M50 10 h9 v5.5 h-9Z M41 15.5 h9 v5.5 h-9Z M59 15.5 h9 v5.5 h-9Z M32 21 h9 v5.5 h-9Z M50 21 h9 v5.5 h-9Z M41 26.5 h9 v5.5 h-9Z M59 26.5 h9 v5.5 h-9Z" fill="#1a1208"/>`,
+ guerra:`<path d="M14 35 L40 20 L40 50Z" fill="#5aaaff"/><path d="M86 35 L60 20 L60 50Z" fill="#ff4632"/><line x1="42" y1="30" x2="58" y2="26" stroke="#ffd228" stroke-width="2.5"/><line x1="42" y1="40" x2="58" y2="44" stroke="#ffd228" stroke-width="2.5"/><circle cx="50" cy="35" r="4" fill="#ffd228"/>`,
+ elecciones:`<rect x="30" y="34" width="40" height="28" rx="3" fill="#7f77dd"/><rect x="40" y="30" width="20" height="5" rx="1" fill="#3c3489"/><rect x="43" y="10" width="14" height="22" rx="1" fill="#f2e6d6"/><line x1="46" y1="16" x2="54" y2="16" stroke="#7f77dd"/><line x1="46" y1="21" x2="52" y2="21" stroke="#7f77dd"/><circle cx="50" cy="48" r="6" fill="none" stroke="#f2e6d6" stroke-width="1.5"/>`,
+ llega:`<ellipse cx="80" cy="35" rx="11" ry="22" fill="none" stroke="#5adc78" stroke-width="2.5"/><path d="M14 24 L34 29 L14 34Z" fill="#ff8c00"/><path d="M24 38 L44 43 L24 48Z" fill="#ff8c00"/><path d="M42 28 L64 34 L42 40Z" fill="#ffb366"/>`,
+ vecindario:`<circle cx="30" cy="35" r="20" fill="none" stroke="#3a2a12" stroke-dasharray="3 3"/><circle cx="30" cy="35" r="6" fill="#ff8c00"/><line x1="36" y1="33" x2="70" y2="18" stroke="#ff8c00" stroke-width="1.5"/><line x1="36" y1="37" x2="72" y2="50" stroke="#ff8c00" stroke-width="1.5"/><circle cx="76" cy="16" r="5" fill="#5adc78"/><circle cx="78" cy="52" r="5" fill="#5adc78"/>`,
+ nuestra:`<line x1="34" y1="12" x2="34" y2="62" stroke="#f2e6d6" stroke-width="2.5"/><path d="M36 12 L72 20 L36 30Z" fill="#ff8c00"/><circle cx="34" cy="62" r="4" fill="#5adc78"/><path d="M50 52 l6 -6 l6 6" fill="none" stroke="#5adc78" stroke-width="2.5"/>`,
+ huida:`<path d="M64 26 L84 31 L64 36Z" fill="#b06a10"/><path d="M54 40 L74 45 L54 50Z" fill="#b06a10"/><line x1="16" y1="31" x2="56" y2="31" stroke="#3a2a12" stroke-dasharray="4 3"/><line x1="16" y1="45" x2="46" y2="45" stroke="#3a2a12" stroke-dasharray="4 3"/>`,
+ obra:`<circle cx="56" cy="38" r="20" fill="none" stroke="#888780" stroke-width="4" stroke-dasharray="20 9"/><rect x="51" y="33" width="10" height="10" fill="#b4b2a9"/><line x1="20" y1="10" x2="20" y2="62" stroke="#ffd228" stroke-width="2.5"/><line x1="20" y1="12" x2="44" y2="12" stroke="#ffd228" stroke-width="2.5"/><line x1="42" y1="12" x2="42" y2="22" stroke="#888780"/>`,
+ estacion:`<circle cx="50" cy="35" r="22" fill="none" stroke="#5aaaff" stroke-width="3"/><circle cx="50" cy="35" r="9" fill="#5aaaff"/><line x1="28" y1="35" x2="72" y2="35" stroke="#5aaaff" stroke-width="2"/><line x1="50" y1="13" x2="50" y2="57" stroke="#5aaaff" stroke-width="2"/>`,
+ retirada:`<path d="M50 8 L72 17 L70 40 Q66 56 50 63 Q34 56 30 40 L28 17Z" fill="#2a0b07" stroke="#ff4632" stroke-width="2.5"/><path d="M51 12 L45 28 L54 34 L44 48 L50 61" fill="none" stroke="#ff4632" stroke-width="2"/>`,
+ poblacion:`<circle cx="36" cy="26" r="7" fill="#ff6ec8"/><path d="M24 54 Q36 34 48 54Z" fill="#ff6ec8"/><circle cx="62" cy="24" r="8" fill="#ffb3e0"/><path d="M48 56 Q62 32 76 56Z" fill="#ffb3e0"/>`,
+ actividad:`<polyline points="10,45 28,45 36,22 46,58 56,30 64,45 90,45" fill="none" stroke="#5adc78" stroke-width="3"/>`,
+ rival:`<polyline points="14,54 34,44 52,48 70,26 86,18" fill="none" stroke="#ff4632" stroke-width="3"/><path d="M80 14 L90 16 L86 25Z" fill="#ff4632"/>`,
+ resumen:`<line x1="18" y1="60" x2="84" y2="60" stroke="#3a2a12"/><rect x="24" y="38" width="10" height="22" fill="#5adc78"/><rect x="40" y="26" width="10" height="34" fill="#2fae55"/><rect x="56" y="32" width="10" height="28" fill="#5adc78"/><rect x="72" y="14" width="10" height="46" fill="#1d8a42"/>`,
+ almirante:`<path d="M50 10 L56 26 L73 26 L59 36 L64 53 L50 43 L36 53 L41 36 L27 26 L44 26Z" fill="#ffd228"/><rect x="30" y="56" width="40" height="6" rx="2" fill="#b06a10"/>`,
+ thargoides:`<path d="M50 14 L60 30 L80 30 L64 42 L70 60 L50 48 L30 60 L36 42 L20 30 L40 30Z" fill="none" stroke="#5adc78" stroke-width="2.5"/><circle cx="50" cy="38" r="6" fill="#5adc78"/>`,
+ otra:`<circle cx="50" cy="35" r="16" fill="none" stroke="#b06a10" stroke-width="2.5"/><circle cx="50" cy="35" r="4" fill="#ff8c00"/>`};
+const ilus=(k,w)=>`<svg class="ilu" viewBox="0 0 100 70" width="${w}" height="${Math.round(w*.7)}" aria-hidden="true">${IL[k]||IL.otra}</svg>`;
+function conDe(n){const s=(D.sistemas||{})[n[4]];if(!s)return null;const m=String(n[1]).match(/contra \*\*(.+?)\*\*/);
+  return(s.conflictos||[]).find(c=>!m||c.contra==m[1])||null}
+function barraGuerra(c,w){   // los 7 dias: G verde, P rojo, = gris, hoy amarillo, por jugar punteado
+  if(!c)return"";const r=c.res||[],ini=(c.res_desde||1)-1,dia=c.dia||0,W=w||300,k=W/7;let h=`<svg class="dat" viewBox="0 0 ${W} 30" width="${W}" height="30" role="img" aria-label="Marcador ${c.ganados||0}-${c.perdidos||0}">`;
+  for(let i=0;i<7;i++){const x=i*k+1,res=i<ini?"?":r[i-ini],hoy=i==dia-1&&c.estado!="pending";
+    const col=hoy?"#ffd228":res=="G"?"#5adc78":res=="P"?"#ff4632":res=="="?"#6a5a40":res=="?"?"#3a2a12":"";
+    h+=col?`<rect x="${x}" y="3" width="${k-3}" height="20" rx="3" fill="${col}"/>`:`<rect x="${x}" y="3" width="${k-3}" height="20" rx="3" fill="none" stroke="#3a2a12" stroke-dasharray="3 2"/>`;
+    h+=`<text x="${x+(k-3)/2}" y="17" text-anchor="middle" font-size="10" fill="${col&&col!="#3a2a12"?"#000":"#b06a10"}" font-family="system-ui">${hoy?"HOY":res=="G"?"✓":res=="P"?"✗":res=="="?"=":"D"+(i+1)}</text>`}
+  return h+`</svg><div class="sub">Van ${c.ganados||0}-${c.perdidos||0} · gana quien llegue antes a 4 días</div>`}
+function lineaInf(s,w,hh){   // influencia de los ultimos 7 dias, con la raya del 5 %
+  const p=(s&&s.hinf||[]).filter(x=>x[0]>now()-7*86400);if(s&&s.inf!=null&&(!p.length||(s.t||0)>p[p.length-1][0]+600))p.push([s.t||now(),s.inf]);if(p.length<2||p[p.length-1][0]-p[0][0]<3600)return"";
+  const W=w||300,H=hh||46,t0=p[0][0],t1=p[p.length-1][0]||t0+1,vs=p.map(x=>x[1]),mn=Math.min(4,...vs),mx=Math.max(...vs)+.5;
+  const X=t=>4+(W-8)*(t-t0)/Math.max(1,t1-t0),Y=v=>H-4-(H-8)*(v-mn)/Math.max(.1,mx-mn),ul=p[p.length-1][1],baja=ul<p[0][1];
+  return`<svg class="dat" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Influencia 7 días">`+(mn<5?`<line x1="0" x2="${W}" y1="${Y(5)}" y2="${Y(5)}" stroke="#ff4632" stroke-dasharray="4 3"/>`:"")
+    +`<polyline points="${p.map(x=>X(x[0]).toFixed(1)+","+Y(x[1]).toFixed(1)).join(" ")}" fill="none" stroke="${baja?"#ff4632":"#5adc78"}" stroke-width="2"/>`
+    +`<circle cx="${X(t1)}" cy="${Y(ul)}" r="3.5" fill="${baja?"#ff4632":"#5adc78"}"/></svg><div class="sub">Influencia de CDSN, 7 días: ${p[0][1].toFixed(1).replace(".",",")} → ${ul.toFixed(1).replace(".",",")} %</div>`}
+function mapaVec(n,w){   // origen de la otra faccion y nuestros sistemas a su alcance
+  const m=String(n[1]).match(/^\S*\s*\*\*(.+?)\*\*/),a=m&&(D.vec_av||{})[m[1]];if(!a)return"";
+  const ob=Object.entries(a.obj||{}).sort((x,y)=>x[1]-y[1]).slice(0,4),W=w||300,H=26+ob.length*22;if(!ob.length)return"";
+  let h=`<svg class="dat" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Alcance de la expansión"><circle cx="34" cy="${H/2}" r="8" fill="#ff8c00"/><text x="34" y="${H/2+20}" font-size="9" text-anchor="middle" fill="#b06a10" font-family="system-ui">${esc((a.orig||[""])[0]).slice(0,14)}</text>`;
+  ob.forEach(([s,d],i)=>{const y=16+i*22;h+=`<line x1="44" y1="${H/2}" x2="${W*.45-8}" y2="${y}" stroke="#ff8c00" stroke-width="1.2"/><circle cx="${W*.45}" cy="${y}" r="6" fill="#5adc78"/><text x="${W*.45+12}" y="${y+4}" font-size="11" fill="#f2e6d6" font-family="system-ui">${esc(s)} · ${Math.round(d)} al</text>`});
+  return h+`</svg>`}
+function datosImg(n,w){const k=tipoNot(n),s=(D.sistemas||{})[n[4]];
+  if(k=="guerra"||k=="elecciones")return barraGuerra(conDe(n),w);
+  if(k=="vecindario")return mapaVec(n,w);
+  if(["retirada","llega","rival","nuestra","poblacion","huida"].includes(k))return lineaInf(s,w);
+  return""}
+function accion(n){const k=tipoNot(n),s=n[4]?`<b>${esc(n[4])}</b>`:"el sistema",c=conDe(n);
+  return{guerra:`⚔ Hoy cuenta: bonos de combate en las zonas de conflicto de ${s}${c&&c.mio?" · nos jugamos "+esc(c.mio):""}`,
+    elecciones:`✉ Hoy cuenta: misiones, comercio y datos para CDSN en ${s} (sin combate)`,
+    retirada:`🚨 Necesita ayuda: misiones de CDSN, comercio con beneficio y datos de exploración en ${s}`,
+    llega:`🛡 Defiende ${s}: misiones de CDSN para no perder terreno frente al recién llegado`,
+    rival:`🛡 Frena al rival en ${s}: misiones de CDSN con recompensa de influencia`,
+    nuestra:`🛸 Un empujón en ${s}: misiones de influencia para CDSN`,
+    vecindario:`🔭 Atentos: si llega a un sistema nuestro, toca reforzarlo`,
+    resumen:`📊 Mira en la pestaña Consejos dónde hace más falta hoy`}[k]||""}
 
 // ---------- noticia fija: franja arriba y hemeroteca (escucha v11.7: D.fija y D.hemeroteca) ----------
 function revisaFija(){const b=document.getElementById("fijaBar");if(!b)return;
