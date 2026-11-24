@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.21.1";
 const NOVEDADES=[
- ["v1.21.1","25/11/2026",["Consejos corregidos: el truco del tick (zona el día que se gana, bonos el día que se cobran), cómo funciona la retirada y a quién da influencia cobrar recompensas","Consejos nuevos: misiones de masacre y asesinato, y cuidado con matar naves de seguridad"]],
+ ["v1.21.1","25/11/2026",["Consejos corregidos: el truco del tick (zona el día que se gana, bonos el día que se cobran), cómo funciona la retirada y a quién da influencia cobrar recompensas","Consejos nuevos: misiones de masacre y asesinato, cuidado con matar naves de seguridad y una sección de transporte de pasajeros"]],
  ["v1.21","24/11/2026",["La Crónica con imágenes: cada noticia lleva su dibujo (guerra, elecciones, retirada, obras, vecindario…)","En las noticias importantes, imagen con datos reales: el marcador de los 7 días de la guerra, la influencia de la última semana o el alcance de una expansión vecina","Y debajo, qué hacer para ayudar (bonos de combate, misiones de CDSN, comercio…)"]],
  ["v1.20","24/11/2026",["La Crónica más limpia: lo nuestro primero. Las expansiones de otras facciones van a la nueva sección 🔭 Vecindario (ya no llenan «Todas» ni la portada), y con el escucha v11.8 salen una sola vez por facción, con aviso cuando terminan y cuando una facción llega a un sistema nuestro","Resumen del día nuevo y corto: controlados, los que más suben y bajan, conflictos, ventajas justas, riesgo de retirada, cerca de expandirnos y vecindario. Toca «ver resumen» para leerlo entero"]],
  ["v1.19","23/11/2026",["Pestaña Consejos: cómo subir la influencia de CDSN, qué la hace bajar, cómo ganar guerras y elecciones, los umbrales del BGS y consejos de comercio, exploración y colonización (de las guías de NEWP y pruebas de jugadores)","Arriba de Consejos, los conflictos en marcha y los sistemas cerca de la retirada o de la expansión, con qué hacer en cada uno"]],
@@ -932,6 +932,12 @@ const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
 <li>Los sistemas <b>pequeños</b> (poca población) se mueven más rápido: ahí cunde más el trabajo.</li>
 <li>Donar dinero o mercancía no paga, pero sube mucho la reputación y abre mejores misiones.</li>
 <li>Misiones de <b>masacre</b> (matar piratas) y de <b>asesinato</b> (señores piratas) de CDSN, en paz o en guerra: con +INF suben muchísimo. Además, las recompensas de esos piratas que haya emitido <b>CDSN</b> también le dan influencia al cobrarlas en el sistema.</li></ul>
+<h3>🧳 Transporte de pasajeros</h3><ul>
+<li>En la <b>Sala de pasajeros</b> cada contrato es de una facción: acepta solo los de <b>Caballeros de Sion</b> y elige la recompensa con más <b>+INF</b>.</li>
+<li>Los grupos (turistas, trabajadores, refugiados) son rápidos y seguros, y dan buena influencia.</li>
+<li>Cuidado con los pasajeros <b>buscados</b>: si te escanean al entrar en una estación de CDSN es un delito en su sistema y falla la misión. Usa navegación silenciosa o disipadores de calor, o no los cojas.</li>
+<li>Los VIP cancelan si les escanean, si la nave recibe daño o si tardas: una misión fallida <b>baja</b> a CDSN.</li>
+<li>Rinden más en <b>elecciones</b> (actividad pacífica que suma días) y en sistemas en <b>Auge</b>; en Hambruna, Brote o Guerra salen evacuaciones que también suman si las da CDSN.</li></ul>
 <h3>Lo que hace bajar a CDSN</h3><ul>
 <li>Fallar o abandonar misiones de CDSN.</li>
 <li>Vender con <b>pérdidas</b> o en el <b>mercado negro</b> de sus estaciones.</li>
