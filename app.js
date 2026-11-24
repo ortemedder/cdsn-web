@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.19";
+const VERSION="v1.20";
 const NOVEDADES=[
+ ["v1.20","24/11/2026",["La Crónica más limpia: lo nuestro primero. Las expansiones de otras facciones van a la nueva sección 🔭 Vecindario (ya no llenan «Todas» ni la portada), y con el escucha v11.8 salen una sola vez por facción, con aviso cuando terminan y cuando una facción llega a un sistema nuestro","Resumen del día nuevo y corto: controlados, los que más suben y bajan, conflictos, ventajas justas, riesgo de retirada, cerca de expandirnos y vecindario. Toca «ver resumen» para leerlo entero"]],
  ["v1.19","23/11/2026",["Pestaña Consejos: cómo subir la influencia de CDSN, qué la hace bajar, cómo ganar guerras y elecciones, los umbrales del BGS y consejos de comercio, exploración y colonización (de las guías de NEWP y pruebas de jugadores)","Arriba de Consejos, los conflictos en marcha y los sistemas cerca de la retirada o de la expansión, con qué hacer en cada uno"]],
  ["v1.18","23/11/2026",["Contador de visitas anónimo (GoatCounter): cuenta cuánta gente entra y qué pestañas mira, sin cookies y sin saber quién es"]],
  ["v1.17","23/11/2026",["Franja amarilla 📌 arriba en todas las pestañas mientras haya una noticia fija; al tocarla abre La Crónica","Hemeroteca al final de La Crónica: todas las noticias fijas anteriores con sus fechas, para leerlas enteras (con el escucha v11.7)"]],
@@ -801,7 +802,7 @@ function pintaGra(){
 
 // ---------- pestaña Crónica: La Crónica de Sion (los avisos del escucha v11.6 como periódico) ----------
 // D.noticias = [[hora, texto, seccion, urgente, sistema], ...] (las 300 ultimas, la mas nueva al final)
-const SECS=[["","Todas"],["cronica","📌 Almirante"],["conflictos","⚔ Conflictos"],["expansion","🛸 Expansión"],["obras","🏗 Obras"],["estaciones","🏢 Estaciones"],["poblacion","👥 Población"],["actividad","📈 Actividad"],["thargoides","👾 Thargoides"],["resumen","📊 Resúmenes"]];
+const SECS=[["","Todas"],["cronica","📌 Almirante"],["conflictos","⚔ Conflictos"],["expansion","🛸 Expansión"],["vecindario","🔭 Vecindario"],["obras","🏗 Obras"],["estaciones","🏢 Estaciones"],["poblacion","👥 Población"],["actividad","📈 Actividad"],["thargoides","👾 Thargoides"],["resumen","📊 Resúmenes"]];
 let CS="";   // seccion elegida
 const negritas=t=>esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
 const sinMarcas=t=>String(t).replace(/\*\*/g,"").replace(/^[^\p{L}\p{N}]+/u,"").trim();   // sin negritas ni el icono del principio
@@ -811,14 +812,14 @@ function diaTit(t){const d=new Date(t*1000),h=new Date(),a=new Date(Date.now()-8
   return k(d)==k(h)?"Hoy":k(d)==k(a)?"Ayer":d.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}
 function pintaCro(){
   if(!D)return;const v=document.getElementById("vCro");
-  const N=(D.noticias||[]).filter(n=>n[2]!="escucha").slice().reverse();   // la mas nueva primero
+  const N=(D.noticias||[]).filter(n=>n[2]!="escucha").map(n=>n[2]=="expansion"&&String(n[1]).startsWith("🛸")?[n[0],n[1],"vecindario",0,n[4],n[5]]:n).reverse();   // la mas nueva primero; v1.20: 🛸 de otras facciones = vecindario
   const ed=D.t?hora(D.t):hora(now());
   let h=`<div class="cro"><div class="cab"><div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
     <div class="cab3"><span>${esc((x=>x.charAt(0).toUpperCase()+x.slice(1))(fechaJuego(D.t||now())))}</span><span>Edición de las ${ed}</span><span>${N.length} noticias</span></div></div>`;
   for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 NOTICIA FIJA</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;
   if(!D.noticias){v.innerHTML=h+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+hemeroteca()+`</div>`;return}
   // portada: la urgente mas reciente de las ultimas 24 h; si no hay, la ultima que no sea un resumen
-  const P=N.find(n=>n[3]&&now()-n[0]<86400)||N.find(n=>n[2]!="resumen");
+  const P=N.find(n=>n[3]&&n[2]!="vecindario"&&now()-n[0]<86400)||N.find(n=>n[2]!="resumen"&&n[2]!="vecindario");
   if(P&&!CS){const tx=sinMarcas(P[1]);let[tit,...resto]=tx.split(" · ");
     const k=tit.indexOf(" desde ");if(k>0){resto.unshift(tit.slice(k+1));tit=tit.slice(0,k)}   // titular corto: "X prepara una expansión" / "desde ..."
     resto=resto.map(x=>x.charAt(0).toUpperCase()+x.slice(1));
@@ -826,11 +827,11 @@ function pintaCro(){
       <div class="porT">${icono(P[1])} ${esc(tit)}</div>${resto.length?`<div class="porE">${esc(resto.join(" · "))}</div>`:""}
       <div class="porF">${diaTit(P[0])}, ${hora(P[0])}${P[4]?" · "+esc(P[4]):""}</div></div>`}
   h+=`<div class="vper csec">${SECS.map(([k,n])=>`<button data-c="${k}" class="${k==CS?"on":""}">${n}</button>`).join("")}</div>`;
-  const L=N.filter(n=>!CS||n[2]==CS);
+  const L=N.filter(n=>CS?n[2]==CS:n[2]!="vecindario");   // v1.20: «Todas» = lo nuestro; lo de otras facciones en Vecindario
   if(!L.length)h+=`<p class="sub" style="text-align:center;margin:16px">Sin noticias en esta sección.</p>`;
   else{h+=`<div class="crol">`;let dia="";
     for(const n of L){const d=diaTit(n[0]);if(d!=dia){dia=d;h+=`<div class="crod">${esc(d.charAt(0).toUpperCase()+d.slice(1))}</div>`}
-      h+=`<div class="cron${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}</span><span>${negritas(n[1])}</span></div>`}
+      h+=`<div class="cron${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}</span><span>${negritas(n[1])}${n[5]?`<details><summary class="sub">▸ ver resumen</summary><div class="porE">${negritas(n[5]).replace(/\n/g,"<br>")}</div></details>`:""}</span></div>`}
     h+=`</div>`}
   h+=hemeroteca();
   v.innerHTML=h+`<div class="sub" style="text-align:center;margin:14px 0 4px">Las ${(D.noticias||[]).length} últimas noticias del escucha de EDDN · toca una para abrir la ficha del sistema</div></div>`;
