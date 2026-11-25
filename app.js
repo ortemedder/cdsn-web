@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.24.1";
 const NOVEDADES=[
- ["v1.24.1","25/11/2026",["El arquitecto (con foto si es de CDSN) sale también al abrir un sistema en la Tabla"]],
+ ["v1.24.1","25/11/2026",["El arquitecto (con foto si es de CDSN) sale también al abrir un sistema en la Tabla","Miembros: al tocar un comandante se despliegan sus sistemas de arquitecto; al tocar uno se abre su ficha","Arquitectos: al tocar una línea se abre la ficha del sistema"]],
  ["v1.24","25/11/2026",["Ficha del sistema: si el arquitecto es de CDSN sale una tarjeta con su foto y su nombre; al tocarla te lleva a él en Miembros"]],
  ["v1.23","25/11/2026",["Pestaña Miembros: los 143 comandantes de CDSN con su foto del juego, buscador y los sistemas de los que son arquitectos","Arquitectos: 🛡 y foto en los arquitectos que son de CDSN, y cuántos sistemas han diseñado comandantes de CDSN","Acerca de: una vez al mes se repasan sistemas, comandantes y arquitectos"]],
  ["v1.22.1","25/11/2026",["Arquitectos: aviso de que hay sistemas con presencia de CDSN diseñados por comandantes de otros escuadrones","Nuevo estado «colonizado · arquitecto oculto» (en el archivo: colonizado (arquitecto oculto))"]],
@@ -995,13 +995,13 @@ const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
 <li><b>En Abierto</b>: ante un ganker, sométete a la interdicción, 4 pips a escudos y 2 a motores, y salto de alta estela. Nunca te desconectes en combate.</li></ul>
 <div class="fnt">El BGS no tiene manuales oficiales: esto sale de las guías de <a href="https://newp.io/faction" target="_blank" rel="noopener">NEWP</a> y de pruebas de jugadores en el foro de Frontier e Inara.</div>`;
 // ---------- v1.23: pestaña Miembros (miembros.txt + fotos en miembros/) ----------
-let MIE_Q="";
+let MIE_Q="",MIE_AB=new Set();
 // v1.24: tarjeta del arquitecto en la ficha (grande si es de CDSN; al tocarla abre Miembros)
 function arqCard(n){const a=arqDe(n);
   if(a&&esMiem(a))return`<div data-mie="${esc(MIEM.get(a.toLowerCase().trim()))}" style="display:flex;gap:10px;align-items:center;margin:6px 0;padding:6px 8px;border:1px solid #c9a36a;border-radius:8px;background:rgba(201,163,106,.08);cursor:pointer">${AV(a,56)}<div>🏗 <b>Sistema diseñado por CMDR ${esc(a)}</b><div class="sub">🛡 miembro de Caballeros de Sion · toca para verlo</div></div></div>`;
   return`<div class="sub" style="margin:4px 0">🏗 Arquitecto: ${arqTxt(n)}</div>`}
 document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-mie]");if(!t)return;
-  MIE_Q=t.dataset.mie;const f=document.getElementById("rfull");if(f&&!f.hidden){f.hidden=true;document.body.style.overflow=""}
+  MIE_Q=t.dataset.mie;MIE_AB.add(t.dataset.mie);const f=document.getElementById("rfull");if(f&&!f.hidden){f.hidden=true;document.body.style.overflow=""}
   vista("mie");window.scrollTo(0,0)});
 function pintaMie(){const v=document.getElementById("vMie");if(!v)return;
   const L=[...MIEM.values()],q=MIE_Q.toLowerCase();
@@ -1011,15 +1011,17 @@ function pintaMie(){const v=document.getElementById("vMie");if(!v)return;
   v.innerHTML=`<div class="cons" style="max-width:1100px"><h3>🛡 Miembros de Caballeros de Sion</h3>
 <p><b>${L.length}</b> comandantes en el escuadrón (lista del juego, se repasa <b>una vez al mes</b>). 🏗 = arquitecto de algún sistema donde está CDSN.</p>
 <div class="ctl" style="padding:0 0 8px"><input type="search" id="mieQ" placeholder="Buscar comandante..." value="${esc(MIE_Q)}"></div>
-<div class="mieG">${F.map(n=>{const d=dis(n);return`<div class="mieC" title="${esc(d.join(", "))}">${AV(n,48)}<div><b>${esc(n)}</b>${d.length?`<div class="sub">🏗 ${d.length} sistema${d.length>1?"s":""}</div>`:""}</div></div>`}).join("")||'<p class="sub">Nadie con ese nombre.</p>'}</div></div>`;
-  const i=document.getElementById("mieQ");i.oninput=()=>{MIE_Q=i.value;const p=i.selectionStart;pintaMie();const j=document.getElementById("mieQ");j.focus();j.setSelectionRange(p,p)}}
+<div class="mieG">${F.map(n=>{const d=dis(n),ab=MIE_AB.has(n);return`<div class="mieC" data-m="${esc(n)}" style="${d.length?"cursor:pointer;":""}${ab?"grid-column:1/-1;flex-wrap:wrap":""}">${AV(n,48)}<div><b>${esc(n)}</b>${d.length?`<div class="sub">🏗 ${d.length} sistema${d.length>1?"s":""} ${ab?"▾":"▸"}</div>`:""}</div>${ab?`<div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${d.map(x=>`<span data-s="${esc(x)}" style="border:1px solid var(--l);border-radius:6px;padding:3px 8px;color:#ff8c00;cursor:pointer">${esc(x)}</span>`).join("")}</div>`:""}</div>`}).join("")||'<p class="sub">Nadie con ese nombre.</p>'}</div></div>`;
+  const i=document.getElementById("mieQ");i.oninput=()=>{MIE_Q=i.value;const p=i.selectionStart;pintaMie();const j=document.getElementById("mieQ");j.focus();j.setSelectionRange(p,p)};
+  v.querySelector(".mieG").onclick=e=>{const s_=e.target.closest("[data-s]");if(s_){abreFicha(s_.dataset.s);return}
+    const c=e.target.closest("[data-m]");if(!c)return;const n=c.dataset.m;if(!dis(n).length)return;MIE_AB.has(n)?MIE_AB.delete(n):MIE_AB.add(n);pintaMie()}}
 // ---------- v1.22: pestaña Arquitectos (arquitectos.txt de cdsn-datos, a mano) ----------
 let ARQ_Q="";
 function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
   const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).sort((a,b)=>a.sys.localeCompare(b.sys,"es"));
   const con=S.filter(s=>arqDe(s.sys)),q=ARQ_Q.toLowerCase();
   const F=S.filter(s=>!q||s.sys.toLowerCase().includes(q)||arqDe(s.sys).toLowerCase().includes(q));
-  const fila=s=>{const a=arqDe(s.sys);return`<tr><td>${esc(s.sys)}${CP(s.sys)}</td><td>${arqTxt(s.sys)}</td><td class="sub"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a></td></tr>`};
+  const fila=s=>{const a=arqDe(s.sys);return`<tr data-s="${esc(s.sys)}" style="cursor:pointer"><td>${esc(s.sys)}${CP(s.sys)}</td><td>${arqTxt(s.sys)}</td><td class="sub"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a></td></tr>`};
   v.innerHTML=`<div class="cons"><h3>🏗 Arquitectos de los sistemas de CDSN</h3>
 <p>El <b>arquitecto</b> es el comandante que colonizó el sistema. <b>No se puede sacar de forma automática</b>: no llega por EDDN, Spansh no lo tiene e Inara no deja leerlo con programas. Por eso lo apunta <b>el almirante a mano</b>, con los datos que le facilitan los comandantes.</p>
 <p>Todos los sistemas salen como <b>heredados</b> hasta que alguien nos dé el dato. Muchos lo seguirán siendo siempre, porque ya eran de CDSN antes de la colonización. Cuando un comandante nos facilita el arquitecto de un sistema, ese sistema pasa de <i>heredado</i> al <b>nombre del CMDR</b>. Una vez puesto no cambia nunca.</p>
@@ -1030,6 +1032,7 @@ function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
 <div class="ctl" style="padding:0 0 8px"><input type="search" id="arqQ" placeholder="Buscar sistema o CMDR..." value="${esc(ARQ_Q)}"></div>
 <div class="tw" style="padding:0"><table><tr><th>Sistema</th><th>Arquitecto</th><th></th></tr>${F.map(fila).join("")||'<tr><td colspan=3 class="sub">Nada con ese nombre.</td></tr>'}</table></div>
 <p class="sub" style="margin-top:10px">La lista de sistemas se actualiza sola, y el escucha añade al final del archivo los sistemas nuevos como heredados, con la fecha. Los arquitectos están en <a target="_blank" rel="noopener" style="color:#ff8c00" href="${ARQ_EDIT}">arquitectos.txt</a> (cdsn-datos), una línea por sistema: <code>Sistema = CMDR</code>, <code>Sistema = heredado</code> o <code>Sistema = heredado *</code> (comprobado).</p></div>`;
+  v.querySelector("table").onclick=e=>{if(e.target.closest("a,button,[data-cp]"))return;const tr=e.target.closest("tr[data-s]");if(tr)abreFicha(tr.dataset.s)};
   const i=document.getElementById("arqQ");i.oninput=()=>{ARQ_Q=i.value;const p=i.selectionStart;pintaArq();const j=document.getElementById("arqQ");j.focus();j.setSelectionRange(p,p)}}
 function pintaCon(){const v=document.getElementById("vCon");if(!v)return;const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null);
   const fila=(s,tag,k,txt,acc,parp)=>`<div class="hoy" data-s="${esc(s.sys)}"><b style="color:${s.ctrl?"#fff":"#ff8c00"}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</b>${CP(s.sys)} <span class="tag k-${k}${parp?" parp":""}">${esc(tag)}</span> <span class="sub">${txt}</span><div class="acc">${acc}</div></div>`;
