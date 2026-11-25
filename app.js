@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.22";
 const NOVEDADES=[
- ["v1.22","25/11/2026",["Pestaña Arquitectos: todos los sistemas de CDSN con su arquitecto; los que no tienen dato salen como heredados hasta que un comandante nos lo facilite","El arquitecto sale también en la ficha de cada sistema"]],
+ ["v1.22","25/11/2026",["Pestaña Arquitectos: todos los sistemas de CDSN con su arquitecto; los que no tienen dato salen como heredados hasta que un comandante nos lo facilite","Heredado * en el archivo = comprobado que es heredado de origen","El arquitecto sale también en la ficha de cada sistema"]],
  ["v1.21.2","25/11/2026",["Portanaves: enlace «dueño en Inara» junto a cada matrícula en la ficha del sistema"]],
  ["v1.21.1","25/11/2026",["Consejos corregidos: el truco del tick (zona el día que se gana, bonos el día que se cobran), cómo funciona la retirada y a quién da influencia cobrar recompensas","Consejos nuevos: misiones de masacre y asesinato, cuidado con matar naves de seguridad y una sección de transporte de pasajeros"]],
  ["v1.21","24/11/2026",["La Crónica con imágenes: cada noticia lleva su dibujo (guerra, elecciones, retirada, obras, vecindario…)","En las noticias importantes, imagen con datos reales: el marcador de los 7 días de la guerra, la influencia de la última semana o el alcance de una expansión vecina","Y debajo, qué hacer para ayudar (bonos de combate, misiones de CDSN, comercio…)"]],
@@ -40,6 +40,8 @@ const ARQ_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/arqu
 const ARQ_EDIT="https://github.com/ortemedder/cdsn-datos/edit/main/arquitectos.txt";
 let ARQ={};
 const arqDe=n=>{const a=ARQ[(n||"").toLowerCase()];return a&&!/^heredad/i.test(a)?a:""};
+const arqOk=n=>/^heredad\w*\s*\*/i.test(ARQ[(n||"").toLowerCase()]||"");   // "heredado *" = comprobado que es heredado de origen
+const arqTxt=n=>arqDe(n)?"<b style='color:#c9a36a'>"+esc(arqDe(n))+"</b>":arqOk(n)?"heredado <span style='color:#5adc78'>✓ comprobado</span>":"heredado <span class='sub'>(sin comprobar)</span>";
 const FIJA_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/noticia_fija.txt";   // noticia fija de La Crónica (se edita a mano en GitHub)
 let FIJA=[];   // [[titular, texto], ...]   // los sube el escucha de la Orange Pi
 const ES={Expansion:"Expansión",Retreat:"Retirada",War:"Guerra",CivilWar:"Guerra civil",Election:"Elecciones",Boom:"Auge",Bust:"Crisis",
@@ -347,7 +349,7 @@ function tocaEn(x,y){
 function fichaHTML(o){const s=o.s,v=s.inf-(s.segunda_inf||0);
   return`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b>${CP(s.sys)} ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
    ${o.niv?`<div style="margin:4px 0">${TAG(o.al)} <span class="sub">${esc(o.al[2])}</span></div>`:""}
-   <div class="sub" style="margin:4px 0">🏗 Arquitecto: ${arqDe(s.sys)?"<b style='color:#c9a36a'>"+esc(arqDe(s.sys))+"</b>":"heredado"}</div>
+   <div class="sub" style="margin:4px 0">🏗 Arquitecto: ${arqTxt(s.sys)}</div>
    <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>
    <div style="margin:6px 0 4px"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a> &nbsp; <a target="_blank" rel="noopener" style="color:#ff8c00" href="https://spansh.co.uk/search/${encodeURIComponent(s.sys)}">Spansh ↗</a> <span class="sub">(arquitecto, estaciones…)</span></div>`}
 function ficha(o){   // un toque: linea corta bajo el radar
@@ -986,15 +988,16 @@ function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
   const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).sort((a,b)=>a.sys.localeCompare(b.sys,"es"));
   const con=S.filter(s=>arqDe(s.sys)),q=ARQ_Q.toLowerCase();
   const F=S.filter(s=>!q||s.sys.toLowerCase().includes(q)||arqDe(s.sys).toLowerCase().includes(q));
-  const fila=s=>{const a=arqDe(s.sys);return`<tr><td>${esc(s.sys)}${CP(s.sys)}</td><td>${a?`<b style="color:#c9a36a">${esc(a)}</b>`:`<span class="sub">heredado</span>`}</td><td class="sub"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a></td></tr>`};
+  const fila=s=>{const a=arqDe(s.sys);return`<tr><td>${esc(s.sys)}${CP(s.sys)}</td><td>${arqTxt(s.sys)}</td><td class="sub"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a></td></tr>`};
   v.innerHTML=`<div class="cons"><h3>🏗 Arquitectos de los sistemas de CDSN</h3>
 <p>El <b>arquitecto</b> es el comandante que colonizó el sistema. <b>No se puede sacar de forma automática</b>: no llega por EDDN, Spansh no lo tiene e Inara no deja leerlo con programas. Por eso lo apunta <b>el almirante a mano</b>, con los datos que le facilitan los comandantes.</p>
 <p>Todos los sistemas salen como <b>heredados</b> hasta que alguien nos dé el dato. Muchos lo seguirán siendo siempre, porque ya eran de CDSN antes de la colonización. Cuando un comandante nos facilita el arquitecto de un sistema, ese sistema pasa de <i>heredado</i> al <b>nombre del CMDR</b>. Una vez puesto no cambia nunca.</p>
+<p><b>Heredado ✓ comprobado</b>: ya se ha mirado y el sistema es heredado de origen (nunca tendrá arquitecto). <b>Heredado (sin comprobar)</b>: aún no se sabe; puede tener arquitecto.</p>
 <p class="sub">¿Sabes quién es el arquitecto de un sistema? Lo ves en el mapa de la galaxia (vista de colonización) o en Inara. Pásaselo al almirante.</p>
-<p><b>${con.length}</b> con arquitecto · <b>${S.length-con.length}</b> heredados · ${S.length} sistemas</p>
+<p><b>${con.length}</b> con arquitecto · <b>${S.filter(s=>arqOk(s.sys)).length}</b> heredados comprobados · <b>${S.length-con.length-S.filter(s=>arqOk(s.sys)).length}</b> sin comprobar · ${S.length} sistemas</p>
 <div class="ctl" style="padding:0 0 8px"><input type="search" id="arqQ" placeholder="Buscar sistema o CMDR..." value="${esc(ARQ_Q)}"></div>
 <div class="tw" style="padding:0"><table><tr><th>Sistema</th><th>Arquitecto</th><th></th></tr>${F.map(fila).join("")||'<tr><td colspan=3 class="sub">Nada con ese nombre.</td></tr>'}</table></div>
-<p class="sub" style="margin-top:10px">La lista de sistemas se actualiza sola, y el escucha añade al final del archivo los sistemas nuevos como heredados, con la fecha. Los arquitectos están en <a target="_blank" rel="noopener" style="color:#ff8c00" href="${ARQ_EDIT}">arquitectos.txt</a> (cdsn-datos), una línea por sistema: <code>Sistema = CMDR</code>.</p></div>`;
+<p class="sub" style="margin-top:10px">La lista de sistemas se actualiza sola, y el escucha añade al final del archivo los sistemas nuevos como heredados, con la fecha. Los arquitectos están en <a target="_blank" rel="noopener" style="color:#ff8c00" href="${ARQ_EDIT}">arquitectos.txt</a> (cdsn-datos), una línea por sistema: <code>Sistema = CMDR</code>, <code>Sistema = heredado</code> o <code>Sistema = heredado *</code> (comprobado).</p></div>`;
   const i=document.getElementById("arqQ");i.oninput=()=>{ARQ_Q=i.value;const p=i.selectionStart;pintaArq();const j=document.getElementById("arqQ");j.focus();j.setSelectionRange(p,p)}}
 function pintaCon(){const v=document.getElementById("vCon");if(!v)return;const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null);
   const fila=(s,tag,k,txt,acc,parp)=>`<div class="hoy" data-s="${esc(s.sys)}"><b style="color:${s.ctrl?"#fff":"#ff8c00"}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</b>${CP(s.sys)} <span class="tag k-${k}${parp?" parp":""}">${esc(tag)}</span> <span class="sub">${txt}</span><div class="acc">${acc}</div></div>`;
