@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.22.1";
+const VERSION="v1.23";
 const NOVEDADES=[
+ ["v1.23","25/11/2026",["Pestaña Miembros: los 143 comandantes de CDSN con su foto del juego, buscador y los sistemas de los que son arquitectos","Arquitectos: 🛡 y foto en los arquitectos que son de CDSN, y cuántos sistemas han diseñado comandantes de CDSN","Acerca de: una vez al mes se repasan sistemas, comandantes y arquitectos"]],
  ["v1.22.1","25/11/2026",["Arquitectos: aviso de que hay sistemas con presencia de CDSN diseñados por comandantes de otros escuadrones","Nuevo estado «colonizado · arquitecto oculto» (en el archivo: colonizado (arquitecto oculto))"]],
  ["v1.22","25/11/2026",["Pestaña Arquitectos: todos los sistemas de CDSN con su arquitecto; los que no tienen dato salen como heredados hasta que un comandante nos lo facilite","Heredado * en el archivo = comprobado que es heredado de origen","El arquitecto sale también en la ficha de cada sistema"]],
  ["v1.21.2","25/11/2026",["Portanaves: enlace «dueño en Inara» junto a cada matrícula en la ficha del sistema"]],
@@ -41,9 +42,13 @@ const ARQ_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/arqu
 const ARQ_EDIT="https://github.com/ortemedder/cdsn-datos/edit/main/arquitectos.txt";
 let ARQ={};
 const arqDe=n=>{const a=ARQ[(n||"").toLowerCase()];return a&&!/^heredad/i.test(a)&&!/^coloniza/i.test(a)?a:""};
+let MIEM=new Map();   // miembros.txt (lista del juego): minusculas -> nombre
+const slugM=n=>(n||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"x";
+const esMiem=n=>MIEM.has((n||"").toLowerCase().trim());
+const AV=(n,px)=>`<img src="miembros/${slugM(n)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:${px}px;height:${px}px;border-radius:6px;vertical-align:middle;object-fit:cover">`;
 const arqOc=n=>/^coloniza/i.test(ARQ[(n||"").toLowerCase()]||"");   // colonizado, arquitecto oculto en Inara
 const arqOk=n=>/^heredad\w*\s*\*/i.test(ARQ[(n||"").toLowerCase()]||"");   // "heredado *" = comprobado que es heredado de origen
-const arqTxt=n=>arqOc(n)?"colonizado <span class='sub'>· arquitecto oculto</span>":arqDe(n)?"<b style='color:#c9a36a'>"+esc(arqDe(n))+"</b>":arqOk(n)?"heredado <span style='color:#5adc78'>✓ comprobado</span>":"heredado <span class='sub'>(sin comprobar)</span>";
+const arqTxt=n=>arqOc(n)?"colonizado <span class='sub'>· arquitecto oculto</span>":arqDe(n)?(esMiem(arqDe(n))?AV(arqDe(n),22)+" ":"")+"<b style='color:#c9a36a'>"+esc(arqDe(n))+"</b>"+(esMiem(arqDe(n))?" <span title='Miembro de CDSN'>🛡</span>":""):arqOk(n)?"heredado <span style='color:#5adc78'>✓ comprobado</span>":"heredado <span class='sub'>(sin comprobar)</span>";
 const FIJA_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/noticia_fija.txt";   // noticia fija de La Crónica (se edita a mano en GitHub)
 let FIJA=[];   // [[titular, texto], ...]   // los sube el escucha de la Orange Pi
 const ES={Expansion:"Expansión",Retreat:"Retirada",War:"Guerra",CivilWar:"Guerra civil",Election:"Elecciones",Boom:"Auge",Bust:"Crisis",
@@ -191,7 +196,7 @@ function pinta(){
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
-  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();if(!document.getElementById("vArq").hidden)pintaArq();
+  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();if(!document.getElementById("vArq").hidden)pintaArq();if(!document.getElementById("vMie").hidden)pintaMie();
 }
 function grafica(h){
   if(!h||h.length<2)return'<span class="sub">histórico: aprendiendo...</span>';
@@ -253,6 +258,9 @@ async function carga(){
     try{const t=await fetch(ARQ_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");const A={};
       for(const l of t.split("\n")){if(l.trim().startsWith("#"))continue;const i=l.indexOf("=");if(i<1)continue;const k=l.slice(0,i).trim(),v=l.slice(i+1).trim();if(k&&v)A[k.toLowerCase()]=v}
       ARQ=A}catch(x){}
+    try{const t=await fetch("miembros.txt?"+Date.now()).then(r=>r.ok?r.text():"");const M=new Map();
+      for(const l of t.split("\n")){const n=l.trim();if(n&&!n.startsWith("#"))M.set(n.toLowerCase(),n)}
+      if(M.size)MIEM=M}catch(x){}
     revisaFija();
     const e=D.eddn||null;
     const sub=D.t?hace(D.t):"—", viejo=D.t&&now()-D.t>3600;
@@ -400,7 +408,7 @@ const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
-const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro",con:"vCon",arq:"vArq"};
+const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro",con:"vCon",arq:"vArq",mie:"vMie"};
 // ---------- contador de visitas anonimo (GoatCounter, cdsngoatcountercom.goatcounter.com) ----------
 // Sin cookies ni scripts de fuera: una imagen de 1 pixel por pagina y por pestaña vista (una vez por pestaña y carga).
 const CONTADOR="https://cdsngoatcountercom.goatcounter.com/count",CONTADAS=new Set();
@@ -412,7 +420,7 @@ function vista(v){
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
-  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();if(v=="arq")pintaArq();
+  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();if(v=="arq")pintaArq();if(v=="mie")pintaMie();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
@@ -984,6 +992,18 @@ const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
 <li><b>Colonización</b>: si se coloniza expandiendo desde un sistema de CDSN, la primera estación es de CDSN. Reclamar cuesta 25 M y solo a menos de 15 al.</li>
 <li><b>En Abierto</b>: ante un ganker, sométete a la interdicción, 4 pips a escudos y 2 a motores, y salto de alta estela. Nunca te desconectes en combate.</li></ul>
 <div class="fnt">El BGS no tiene manuales oficiales: esto sale de las guías de <a href="https://newp.io/faction" target="_blank" rel="noopener">NEWP</a> y de pruebas de jugadores en el foro de Frontier e Inara.</div>`;
+// ---------- v1.23: pestaña Miembros (miembros.txt + fotos en miembros/) ----------
+let MIE_Q="";
+function pintaMie(){const v=document.getElementById("vMie");if(!v)return;
+  const L=[...MIEM.values()],q=MIE_Q.toLowerCase();
+  const S=D?Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null):[];
+  const dis=n=>S.filter(s=>arqDe(s.sys).toLowerCase()==n.toLowerCase()).map(s=>s.sys);
+  const F=L.filter(n=>!q||n.toLowerCase().includes(q));
+  v.innerHTML=`<div class="cons" style="max-width:1100px"><h3>🛡 Miembros de Caballeros de Sion</h3>
+<p><b>${L.length}</b> comandantes en el escuadrón (lista del juego, se repasa <b>una vez al mes</b>). 🏗 = arquitecto de algún sistema donde está CDSN.</p>
+<div class="ctl" style="padding:0 0 8px"><input type="search" id="mieQ" placeholder="Buscar comandante..." value="${esc(MIE_Q)}"></div>
+<div class="mieG">${F.map(n=>{const d=dis(n);return`<div class="mieC" title="${esc(d.join(", "))}">${AV(n,48)}<div><b>${esc(n)}</b>${d.length?`<div class="sub">🏗 ${d.length} sistema${d.length>1?"s":""}</div>`:""}</div></div>`}).join("")||'<p class="sub">Nadie con ese nombre.</p>'}</div></div>`;
+  const i=document.getElementById("mieQ");i.oninput=()=>{MIE_Q=i.value;const p=i.selectionStart;pintaMie();const j=document.getElementById("mieQ");j.focus();j.setSelectionRange(p,p)}}
 // ---------- v1.22: pestaña Arquitectos (arquitectos.txt de cdsn-datos, a mano) ----------
 let ARQ_Q="";
 function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
@@ -996,8 +1016,8 @@ function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
 <p>Todos los sistemas salen como <b>heredados</b> hasta que alguien nos dé el dato. Muchos lo seguirán siendo siempre, porque ya eran de CDSN antes de la colonización. Cuando un comandante nos facilita el arquitecto de un sistema, ese sistema pasa de <i>heredado</i> al <b>nombre del CMDR</b>. Una vez puesto no cambia nunca.</p>
 <p>Lógicamente, hay sistemas donde CDSN tiene presencia que <b>no han sido diseñados por comandantes de CDSN</b>: el arquitecto puede ser de cualquier escuadrón.</p>
 <p><b>Heredado ✓ comprobado</b>: ya se ha mirado y el sistema es heredado de origen (nunca tendrá arquitecto). <b>Heredado (sin comprobar)</b>: aún no se sabe; puede tener arquitecto. <b>Colonizado · arquitecto oculto</b>: fue colonizado, pero Inara no muestra quién lo hizo.</p>
-<p class="sub">¿Sabes quién es el arquitecto de un sistema? Lo ves en el mapa de la galaxia (vista de colonización) o en Inara. Pásaselo al almirante.</p>
-<p><b>${con.length}</b> con arquitecto · <b>${S.filter(s=>arqOc(s.sys)).length}</b> colonizados con arquitecto oculto · <b>${S.filter(s=>arqOk(s.sys)).length}</b> heredados comprobados · <b>${S.length-con.length-S.filter(s=>arqOc(s.sys)).length-S.filter(s=>arqOk(s.sys)).length}</b> sin comprobar · ${S.length} sistemas</p>
+<p class="sub">📅 Los arquitectos se repasan <b>una vez al mes</b>. ¿Sabes quién es el arquitecto de un sistema? Lo ves en el mapa de la galaxia (vista de colonización) o en Inara. Pásaselo al almirante.</p>
+<p><b>${con.length}</b> con arquitecto (<b>${con.filter(s=>esMiem(arqDe(s.sys))).length}</b> diseñados por comandantes de CDSN 🛡) · <b>${S.filter(s=>arqOc(s.sys)).length}</b> colonizados con arquitecto oculto · <b>${S.filter(s=>arqOk(s.sys)).length}</b> heredados comprobados · <b>${S.length-con.length-S.filter(s=>arqOc(s.sys)).length-S.filter(s=>arqOk(s.sys)).length}</b> sin comprobar · ${S.length} sistemas</p>
 <div class="ctl" style="padding:0 0 8px"><input type="search" id="arqQ" placeholder="Buscar sistema o CMDR..." value="${esc(ARQ_Q)}"></div>
 <div class="tw" style="padding:0"><table><tr><th>Sistema</th><th>Arquitecto</th><th></th></tr>${F.map(fila).join("")||'<tr><td colspan=3 class="sub">Nada con ese nombre.</td></tr>'}</table></div>
 <p class="sub" style="margin-top:10px">La lista de sistemas se actualiza sola, y el escucha añade al final del archivo los sistemas nuevos como heredados, con la fecha. Los arquitectos están en <a target="_blank" rel="noopener" style="color:#ff8c00" href="${ARQ_EDIT}">arquitectos.txt</a> (cdsn-datos), una línea por sistema: <code>Sistema = CMDR</code>, <code>Sistema = heredado</code> o <code>Sistema = heredado *</code> (comprobado).</p></div>`;
