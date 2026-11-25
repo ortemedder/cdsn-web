@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.24";
+const VERSION="v1.24.1";
 const NOVEDADES=[
+ ["v1.24.1","25/11/2026",["El arquitecto (con foto si es de CDSN) sale también al abrir un sistema en la Tabla"]],
  ["v1.24","25/11/2026",["Ficha del sistema: si el arquitecto es de CDSN sale una tarjeta con su foto y su nombre; al tocarla te lleva a él en Miembros"]],
  ["v1.23","25/11/2026",["Pestaña Miembros: los 143 comandantes de CDSN con su foto del juego, buscador y los sistemas de los que son arquitectos","Arquitectos: 🛡 y foto en los arquitectos que son de CDSN, y cuántos sistemas han diseñado comandantes de CDSN","Acerca de: una vez al mes se repasan sistemas, comandantes y arquitectos"]],
  ["v1.22.1","25/11/2026",["Arquitectos: aviso de que hay sistemas con presencia de CDSN diseñados por comandantes de otros escuadrones","Nuevo estado «colonizado · arquitecto oculto» (en el archivo: colonizado (arquitecto oculto))"]],
@@ -194,7 +195,7 @@ function pinta(){
     <td class="num ${f.vent<5?"dn":f.vent<15?"":"up"}">${c1(f.vent)}</td><td class="sub">${esc(f.est)||"—"}</td>
     <td>${f.niv?`${TAG(f.a)} <span class="sub">${esc(f.a[2])}</span>`:""}</td>
     <td class="num az">${f.traf||"—"}</td><td class="num sub">${pob(f.pob||null)}</td><td class="sub">${esc(f.pp)||"—"}</td><td class="num sub">${hace(f.t)}</td><td class="num pk">${f.tick?"~"+hora(f.tick):"—"}</td></tr>`;
-    if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
+    if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11"><div style="max-width:520px">${arqCard(s.sys)}</div>${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
   if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();if(!document.getElementById("vArq").hidden)pintaArq();if(!document.getElementById("vMie").hidden)pintaMie();
