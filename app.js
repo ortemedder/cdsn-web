@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.21.2";
+const VERSION="v1.22";
 const NOVEDADES=[
+ ["v1.22","25/11/2026",["Pestaña Arquitectos: todos los sistemas de CDSN con su arquitecto; los que no tienen dato salen como heredados hasta que un comandante nos lo facilite","El arquitecto sale también en la ficha de cada sistema"]],
  ["v1.21.2","25/11/2026",["Portanaves: enlace «dueño en Inara» junto a cada matrícula en la ficha del sistema"]],
  ["v1.21.1","25/11/2026",["Consejos corregidos: el truco del tick (zona el día que se gana, bonos el día que se cobran), cómo funciona la retirada y a quién da influencia cobrar recompensas","Consejos nuevos: misiones de masacre y asesinato, cuidado con matar naves de seguridad y una sección de transporte de pasajeros"]],
  ["v1.21","24/11/2026",["La Crónica con imágenes: cada noticia lleva su dibujo (guerra, elecciones, retirada, obras, vecindario…)","En las noticias importantes, imagen con datos reales: el marcador de los 7 días de la guerra, la influencia de la última semana o el alcance de una expansión vecina","Y debajo, qué hacer para ayudar (bonos de combate, misiones de CDSN, comercio…)"]],
@@ -35,6 +36,10 @@ function novedades(){const n=document.getElementById("nov");if(!n.hidden){n.hidd
   n.innerHTML="<b>Novedades</b>"+NOVEDADES.map(([v,f,c])=>`<div style="margin-top:8px"><b style="color:#ff8c00">${v}</b> <span class="sub">${f}</span><ul style="margin:2px 0 0 18px;padding:0">${c.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");n.hidden=false;n.scrollIntoView({behavior:"smooth"})}
 const FAC="Caballeros de Sion";
 const DATOS="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/faccion.json";
+const ARQ_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/arquitectos.txt";   // arquitectos: "Sistema = CMDR", lo edita el almirante a mano
+const ARQ_EDIT="https://github.com/ortemedder/cdsn-datos/edit/main/arquitectos.txt";
+let ARQ={};
+const arqDe=n=>{const a=ARQ[(n||"").toLowerCase()];return a&&!/^heredad/i.test(a)?a:""};
 const FIJA_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/noticia_fija.txt";   // noticia fija de La Crónica (se edita a mano en GitHub)
 let FIJA=[];   // [[titular, texto], ...]   // los sube el escucha de la Orange Pi
 const ES={Expansion:"Expansión",Retreat:"Retirada",War:"Guerra",CivilWar:"Guerra civil",Election:"Elecciones",Boom:"Auge",Bust:"Crisis",
@@ -182,7 +187,7 @@ function pinta(){
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11">${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
-  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();
+  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();if(!document.getElementById("vArq").hidden)pintaArq();
 }
 function grafica(h){
   if(!h||h.length<2)return'<span class="sub">histórico: aprendiendo...</span>';
@@ -241,6 +246,9 @@ async function carga(){
     try{const t=await fetch(FIJA_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");   // las lineas con # no salen; --- separa noticias
       FIJA=t.split(/^---\s*$/m).map(b=>b.split("\n").filter(l=>!l.trim().startsWith("#")).join("\n").trim()).filter(Boolean)
         .map(b=>{const[a,...r]=b.split("\n");return[a.trim(),r.join("\n").trim()]})}catch(x){}
+    try{const t=await fetch(ARQ_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");const A={};
+      for(const l of t.split("\n")){if(l.trim().startsWith("#"))continue;const i=l.indexOf("=");if(i<1)continue;const k=l.slice(0,i).trim(),v=l.slice(i+1).trim();if(k&&v)A[k.toLowerCase()]=v}
+      ARQ=A}catch(x){}
     revisaFija();
     const e=D.eddn||null;
     const sub=D.t?hace(D.t):"—", viejo=D.t&&now()-D.t>3600;
@@ -339,6 +347,7 @@ function tocaEn(x,y){
 function fichaHTML(o){const s=o.s,v=s.inf-(s.segunda_inf||0);
   return`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b>${CP(s.sys)} ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
    ${o.niv?`<div style="margin:4px 0">${TAG(o.al)} <span class="sub">${esc(o.al[2])}</span></div>`:""}
+   <div class="sub" style="margin:4px 0">🏗 Arquitecto: ${arqDe(s.sys)?"<b style='color:#c9a36a'>"+esc(arqDe(s.sys))+"</b>":"heredado"}</div>
    <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>
    <div style="margin:6px 0 4px"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a> &nbsp; <a target="_blank" rel="noopener" style="color:#ff8c00" href="https://spansh.co.uk/search/${encodeURIComponent(s.sys)}">Spansh ↗</a> <span class="sub">(arquitecto, estaciones…)</span></div>`}
 function ficha(o){   // un toque: linea corta bajo el radar
@@ -387,7 +396,7 @@ const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
-const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro",con:"vCon"};
+const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro",con:"vCon",arq:"vArq"};
 // ---------- contador de visitas anonimo (GoatCounter, cdsngoatcountercom.goatcounter.com) ----------
 // Sin cookies ni scripts de fuera: una imagen de 1 pixel por pagina y por pestaña vista (una vez por pestaña y carga).
 const CONTADOR="https://cdsngoatcountercom.goatcounter.com/count",CONTADAS=new Set();
@@ -399,7 +408,7 @@ function vista(v){
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
-  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();
+  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();if(v=="arq")pintaArq();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
@@ -971,6 +980,22 @@ const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
 <li><b>Colonización</b>: si se coloniza expandiendo desde un sistema de CDSN, la primera estación es de CDSN. Reclamar cuesta 25 M y solo a menos de 15 al.</li>
 <li><b>En Abierto</b>: ante un ganker, sométete a la interdicción, 4 pips a escudos y 2 a motores, y salto de alta estela. Nunca te desconectes en combate.</li></ul>
 <div class="fnt">El BGS no tiene manuales oficiales: esto sale de las guías de <a href="https://newp.io/faction" target="_blank" rel="noopener">NEWP</a> y de pruebas de jugadores en el foro de Frontier e Inara.</div>`;
+// ---------- v1.22: pestaña Arquitectos (arquitectos.txt de cdsn-datos, a mano) ----------
+let ARQ_Q="";
+function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
+  const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).sort((a,b)=>a.sys.localeCompare(b.sys,"es"));
+  const con=S.filter(s=>arqDe(s.sys)),q=ARQ_Q.toLowerCase();
+  const F=S.filter(s=>!q||s.sys.toLowerCase().includes(q)||arqDe(s.sys).toLowerCase().includes(q));
+  const fila=s=>{const a=arqDe(s.sys);return`<tr><td>${esc(s.sys)}${CP(s.sys)}</td><td>${a?`<b style="color:#c9a36a">${esc(a)}</b>`:`<span class="sub">heredado</span>`}</td><td class="sub"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a></td></tr>`};
+  v.innerHTML=`<div class="cons"><h3>🏗 Arquitectos de los sistemas de CDSN</h3>
+<p>El <b>arquitecto</b> es el comandante que colonizó el sistema. <b>No se puede sacar de forma automática</b>: no llega por EDDN, Spansh no lo tiene e Inara no deja leerlo con programas. Por eso lo apunta <b>el almirante a mano</b>, con los datos que le facilitan los comandantes.</p>
+<p>Todos los sistemas salen como <b>heredados</b> hasta que alguien nos dé el dato. Muchos lo seguirán siendo siempre, porque ya eran de CDSN antes de la colonización. Cuando un comandante nos facilita el arquitecto de un sistema, ese sistema pasa de <i>heredado</i> al <b>nombre del CMDR</b>. Una vez puesto no cambia nunca.</p>
+<p class="sub">¿Sabes quién es el arquitecto de un sistema? Lo ves en el mapa de la galaxia (vista de colonización) o en Inara. Pásaselo al almirante.</p>
+<p><b>${con.length}</b> con arquitecto · <b>${S.length-con.length}</b> heredados · ${S.length} sistemas</p>
+<div class="ctl" style="padding:0 0 8px"><input type="search" id="arqQ" placeholder="Buscar sistema o CMDR..." value="${esc(ARQ_Q)}"></div>
+<div class="tw" style="padding:0"><table><tr><th>Sistema</th><th>Arquitecto</th><th></th></tr>${F.map(fila).join("")||'<tr><td colspan=3 class="sub">Nada con ese nombre.</td></tr>'}</table></div>
+<p class="sub" style="margin-top:10px">La lista de sistemas se actualiza sola, y el escucha añade al final del archivo los sistemas nuevos como heredados, con la fecha. Los arquitectos están en <a target="_blank" rel="noopener" style="color:#ff8c00" href="${ARQ_EDIT}">arquitectos.txt</a> (cdsn-datos), una línea por sistema: <code>Sistema = CMDR</code>.</p></div>`;
+  const i=document.getElementById("arqQ");i.oninput=()=>{ARQ_Q=i.value;const p=i.selectionStart;pintaArq();const j=document.getElementById("arqQ");j.focus();j.setSelectionRange(p,p)}}
 function pintaCon(){const v=document.getElementById("vCon");if(!v)return;const S=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null);
   const fila=(s,tag,k,txt,acc,parp)=>`<div class="hoy" data-s="${esc(s.sys)}"><b style="color:${s.ctrl?"#fff":"#ff8c00"}">${FAV.has(s.sys)?"⭐ ":""}${esc(s.sys)}</b>${CP(s.sys)} <span class="tag k-${k}${parp?" parp":""}">${esc(tag)}</span> <span class="sub">${txt}</span><div class="acc">${acc}</div></div>`;
   let ya="";
