@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.22";
+const VERSION="v1.22.1";
 const NOVEDADES=[
+ ["v1.22.1","25/11/2026",["Arquitectos: aviso de que hay sistemas con presencia de CDSN diseñados por comandantes de otros escuadrones","Nuevo estado «colonizado · arquitecto oculto» (en el archivo: colonizado (arquitecto oculto))"]],
  ["v1.22","25/11/2026",["Pestaña Arquitectos: todos los sistemas de CDSN con su arquitecto; los que no tienen dato salen como heredados hasta que un comandante nos lo facilite","Heredado * en el archivo = comprobado que es heredado de origen","El arquitecto sale también en la ficha de cada sistema"]],
  ["v1.21.2","25/11/2026",["Portanaves: enlace «dueño en Inara» junto a cada matrícula en la ficha del sistema"]],
  ["v1.21.1","25/11/2026",["Consejos corregidos: el truco del tick (zona el día que se gana, bonos el día que se cobran), cómo funciona la retirada y a quién da influencia cobrar recompensas","Consejos nuevos: misiones de masacre y asesinato, cuidado con matar naves de seguridad y una sección de transporte de pasajeros"]],
@@ -39,9 +40,10 @@ const DATOS="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/faccio
 const ARQ_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/arquitectos.txt";   // arquitectos: "Sistema = CMDR", lo edita el almirante a mano
 const ARQ_EDIT="https://github.com/ortemedder/cdsn-datos/edit/main/arquitectos.txt";
 let ARQ={};
-const arqDe=n=>{const a=ARQ[(n||"").toLowerCase()];return a&&!/^heredad/i.test(a)?a:""};
+const arqDe=n=>{const a=ARQ[(n||"").toLowerCase()];return a&&!/^heredad/i.test(a)&&!/^coloniza/i.test(a)?a:""};
+const arqOc=n=>/^coloniza/i.test(ARQ[(n||"").toLowerCase()]||"");   // colonizado, arquitecto oculto en Inara
 const arqOk=n=>/^heredad\w*\s*\*/i.test(ARQ[(n||"").toLowerCase()]||"");   // "heredado *" = comprobado que es heredado de origen
-const arqTxt=n=>arqDe(n)?"<b style='color:#c9a36a'>"+esc(arqDe(n))+"</b>":arqOk(n)?"heredado <span style='color:#5adc78'>✓ comprobado</span>":"heredado <span class='sub'>(sin comprobar)</span>";
+const arqTxt=n=>arqOc(n)?"colonizado <span class='sub'>· arquitecto oculto</span>":arqDe(n)?"<b style='color:#c9a36a'>"+esc(arqDe(n))+"</b>":arqOk(n)?"heredado <span style='color:#5adc78'>✓ comprobado</span>":"heredado <span class='sub'>(sin comprobar)</span>";
 const FIJA_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/noticia_fija.txt";   // noticia fija de La Crónica (se edita a mano en GitHub)
 let FIJA=[];   // [[titular, texto], ...]   // los sube el escucha de la Orange Pi
 const ES={Expansion:"Expansión",Retreat:"Retirada",War:"Guerra",CivilWar:"Guerra civil",Election:"Elecciones",Boom:"Auge",Bust:"Crisis",
@@ -992,9 +994,10 @@ function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
   v.innerHTML=`<div class="cons"><h3>🏗 Arquitectos de los sistemas de CDSN</h3>
 <p>El <b>arquitecto</b> es el comandante que colonizó el sistema. <b>No se puede sacar de forma automática</b>: no llega por EDDN, Spansh no lo tiene e Inara no deja leerlo con programas. Por eso lo apunta <b>el almirante a mano</b>, con los datos que le facilitan los comandantes.</p>
 <p>Todos los sistemas salen como <b>heredados</b> hasta que alguien nos dé el dato. Muchos lo seguirán siendo siempre, porque ya eran de CDSN antes de la colonización. Cuando un comandante nos facilita el arquitecto de un sistema, ese sistema pasa de <i>heredado</i> al <b>nombre del CMDR</b>. Una vez puesto no cambia nunca.</p>
-<p><b>Heredado ✓ comprobado</b>: ya se ha mirado y el sistema es heredado de origen (nunca tendrá arquitecto). <b>Heredado (sin comprobar)</b>: aún no se sabe; puede tener arquitecto.</p>
+<p>Lógicamente, hay sistemas donde CDSN tiene presencia que <b>no han sido diseñados por comandantes de CDSN</b>: el arquitecto puede ser de cualquier escuadrón.</p>
+<p><b>Heredado ✓ comprobado</b>: ya se ha mirado y el sistema es heredado de origen (nunca tendrá arquitecto). <b>Heredado (sin comprobar)</b>: aún no se sabe; puede tener arquitecto. <b>Colonizado · arquitecto oculto</b>: fue colonizado, pero Inara no muestra quién lo hizo.</p>
 <p class="sub">¿Sabes quién es el arquitecto de un sistema? Lo ves en el mapa de la galaxia (vista de colonización) o en Inara. Pásaselo al almirante.</p>
-<p><b>${con.length}</b> con arquitecto · <b>${S.filter(s=>arqOk(s.sys)).length}</b> heredados comprobados · <b>${S.length-con.length-S.filter(s=>arqOk(s.sys)).length}</b> sin comprobar · ${S.length} sistemas</p>
+<p><b>${con.length}</b> con arquitecto · <b>${S.filter(s=>arqOc(s.sys)).length}</b> colonizados con arquitecto oculto · <b>${S.filter(s=>arqOk(s.sys)).length}</b> heredados comprobados · <b>${S.length-con.length-S.filter(s=>arqOc(s.sys)).length-S.filter(s=>arqOk(s.sys)).length}</b> sin comprobar · ${S.length} sistemas</p>
 <div class="ctl" style="padding:0 0 8px"><input type="search" id="arqQ" placeholder="Buscar sistema o CMDR..." value="${esc(ARQ_Q)}"></div>
 <div class="tw" style="padding:0"><table><tr><th>Sistema</th><th>Arquitecto</th><th></th></tr>${F.map(fila).join("")||'<tr><td colspan=3 class="sub">Nada con ese nombre.</td></tr>'}</table></div>
 <p class="sub" style="margin-top:10px">La lista de sistemas se actualiza sola, y el escucha añade al final del archivo los sistemas nuevos como heredados, con la fecha. Los arquitectos están en <a target="_blank" rel="noopener" style="color:#ff8c00" href="${ARQ_EDIT}">arquitectos.txt</a> (cdsn-datos), una línea por sistema: <code>Sistema = CMDR</code>, <code>Sistema = heredado</code> o <code>Sistema = heredado *</code> (comprobado).</p></div>`;
