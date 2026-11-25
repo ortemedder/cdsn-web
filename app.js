@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.23";
 const NOVEDADES=[
- ["v1.23","25/11/2026",["Pestaña Miembros: los 143 comandantes de CDSN con su foto del juego, buscador y los sistemas de los que son arquitectos","Arquitectos: 🛡 y foto en los arquitectos que son de CDSN, y cuántos sistemas han diseñado comandantes de CDSN"]],
+ ["v1.23","25/11/2026",["Pestaña Miembros: los 143 comandantes de CDSN con su foto del juego, buscador y los sistemas de los que son arquitectos","Arquitectos: 🛡 y foto en los arquitectos que son de CDSN, y cuántos sistemas han diseñado comandantes de CDSN","Acerca de: una vez al mes se repasan sistemas, comandantes y arquitectos"]],
  ["v1.22.1","25/11/2026",["Arquitectos: aviso de que hay sistemas con presencia de CDSN diseñados por comandantes de otros escuadrones","Nuevo estado «colonizado · arquitecto oculto» (en el archivo: colonizado (arquitecto oculto))"]],
  ["v1.22","25/11/2026",["Pestaña Arquitectos: todos los sistemas de CDSN con su arquitecto; los que no tienen dato salen como heredados hasta que un comandante nos lo facilite","Heredado * en el archivo = comprobado que es heredado de origen","El arquitecto sale también en la ficha de cada sistema"]],
  ["v1.21.2","25/11/2026",["Portanaves: enlace «dueño en Inara» junto a cada matrícula en la ficha del sistema"]],
@@ -1000,7 +1000,7 @@ function pintaMie(){const v=document.getElementById("vMie");if(!v)return;
   const dis=n=>S.filter(s=>arqDe(s.sys).toLowerCase()==n.toLowerCase()).map(s=>s.sys);
   const F=L.filter(n=>!q||n.toLowerCase().includes(q));
   v.innerHTML=`<div class="cons" style="max-width:1100px"><h3>🛡 Miembros de Caballeros de Sion</h3>
-<p><b>${L.length}</b> comandantes en el escuadrón (lista del juego). 🏗 = arquitecto de algún sistema donde está CDSN.</p>
+<p><b>${L.length}</b> comandantes en el escuadrón (lista del juego, se repasa <b>una vez al mes</b>). 🏗 = arquitecto de algún sistema donde está CDSN.</p>
 <div class="ctl" style="padding:0 0 8px"><input type="search" id="mieQ" placeholder="Buscar comandante..." value="${esc(MIE_Q)}"></div>
 <div class="mieG">${F.map(n=>{const d=dis(n);return`<div class="mieC" title="${esc(d.join(", "))}">${AV(n,48)}<div><b>${esc(n)}</b>${d.length?`<div class="sub">🏗 ${d.length} sistema${d.length>1?"s":""}</div>`:""}</div></div>`}).join("")||'<p class="sub">Nadie con ese nombre.</p>'}</div></div>`;
   const i=document.getElementById("mieQ");i.oninput=()=>{MIE_Q=i.value;const p=i.selectionStart;pintaMie();const j=document.getElementById("mieQ");j.focus();j.setSelectionRange(p,p)}}
@@ -1016,7 +1016,7 @@ function pintaArq(){const v=document.getElementById("vArq");if(!v||!D)return;
 <p>Todos los sistemas salen como <b>heredados</b> hasta que alguien nos dé el dato. Muchos lo seguirán siendo siempre, porque ya eran de CDSN antes de la colonización. Cuando un comandante nos facilita el arquitecto de un sistema, ese sistema pasa de <i>heredado</i> al <b>nombre del CMDR</b>. Una vez puesto no cambia nunca.</p>
 <p>Lógicamente, hay sistemas donde CDSN tiene presencia que <b>no han sido diseñados por comandantes de CDSN</b>: el arquitecto puede ser de cualquier escuadrón.</p>
 <p><b>Heredado ✓ comprobado</b>: ya se ha mirado y el sistema es heredado de origen (nunca tendrá arquitecto). <b>Heredado (sin comprobar)</b>: aún no se sabe; puede tener arquitecto. <b>Colonizado · arquitecto oculto</b>: fue colonizado, pero Inara no muestra quién lo hizo.</p>
-<p class="sub">¿Sabes quién es el arquitecto de un sistema? Lo ves en el mapa de la galaxia (vista de colonización) o en Inara. Pásaselo al almirante.</p>
+<p class="sub">📅 Los arquitectos se repasan <b>una vez al mes</b>. ¿Sabes quién es el arquitecto de un sistema? Lo ves en el mapa de la galaxia (vista de colonización) o en Inara. Pásaselo al almirante.</p>
 <p><b>${con.length}</b> con arquitecto (<b>${con.filter(s=>esMiem(arqDe(s.sys))).length}</b> diseñados por comandantes de CDSN 🛡) · <b>${S.filter(s=>arqOc(s.sys)).length}</b> colonizados con arquitecto oculto · <b>${S.filter(s=>arqOk(s.sys)).length}</b> heredados comprobados · <b>${S.length-con.length-S.filter(s=>arqOc(s.sys)).length-S.filter(s=>arqOk(s.sys)).length}</b> sin comprobar · ${S.length} sistemas</p>
 <div class="ctl" style="padding:0 0 8px"><input type="search" id="arqQ" placeholder="Buscar sistema o CMDR..." value="${esc(ARQ_Q)}"></div>
 <div class="tw" style="padding:0"><table><tr><th>Sistema</th><th>Arquitecto</th><th></th></tr>${F.map(fila).join("")||'<tr><td colspan=3 class="sub">Nada con ese nombre.</td></tr>'}</table></div>
