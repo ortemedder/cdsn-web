@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.21.1";
+const VERSION="v1.21.2";
 const NOVEDADES=[
+ ["v1.21.2","25/11/2026",["Portanaves: enlace «dueño en Inara» junto a cada matrícula en la ficha del sistema"]],
  ["v1.21.1","25/11/2026",["Consejos corregidos: el truco del tick (zona el día que se gana, bonos el día que se cobran), cómo funciona la retirada y a quién da influencia cobrar recompensas","Consejos nuevos: misiones de masacre y asesinato, cuidado con matar naves de seguridad y una sección de transporte de pasajeros"]],
  ["v1.21","24/11/2026",["La Crónica con imágenes: cada noticia lleva su dibujo (guerra, elecciones, retirada, obras, vecindario…)","En las noticias importantes, imagen con datos reales: el marcador de los 7 días de la guerra, la influencia de la última semana o el alcance de una expansión vecina","Y debajo, qué hacer para ayudar (bonos de combate, misiones de CDSN, comercio…)"]],
  ["v1.20","24/11/2026",["La Crónica más limpia: lo nuestro primero. Las expansiones de otras facciones van a la nueva sección 🔭 Vecindario (ya no llenan «Todas» ni la portada), y con el escucha v11.8 salen una sola vez por facción, con aviso cuando terminan y cuando una facción llega a un sistema nuestro","Resumen del día nuevo y corto: controlados, los que más suben y bajan, conflictos, ventajas justas, riesgo de retirada, cerca de expandirnos y vecindario. Toca «ver resumen» para leerlo entero"]],
@@ -212,7 +213,7 @@ function detalle(s){
   const pw=pp.pot||(pp.pots||[]).length?`potencia: <b>${esc(pp.pot||"ninguna")}</b>${pp.est?" ("+esc(PPE[pp.est]||pp.est)+")":""}<br>
     progreso: ${pct(pp.prog)} · refuerzo: ${pp.ref??"—"} · socavamiento: ${pp.soc??"—"}${(pp.pots||[]).length?"<br><span class=sub>presentes: "+pp.pots.map(esc).join(", ")+"</span>":""}`:"sin Powerplay";
   const zc=(s.zc||[]).map(z=>`${esc(ZC[z.i]||z.i)} <span class=sub>(${hace(z.t)})</span>`).join(" · ")||"no vistas en 24 h";
-  const pn=Object.entries(s.pn||{}).map(([c,v])=>`<b>${esc(c)}</b> ${esc(v.n||"")} <span class=sub>(${hace(v.t)})</span>`).join("<br>")||"no vistos en 7 días";
+  const pn=Object.entries(s.pn||{}).map(([c,v])=>`<b>${esc(c)}</b> ${esc(v.n||"")} <span class=sub>(${hace(v.t)})</span> <a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/station/?search=${encodeURIComponent(c)}">dueño en Inara ↗</a>`).join("<br>")+(Object.keys(s.pn||{}).length?`<br><span class=sub>El dueño no llega por EDDN; Inara lo muestra si el dueño usa Inara o EDMC.</span>`:"")||"no vistos en 7 días";
   const ay=s.prev!=null?`${c1(s.prev)} % → ${c1(s.inf)} % (${(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)}) · cambio visto hace ${hace(s.t)}${s.prev_t?" · dato anterior hace "+hace(s.prev_t):""}`:"—";
   const B=(t,c)=>`<h3 style="margin-top:10px">${t}</h3>${c}`;
   const ob=obras(s),obS=new Set(ob.map(o=>o.sitio));
