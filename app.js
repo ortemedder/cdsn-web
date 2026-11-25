@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.23";
+const VERSION="v1.24";
 const NOVEDADES=[
+ ["v1.24","25/11/2026",["Ficha del sistema: si el arquitecto es de CDSN sale una tarjeta con su foto y su nombre; al tocarla te lleva a él en Miembros"]],
  ["v1.23","25/11/2026",["Pestaña Miembros: los 143 comandantes de CDSN con su foto del juego, buscador y los sistemas de los que son arquitectos","Arquitectos: 🛡 y foto en los arquitectos que son de CDSN, y cuántos sistemas han diseñado comandantes de CDSN","Acerca de: una vez al mes se repasan sistemas, comandantes y arquitectos"]],
  ["v1.22.1","25/11/2026",["Arquitectos: aviso de que hay sistemas con presencia de CDSN diseñados por comandantes de otros escuadrones","Nuevo estado «colonizado · arquitecto oculto» (en el archivo: colonizado (arquitecto oculto))"]],
  ["v1.22","25/11/2026",["Pestaña Arquitectos: todos los sistemas de CDSN con su arquitecto; los que no tienen dato salen como heredados hasta que un comandante nos lo facilite","Heredado * en el archivo = comprobado que es heredado de origen","El arquitecto sale también en la ficha de cada sistema"]],
@@ -359,7 +360,7 @@ function tocaEn(x,y){
 function fichaHTML(o){const s=o.s,v=s.inf-(s.segunda_inf||0);
   return`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b>${CP(s.sys)} ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
    ${o.niv?`<div style="margin:4px 0">${TAG(o.al)} <span class="sub">${esc(o.al[2])}</span></div>`:""}
-   <div class="sub" style="margin:4px 0">🏗 Arquitecto: ${arqTxt(s.sys)}</div>
+   ${arqCard(s.sys)}
    <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>
    <div style="margin:6px 0 4px"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a> &nbsp; <a target="_blank" rel="noopener" style="color:#ff8c00" href="https://spansh.co.uk/search/${encodeURIComponent(s.sys)}">Spansh ↗</a> <span class="sub">(arquitecto, estaciones…)</span></div>`}
 function ficha(o){   // un toque: linea corta bajo el radar
@@ -994,6 +995,13 @@ const CONS_TXT=`<h3>Subir la influencia de CDSN</h3><ul>
 <div class="fnt">El BGS no tiene manuales oficiales: esto sale de las guías de <a href="https://newp.io/faction" target="_blank" rel="noopener">NEWP</a> y de pruebas de jugadores en el foro de Frontier e Inara.</div>`;
 // ---------- v1.23: pestaña Miembros (miembros.txt + fotos en miembros/) ----------
 let MIE_Q="";
+// v1.24: tarjeta del arquitecto en la ficha (grande si es de CDSN; al tocarla abre Miembros)
+function arqCard(n){const a=arqDe(n);
+  if(a&&esMiem(a))return`<div data-mie="${esc(MIEM.get(a.toLowerCase().trim()))}" style="display:flex;gap:10px;align-items:center;margin:6px 0;padding:6px 8px;border:1px solid #c9a36a;border-radius:8px;background:rgba(201,163,106,.08);cursor:pointer">${AV(a,56)}<div>🏗 <b>Sistema diseñado por CMDR ${esc(a)}</b><div class="sub">🛡 miembro de Caballeros de Sion · toca para verlo</div></div></div>`;
+  return`<div class="sub" style="margin:4px 0">🏗 Arquitecto: ${arqTxt(n)}</div>`}
+document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-mie]");if(!t)return;
+  MIE_Q=t.dataset.mie;const f=document.getElementById("rfull");if(f&&!f.hidden){f.hidden=true;document.body.style.overflow=""}
+  vista("mie");window.scrollTo(0,0)});
 function pintaMie(){const v=document.getElementById("vMie");if(!v)return;
   const L=[...MIEM.values()],q=MIE_Q.toLowerCase();
   const S=D?Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null):[];
