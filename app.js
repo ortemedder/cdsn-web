@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.24.3";
+const VERSION="v1.25";
 const NOVEDADES=[
+ ["v1.25","26/11/2026",["Historial de 60 días (escucha v12.5): en Gráficos › Influencia, CDSN contra las otras facciones del sistema","Zonas de conflicto por día y portanaves de los últimos 60 días, en Gráficos y en la ficha de cada sistema"]],
  ["v1.24.3","26/11/2026",["Arreglado: salía ESTACIÓN DAÑADA por una obra en construcción (o ya terminada). Ahora solo avisa de daños, ataques, reparaciones o abandono de verdad"]],
  ["v1.24.2","26/11/2026",["El próximo tick sale pequeño arriba, junto al último mensaje de EDDN (antes ocupaba una tarjeta entera)"]],
  ["v1.24.1","25/11/2026",["El arquitecto (con foto si es de CDSN) sale también al abrir un sistema en la Tabla","Miembros: al tocar un comandante se despliegan sus sistemas de arquitecto; al tocar uno se abre su ficha","Arquitectos: al tocar una línea se abre la ficha del sistema"]],
@@ -42,6 +43,12 @@ function novedades(){const n=document.getElementById("nov");if(!n.hidden){n.hidd
   n.innerHTML="<b>Novedades</b>"+NOVEDADES.map(([v,f,c])=>`<div style="margin-top:8px"><b style="color:#ff8c00">${v}</b> <span class="sub">${f}</span><ul style="margin:2px 0 0 18px;padding:0">${c.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");n.hidden=false;n.scrollIntoView({behavior:"smooth"})}
 const FAC="Caballeros de Sion";
 const DATOS="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/faccion.json";
+const HIST_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/historial.json";   // v1.25: rivales, zonas y portanaves (60 dias, escucha v12.5)
+let HIS={rivales:{},zonas:{},portanaves:{}};
+const COLR=["#5aaaff","#ff4632","#5adc78","#c77dff","#ffd228","#3fd0c9"];
+const diaI=t=>new Date(t*1000).toISOString().slice(0,10);   // hora -> AAAA-MM-DD (UTC, como el escucha)
+const dur=x=>x>=86400?Math.round(x/86400)+" d":Math.round(x/3600)+" h";
+const ZCC={High:["alta","#ff4632"],Med:["media","#ff8c00"],Low:["baja","#ffd228"]};
 const ARQ_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/arquitectos.txt";   // arquitectos: "Sistema = CMDR", lo edita el almirante a mano
 const ARQ_EDIT="https://github.com/ortemedder/cdsn-datos/edit/main/arquitectos.txt";
 let ARQ={};
@@ -236,6 +243,9 @@ function detalle(s){
     progreso: ${pct(pp.prog)} · refuerzo: ${pp.ref??"—"} · socavamiento: ${pp.soc??"—"}${(pp.pots||[]).length?"<br><span class=sub>presentes: "+pp.pots.map(esc).join(", ")+"</span>":""}`:"sin Powerplay";
   const zc=(s.zc||[]).map(z=>`${esc(ZC[z.i]||z.i)} <span class=sub>(${hace(z.t)})</span>`).join(" · ")||"no vistas en 24 h";
   const pn=Object.entries(s.pn||{}).map(([c,v])=>`<b>${esc(c)}</b> ${esc(v.n||"")} <span class=sub>(${hace(v.t)})</span> <a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/station/?search=${encodeURIComponent(c)}">dueño en Inara ↗</a>`).join("<br>")+(Object.keys(s.pn||{}).length?`<br><span class=sub>El dueño no llega por EDDN; Inara lo muestra si el dueño usa Inara o EDMC.</span>`:"")||"no vistos en 7 días";
+  const hz=Object.entries((HIS.zonas||{})[s.sys]||{}).sort().reverse(),hp=Object.entries((HIS.portanaves||{})[s.sys]||{}).sort((a,b)=>b[1].u-a[1].u);
+  const hzT=hz.length?`${hz.length} días con zonas: `+hz.slice(0,10).map(([d,L])=>`${fdm(d)} ${L.map(k=>`<span style="color:${ZCC[k][1]}">${ZCC[k][0]}</span>`).join("/")}`).join(" · ")+(hz.length>10?" …":""):"ninguna en 60 días";
+  const hpT=hp.length?hp.slice(0,12).map(([c,v])=>`<b>${esc(c)}</b> ${esc(v.n||"")} <span class=sub>${fdm(diaI(v.d))}${diaI(v.u)!=diaI(v.d)?" → "+fdm(diaI(v.u)):""}</span>`).join("<br>")+(hp.length>12?`<br><span class=sub>y ${hp.length-12} más</span>`:""):"ninguno en 60 días";
   const ay=s.prev!=null?`${c1(s.prev)} % → ${c1(s.inf)} % (${(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)}) · cambio visto hace ${hace(s.t)}${s.prev_t?" · dato anterior hace "+hace(s.prev_t):""}`:"—";
   const B=(t,c)=>`<h3 style="margin-top:10px">${t}</h3>${c}`;
   const ob=obras(s),obS=new Set(ob.map(o=>o.sitio));
@@ -248,7 +258,7 @@ function detalle(s){
   return`<div class="dg"><div><h3>Facciones</h3><div class="fac">${fac}</div>${B("Sistema",sis)}${B("Powerplay",pw)}</div>
   <div><h3>Influencia</h3>${grafica(s.hinf)}${B("Desde ayer",ay)}${B("Conflictos",con)}
   ${B("Estados de CDSN","activos: "+esc((s.activos||[]).map(es).join(", ")||"—")+"<br>pendientes: "+esc((s.pendientes||[]).map(es).join(", ")||"—")+"<br>recuperando: "+esc((s.recuperando||[]).map(es).join(", ")||"—"))}</div>
-  <div>${B("Tick",tk)}${B("Visitas (pilotos distintos por día)",tr)}${B("Zonas de conflicto",zc)}${B("Portanaves vistos",pn)}${B("Estaciones",ests)}${ob.length?B(`Obras (${ob.length})`,obh+`<br><a target="_blank" rel="noopener" style="color:#ff8c00" href="${inaraSis(s.sys)}">Ver el arquitecto en Inara ↗</a>`):""}${asn?B("Asentamientos (Odyssey)",asn):""}${amz?B("Expansiones que pueden llegar aquí",amz):""}
+  <div>${B("Tick",tk)}${B("Visitas (pilotos distintos por día)",tr)}${B("Zonas de conflicto",zc)}${B("Zonas de conflicto · 60 días",hzT)}${B("Portanaves vistos",pn)}${B("Portanaves · 60 días",hpT)}${B("Estaciones",ests)}${ob.length?B(`Obras (${ob.length})`,obh+`<br><a target="_blank" rel="noopener" style="color:#ff8c00" href="${inaraSis(s.sys)}">Ver el arquitecto en Inara ↗</a>`):""}${asn?B("Asentamientos (Odyssey)",asn):""}${amz?B("Expansiones que pueden llegar aquí",amz):""}
   ${B("Dato","fuente "+esc(s.src||"")+" · hace "+hace(s.t))}</div></div>`;
 }
 function zona(){
@@ -263,6 +273,7 @@ async function carga(){
     try{const t=await fetch(FIJA_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");   // las lineas con # no salen; --- separa noticias
       FIJA=t.split(/^---\s*$/m).map(b=>b.split("\n").filter(l=>!l.trim().startsWith("#")).join("\n").trim()).filter(Boolean)
         .map(b=>{const[a,...r]=b.split("\n");return[a.trim(),r.join("\n").trim()]})}catch(x){}
+    try{const j=await fetch(HIST_URL+"?"+Date.now()).then(r=>r.ok?r.json():null);if(j&&j.rivales)HIS=j}catch(x){}
     try{const t=await fetch(ARQ_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");const A={};
       for(const l of t.split("\n")){if(l.trim().startsWith("#"))continue;const i=l.indexOf("=");if(i<1)continue;const k=l.slice(0,i).trim(),v=l.slice(i+1).trim();if(k&&v)A[k.toLowerCase()]=v}
       ARQ=A}catch(x){}
@@ -735,6 +746,20 @@ function casillas(c){const k=conflicto(c),R=c.res||[],d0=c.res_desde||1,col={G:"
     if(aprox)r=r.toUpperCase();
     h+=`<span class="cas" data-tip="día ${d}: ${hoy?"se juega hoy":r=="G"?"ganado":r=="P"?"perdido":r=="="?"sin resultado":r=="?"?"sin datos":"por jugar"}${aprox?" (orden aproximado)":""}" style="background:${r?col[r]:"transparent"};${hoy?"outline:2px solid #ffeb00;":""}${!r&&!hoy?"border:1px solid #3a2a12;":""}${aprox?"opacity:.6;":""}">${r&&r!="?"?r:hoy?"·":""}</span>`}
   return h}
+// v1.25: influencia de CDSN y de las otras facciones del sistema (historial.json), hasta ahora
+function rivalesSeries(s,max=5){
+  const desde=now()-60*86400,fin=p=>{const q=p.filter(x=>x[0]>=desde-86400).map(x=>[Math.max(x[0],desde),x[1]]);return q},
+    hasta=(p,v)=>{if(v!=null&&p.length&&p[p.length-1][1]!==v)p.push([now(),v]);else if(p.length)p.push([now(),p[p.length-1][1]]);return p};
+  const R=(HIS.rivales||{})[s.sys]||{},ahora=Object.fromEntries((s.todas||[]).map(x=>[x.n,x.inf]));
+  const noms=Object.keys(R).filter(n=>ahora[n]!=null).sort((a,b)=>ahora[b]-ahora[a]).slice(0,max);
+  const S=[{n:"CDSN",color:"#ff8c00",p:hasta(fin(s.hinf||[]),s.inf)}];
+  noms.forEach((n,i)=>S.push({n:esc(n),color:COLR[i%COLR.length],p:hasta(fin(R[n]),ahora[n])}));
+  return S.filter(x=>x.p.length)}
+function zonasDias(sistemas){   // [{l,v,tip,c}] de los 60 dias: sistemas con zonas de conflicto cada dia
+  const d60=[...Array(60).keys()].map(diasAtras).reverse();
+  return d60.map(d=>{const L=sistemas.filter(n=>((HIS.zonas||{})[n]||{})[d]);const niv=new Set(L.flatMap(n=>HIS.zonas[n][d]));
+    const top=niv.has("High")?"High":niv.has("Med")?"Med":"Low";
+    return{l:fdm(d),v:L.length,c:ZCC[top][1],tip:L.length?`${fdm(d)}: ${L.length==1?esc(L[0])+" ("+HIS.zonas[L[0]][d].map(k=>ZCC[k][0]).join(", ")+")":L.length+" sistemas: "+L.slice(0,4).map(esc).join(", ")+(L.length>4?"…":"")}`:`${fdm(d)}: ninguna`}})}
 function pintaGra(){
   if(!D)return;const T=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).sort((a,b)=>(FAV.has(b.sys)-FAV.has(a.sys))||a.sys.localeCompare(b.sys));
   if(GS&&!T.some(s=>s.sys==GS))GS="";
@@ -749,7 +774,7 @@ function pintaGra(){
   // 2) mapa de horas
   h+=`<div>${mapaHoras(S)}</div>`;
   // 3) influencia
-  h+="§inf§";if(uno)h+=`<div>${lineas([{n:"CDSN",color:"#ff8c00",p:(uno.hinf||[]).map(p=>[p[0],p[1]])}],"Influencia de CDSN en "+esc(uno.sys),"%")}</div>`;
+  h+="§inf§";if(uno)h+=`<div>${lineas(rivalesSeries(uno),"Influencia en "+esc(uno.sys)+" · 60 días","%")}<div class="sub" style="margin:-8px 0 14px">CDSN y las facciones que hay ahora en el sistema (las 5 más fuertes). Cada punto es un cambio de influencia (normalmente uno por tick).</div></div>`;
   else{const tr=[[0,5],[5,10],[10,20],[20,30],[30,40],[40,50],[50,60],[60,70],[70,101]];
     h+=`<div>${barras(tr.map(([a,b])=>{const n=T.filter(s=>s.inf>=a&&s.inf<b).length;return{l:b>100?"70+":a+"",v:n,c:a<5?"#ff4632":b<=50?"#ffd228":"#5adc78",tip:`${a}–${b>100?100:b} %: ${n} sistemas`}}),"Sistemas según la influencia de CDSN",{todas:1,pie:'<span style="color:#ff4632">■</span> menos de 5 % (riesgo de retirada) · <span style="color:#ffd228">■</span> 5–50 % · <span style="color:#5adc78">■</span> más del 50 %'})}</div>`}
   // 4) saltos de las ultimas 48 h
@@ -778,6 +803,13 @@ function pintaGra(){
   const ZCs=S.flatMap(s=>(s.zc||[]).filter(z=>now()-z.t<86400).map(z=>({s,z})));
   h+=`<div>${barras([["Low","baja","#ffd228"],["Med","media","#ff8c00"],["High","alta","#ff4632"]].map(([k,l,c])=>({l,c,v:ZCs.filter(x=>x.z.i==k).length,tip:`intensidad ${l}: ${ZCs.filter(x=>x.z.i==k).length}`})),"Zonas de conflicto vistas · 24 h",{todas:1,alto:120,vacio:"Ninguna zona de conflicto vista en 24 h.",
     pie:ZCs.length?"En: "+[...new Set(ZCs.map(x=>x.s.sys))].map(esc).join(" · "):""})}</div>`;
+  // v1.25: historial de 60 dias (historial.json)
+  const nomS=S.map(s=>s.sys);
+  h+=`<div>${barras(zonasDias(nomS),uno?"Zonas de conflicto · 60 días":"Sistemas con zonas de conflicto · 60 días",{etiquetas:6,alto:130,vacio:"Ninguna zona de conflicto en 60 días.",
+    pie:`El color es la zona más fuerte del día: <span style="color:#ff4632">■</span> alta · <span style="color:#ff8c00">■</span> media · <span style="color:#ffd228">■</span> baja.`+(uno?"":" Toca una barra para ver dónde.")})}</div>`;
+  const PH=nomS.flatMap(n=>Object.entries((HIS.portanaves||{})[n]||{}).map(([c,v])=>({n,c,v})));
+  h+=`<div>${uno?hbarras(PH.sort((a,b)=>b.v.u-a.v.u).map(({c,v})=>({l:c+" "+(v.n||""),v:Math.max(1,Math.round((v.u-v.d)/3600)),txt:v.u-v.d<3600?"de paso":dur(v.u-v.d),sub:`del ${fdm(diaI(v.d))} al ${fdm(diaI(v.u))}`})),`Portanaves que han pasado · 60 días (${PH.length})`,{max:15,color:"#c9a36a",vacio:"Ningún portanaves en 60 días.",pie:"La barra es cuánto tiempo estuvo (entre la primera y la última vez que se vio)."})
+    :hbarras(T.map(s=>({l:s.sys,s:s.sys,v:Object.keys((HIS.portanaves||{})[s.sys]||{}).length})).sort((a,b)=>b.v-a.v),"Portanaves que han pasado por sistema · 60 días",{color:"#c9a36a",vacio:"Ningún portanaves en 60 días."})}</div>`;
   // ---------- CONFLICTOS ----------
   h+="§con§";
   const CA=S.flatMap(s=>(s.conflictos||[]).filter(c=>c.estado=="active").map(c=>({s,c})));
