@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.27";
+const VERSION="v1.28";
 const NOVEDADES=[
+ ["v1.28","27/11/2026",["🧠 PARTE DEL DÍA en La Crónica: cada día a las 15:00 la IA (Claude) escribe el parte de inteligencia de CDSN: titular, lo esencial, puntos clave, qué hacer hoy y una oportunidad","Los sistemas del parte se pueden tocar para abrir su ficha; si la IA cita un sistema que no conocemos, sale marcado ⚠","Debajo, quién lo escribió, cuántos sistemas estaban al día tras el tick y lo que costó; y los partes de días anteriores","Franja con el titular arriba de Hoy","Durante la prueba salen juntos los partes de Haiku, Sonnet y Opus para compararlos"]],
  ["v1.27","26/11/2026",["RESISTENCIA de cada sistema (alta, media o baja): ventaja sobre la segunda, número de facciones, población, si es minero (economía o un overlap de hotspots a 20 ly o menos) y si la estación es de CDSN. Sale en la ficha con sus motivos","PROBABLE POWERPLAY ⚡ (naranja) en vez de POSIBLE ATAQUE cuando hay pico de visitas, Powerplay en el sistema, portanaves y la bajada es pequeña","Con resistencia alta y una bajada de menos de 3 puntos, el aviso baja a ACTIVIDAD INUSUAL","Overlaps de minería (Platino, Painita y LTD) cerca de cada sistema, en la ficha","Con el escucha v12.6: anillos del sistema (tipo y si están vírgenes), sus hotspots y los minerales que compran nuestras estaciones; también cuentan para la resistencia"]],
  ["v1.26","26/11/2026",["Pestaña Anarquías (versión previa a Law & Disorder): los sistemas anárquicos a 30 ly o menos de cada sistema que controla CDSN, con la distancia, su facción y estado, población y puerto grande","Dos vistas: por sistema nuestro o por anárquico; NUEVO 🆕 durante 7 días cuando aparece uno; se actualiza una vez al día (EDSM)","Desde el 9/12 también cuenta los sistemas Criminales de Law & Disorder"]],
  ["v1.25","26/11/2026",["Historial de 60 días (escucha v12.5): en Gráficos › Influencia, CDSN contra las otras facciones del sistema","Zonas de conflicto por día y portanaves de los últimos 60 días, en Gráficos y en la ficha de cada sistema"]],
@@ -276,6 +277,7 @@ async function carga(){
   try{
     D=await fetch(DATOS+"?"+Date.now()).then(r=>r.json());AMZ=amenazas();
     try{await cargaAnq()}catch(x){}   // v1.27: overlaps para la resistencia
+    try{await cargaParte()}catch(x){}  // v1.28: parte del dia (IA)
     try{const t=await fetch(FIJA_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");   // las lineas con # no salen; --- separa noticias
       FIJA=t.split(/^---\s*$/m).map(b=>b.split("\n").filter(l=>!l.trim().startsWith("#")).join("\n").trim()).filter(Boolean)
         .map(b=>{const[a,...r]=b.split("\n");return[a.trim(),r.join("\n").trim()]})}catch(x){}
@@ -492,11 +494,11 @@ function tareas(){
 }
 function pintaHoy(){
   if(!D)return;const L=tareas();
-  document.getElementById("vHoy").innerHTML=(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
+  document.getElementById("vHoy").innerHTML=parteFranja()+(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
    L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}${t.parp?" parp":""}">${t.ico?t.ico+" ":""}${esc(t.tag)}</span>
    <div class="sub">${esc(t.por)}${mover(t.s)?" · "+mover(t.s):""}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
 }
-document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
+document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}if(e.target.closest(".pfr")){vista("cro");return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
 // expansiones y retiradas de otras facciones (escucha v11: D.vecinos)
 function alrededor(){
   const V=Object.entries(D.vecinos||{});
@@ -888,6 +890,7 @@ function pintaCro(){
   const ed=D.t?hora(D.t):hora(now());
   let h=`<div class="cro"><div class="cab"><div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
     <div class="cab3"><span>${esc((x=>x.charAt(0).toUpperCase()+x.slice(1))(fechaJuego(D.t||now())))}</span><span>Edición de las ${ed}</span><span>${N.length} noticias</span></div></div>`;
+  if(!CS)h+=parteHTML();   // v1.28
   for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 NOTICIA FIJA</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;
   if(!D.noticias){v.innerHTML=h+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+hemeroteca()+`</div>`;return}
   // portada: la urgente mas reciente de las ultimas 24 h; si no hay, la ultima que no sea un resumen
@@ -912,6 +915,8 @@ function pintaCro(){
   v.innerHTML=h+`<div class="sub" style="text-align:center;margin:14px 0 4px">Las ${(D.noticias||[]).length} últimas noticias del escucha de EDDN · toca una para abrir la ficha del sistema</div></div>`;
 }
 document.getElementById("vCro").onclick=e=>{const b=e.target.closest(".csec button");if(b){CS=b.dataset.c;pintaCro();return}
+  const pm=e.target.closest("[data-pm]");if(pm){PARTE_M=pm.dataset.pm;pintaCro();return}
+  const pa=e.target.closest("[data-pa]");if(pa){PARTE_ANT=PARTE_ANT==pa.dataset.pa?"":pa.dataset.pa;pintaCro();return}
   const n=e.target.closest("[data-s]");if(n&&(D.sistemas||{})[n.dataset.s])abreFicha(n.dataset.s)};
 
 // ---------- v1.21: La Cronica con imagenes: dibujo por tipo, imagen con datos y que hacer ----------
@@ -1174,3 +1179,35 @@ function ppProb(s){const pp=s.pp||{},pot=pp.pot||(pp.pots||[])[0];if(!pot)return
   return`${fc?fc+" portanaves y ":""}Powerplay de ${pot}${pp.ref!=null||pp.soc!=null?` (refuerzo ${pp.ref??"—"} / socavamiento ${pp.soc??"—"})`:""}`}
 function resistHTML(s){if(s.inf==null)return"";const r=resist(s),col={alta:"#4cd964",media:"#ffd60a",baja:"#ff5050"}[r.niv];
   return`<div style="margin:6px 0;padding:6px 8px;border:1px solid ${col};border-radius:8px;background:rgba(255,255,255,.03)">🛡 <b style="color:${col}">Resistencia ${r.niv.toUpperCase()}</b> <span class="sub">(${r.p} de 10)</span><div class="sub">${r.r.map(esc).join(" · ")}</div>${r.mi.an.length?`<div class="sub">💍 Anillos: ${r.mi.an.map(([k,v])=>`${esc(k.replace(s.sys+" ",""))} (${esc(v.c)}${v.res?", "+esc(v.res):""})`).join(" · ")}</div>`:""}${r.mi.hot.length?`<div class="sub">🔥 Hotspots: ${r.mi.hot.map(([k,v])=>`${esc(k.replace(s.sys+" ",""))}: ${Object.entries(v).filter(([x])=>x!="t").map(([x,n])=>esc(mes(x))+(n>1?" ×"+n:"")).join(", ")}`).join(" · ")}</div>`:""}${r.mi.compra.length?`<div class="sub">💰 Compran: ${r.mi.compra.slice(0,4).map(m=>`${esc(m.n)} a ${m.p.toLocaleString("es")} en ${esc(m.e)}`).join(" · ")}</div>`:""}${r.ov.length?`<div class="sub">⛏ Overlaps cerca: ${r.ov.map(o=>`<b>${esc(o[1])}</b> en ${esc(o[0])}${CP(o[0])} ${o[2]<1?"(aquí)":c1(o[2])+" ly"}`).join(" · ")}</div>`:""}</div>`}
+
+// ---------- v1.28: Parte del dia (IA, cronica_ia.json de cdsn-datos; lo escribe tools/cronica.py a las 15:00) ----------
+const PARTE_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/cronica_ia.json";
+var PARTE=null,PARTE_T=0,PARTE_M="",PARTE_ANT="";
+const PARTE_NOM={haiku:"Claude Haiku 5.5",sonnet:"Claude Sonnet 5.5",opus:"Claude Opus 5.5"};
+async function cargaParte(){if(PARTE&&Date.now()-PARTE_T<10*60e3)return;
+  try{const r=await fetch(PARTE_URL+"?"+Date.now());if(r.ok){PARTE=await r.json();PARTE_T=Date.now()}}catch(e){}}
+function partesVisibles(){return((PARTE||{}).partes||[]).filter(p=>(p.publicar_t||0)<=now())}
+function parteHoy(){const P=partesVisibles();if(!P.length)return null;
+  const f=P.map(p=>p.fecha).sort().pop(),L=P.filter(p=>p.fecha==f);
+  const sel=L.find(p=>p.modelo==PARTE_M)||L.find(p=>p.modelo==(PARTE||{}).modelo)||L[0];return{f,L,sel}}
+function marcaSis(t,dud){return esc(t||"").replace(/\[\[(.+?)\]\]/g,(m,n)=>{const raw=n.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+  return(D&&(D.sistemas||{})[raw])?`<span data-s="${n}" style="color:#ff8c00;cursor:pointer;text-decoration:underline">${n}</span>`:`<b>${n}</b>${(dud||[]).includes(raw)?' <span title="La IA cita un sistema que no está en nuestros datos">⚠</span>':""}`})}
+function parteCuerpo(p){const d=p.dudosos,riesgo={alto:"#ff4632",medio:"#ffd228",bajo:"#4cd964"}[p.riesgo]||"#b06a10";
+  return`<div class="porT">${marcaSis(p.titular,d)}</div>${p.riesgo?`<div style="font-size:12px;font-weight:700;color:${riesgo};letter-spacing:1px;margin-bottom:4px">RIESGO ${esc(String(p.riesgo).toUpperCase())}</div>`:""}
+<div class="porE">${marcaSis(p.entradilla,d)}</div>
+${(p.puntos||[]).length?`<div style="margin-top:8px">${p.puntos.map(x=>`<div style="margin:6px 0"><b style="color:#ffd228">▸ ${marcaSis(x.titulo,d)}</b><div class="porE" style="font-size:14px">${marcaSis(x.texto,d)}</div></div>`).join("")}</div>`:""}
+${(p.hacer||[]).length?`<div style="margin-top:8px"><b style="color:#4cd964">QUÉ HACER HOY</b><ol style="margin:4px 0 0 18px;padding:0">${p.hacer.map(x=>`<li class="porE" style="font-size:14px;margin:3px 0">${marcaSis(x,d)}</li>`).join("")}</ol></div>`:""}
+${p.oportunidad?`<div style="margin-top:8px"><b style="color:#66cbff">💡 OPORTUNIDAD</b><div class="porE" style="font-size:14px">${marcaSis(p.oportunidad,d)}</div></div>`:""}
+<div class="porF">Escrito por ${esc(PARTE_NOM[p.modelo]||p.modelo)} · ${p.al_dia!=null?`datos al día tras el tick: ${p.al_dia} de ${p.ctrl} sistemas · `:""}${(p.tokens_in||0).toLocaleString("es")} + ${(p.tokens_out||0).toLocaleString("es")} tokens · ${String(p.coste??"").replace(".",",")} $${(d||[]).length?` · ⚠ sistemas dudosos: ${d.map(esc).join(", ")}`:""}</div>`}
+function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
+  const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),pub=H.sel.publicar_t||0;
+  const tarde=H.f<hoy&&now()>pub+86400;   // ya deberia haber salido el de hoy
+  let h=`<div class="fija" style="border-color:#66cbff;background:#06121d"><div class="porK" style="color:#66cbff">🧠 PARTE DEL DÍA · ${esc(diaTit(pub))}${tarde?' · <span style="color:#ffd228">el de hoy llega con retraso</span>':""}</div>`;
+  if(H.L.length>1)h+=`<div class="vper" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:4px">${H.L.map(p=>`<button data-pm="${esc(p.modelo)}" class="${p===H.sel?"on":""}">${esc(PARTE_NOM[p.modelo]||p.modelo)}</button>`).join("")}</div><div class="sub" style="margin-bottom:4px">Prueba: el mismo parte escrito por ${H.L.length} modelos, para elegir.</div>`;
+  h+=parteCuerpo(H.sel);
+  const ant=[...new Set(partesVisibles().map(p=>p.fecha))].sort().reverse().filter(f=>f!=H.f).slice(0,14);
+  if(ant.length)h+=`<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Partes anteriores (${ant.length})</summary>${ant.map(f=>{const L=partesVisibles().filter(p=>p.fecha==f),p=L.find(x=>x.modelo==(PARTE||{}).modelo)||L[0];
+    return`<div style="margin:6px 0"><span data-pa="${f}" style="cursor:pointer"><b>${esc(f.split("-").reverse().join("/"))}</b> · ${marcaSis(p.titular,p.dudosos)} ${PARTE_ANT==f?"▾":"▸"}</span>${PARTE_ANT==f?`<div style="margin:6px 0 0 8px">${parteCuerpo(p)}</div>`:""}</div>`}).join("")}</details>`;
+  return h+`</div>`}
+function parteFranja(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
+  return`<div class="pfr" style="cursor:pointer;border:1px solid #66cbff;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:rgba(102,203,255,.07)">🧠 <b style="color:#66cbff">Parte del día:</b> ${marcaSis(H.sel.titular,[]).replace(/data-s="[^"]*"/g,"")} <span class="sub">· leer en La Crónica ➜</span></div>`}
