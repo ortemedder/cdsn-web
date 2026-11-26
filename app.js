@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.27";
 const NOVEDADES=[
- ["v1.27","26/11/2026",["RESISTENCIA de cada sistema (alta, media o baja): ventaja sobre la segunda, número de facciones, población, si es minero (economía o un overlap de hotspots a 20 ly o menos) y si la estación es de CDSN. Sale en la ficha con sus motivos","PROBABLE POWERPLAY ⚡ (naranja) en vez de POSIBLE ATAQUE cuando hay pico de visitas, Powerplay en el sistema, portanaves y la bajada es pequeña","Con resistencia alta y una bajada de menos de 3 puntos, el aviso baja a ACTIVIDAD INUSUAL","Overlaps de minería (Platino, Painita y LTD) cerca de cada sistema, en la ficha"]],
+ ["v1.27","26/11/2026",["RESISTENCIA de cada sistema (alta, media o baja): ventaja sobre la segunda, número de facciones, población, si es minero (economía o un overlap de hotspots a 20 ly o menos) y si la estación es de CDSN. Sale en la ficha con sus motivos","PROBABLE POWERPLAY ⚡ (naranja) en vez de POSIBLE ATAQUE cuando hay pico de visitas, Powerplay en el sistema, portanaves y la bajada es pequeña","Con resistencia alta y una bajada de menos de 3 puntos, el aviso baja a ACTIVIDAD INUSUAL","Overlaps de minería (Platino, Painita y LTD) cerca de cada sistema, en la ficha","Con el escucha v12.6: anillos del sistema (tipo y si están vírgenes), sus hotspots y los minerales que compran nuestras estaciones; también cuentan para la resistencia"]],
  ["v1.26","26/11/2026",["Pestaña Anarquías (versión previa a Law & Disorder): los sistemas anárquicos a 30 ly o menos de cada sistema que controla CDSN, con la distancia, su facción y estado, población y puerto grande","Dos vistas: por sistema nuestro o por anárquico; NUEVO 🆕 durante 7 días cuando aparece uno; se actualiza una vez al día (EDSM)","Desde el 9/12 también cuenta los sistemas Criminales de Law & Disorder"]],
  ["v1.25","26/11/2026",["Historial de 60 días (escucha v12.5): en Gráficos › Influencia, CDSN contra las otras facciones del sistema","Zonas de conflicto por día y portanaves de los últimos 60 días, en Gráficos y en la ficha de cada sistema"]],
  ["v1.24.3","26/11/2026",["Arreglado: salía ESTACIÓN DAÑADA por una obra en construcción (o ya terminada). Ahora solo avisa de daños, ataques, reparaciones o abandono de verdad"]],
@@ -1151,13 +1151,26 @@ function resist(s){const r=[];let p=0;
   const nf=(s.todas||[]).length;if(nf>=7){p+=2;r.push(`${nf} facciones (la bajada se reparte)`)}else if(nf>=5){p+=1;r.push(`${nf} facciones`)}else if(nf)r.push(`solo ${nf} facciones`);
   const pob=(s.sis||{}).pob||0;if(pob>=1e9){p+=2;r.push("población muy alta")}else if(pob>=1e6){p+=1;r.push("población media")}else if(pob)r.push("población baja (se mueve fácil)");
   const eco=((s.sis||{}).eco||"")+" "+((s.sis||{}).eco2||"");if(ECO_MIN.test(eco)){p+=1;r.push("economía minera")}
-  const ov=((ANQ&&ANQ.ovl_cerca)||{})[s.sys];if(ov&&ov.length){p+=ov[0][2]<1?2:1;r.push(`overlap de ${ov[0][1]} ${ov[0][2]<1?"en el sistema":"a "+c1(ov[0][2])+" ly"}`)}
+  const ov=((ANQ&&ANQ.ovl_cerca)||{})[s.sys],mi=minSis(s);   // v1.27: overlaps + datos de mineria del escucha v12.6
+  if((ov&&ov.length&&ov[0][2]<1)||mi.hotBuenos.length){p+=2;r.push(mi.hotBuenos.length?`hotspots de ${mi.hotBuenos.join(", ")} en el sistema`:`overlap de ${ov[0][1]} en el sistema`)}
+  else if(ov&&ov.length){p+=1;r.push(`overlap de ${ov[0][1]} a ${c1(ov[0][2])} ly`)}
+  else if(mi.virgen){p+=1;r.push("anillo metálico virgen")}
+  if(mi.compra.length){p+=1;r.push(`${mi.compra[0].e} compra ${mi.compra[0].n}`)}
+
   if(Object.values(s.estaciones||{}).some(e=>e.f==FAC)){p+=1;r.push("estación de CDSN")}
-  return{p,niv:p>=6?"alta":p>=3?"media":"baja",r,ov:ov||[]}}
+  p=Math.min(p,10);return{p,niv:p>=6?"alta":p>=3?"media":"baja",r,ov:ov||[],mi}}
+const MIN_BUENOS=["Platinum","Painite","LTD","Void Opals","Osmium"],MIN_ES={Platinum:"Platino",Painite:"Painita",Osmium:"Osmio","Void Opals":"Ópalos del vacío",Monazite:"Monacita",Musgravite:"Musgravita",Serendibite:"Serendibita",Grandidierite:"Grandidierita",Benitoite:"Benitoita",Alexandrite:"Alejandrita",Tritium:"Tritio",Bromellite:"Bromelita"};
+const mes=n=>MIN_ES[n]||n;
+function minSis(s){   // anillos, hotspots y minerales que compran las estaciones (escucha v12.6)
+  const an=Object.entries(s.anillos||{}),hot=Object.entries(s.hot||{});
+  const hotBuenos=[...new Set(hot.flatMap(([k,v])=>Object.keys(v).filter(x=>MIN_BUENOS.includes(x))))].map(mes);
+  const virgen=an.some(([k,v])=>v.res=="Virgen"&&/metal/i.test(v.c||""));
+  const compra=Object.entries(s.estaciones||{}).flatMap(([e,x])=>((x.mer||{}).min||[]).filter(m=>MIN_BUENOS.includes(m.n)&&(m.d||0)>0).map(m=>({e,n:mes(m.n),p:m.p,d:m.d}))).sort((a,b)=>b.p-a.p);
+  return{an,hot,hotBuenos,virgen,compra}}
 function fcRec(s){const t=now()-48*3600;return Object.values(s.pn||{}).filter(v=>(v.t||0)>=t).length}   // portanaves vistos en 48 h
 function ppProb(s){const pp=s.pp||{},pot=pp.pot||(pp.pots||[])[0];if(!pot)return"";
   if(s.prev!=null&&s.prev-s.inf>=5)return"";                       // bajada grande: no se descarta un ataque
   const fc=fcRec(s),act=(pp.ref||0)+(pp.soc||0);if(fc<3&&act<500)return"";
   return`${fc?fc+" portanaves y ":""}Powerplay de ${pot}${pp.ref!=null||pp.soc!=null?` (refuerzo ${pp.ref??"—"} / socavamiento ${pp.soc??"—"})`:""}`}
 function resistHTML(s){if(s.inf==null)return"";const r=resist(s),col={alta:"#4cd964",media:"#ffd60a",baja:"#ff5050"}[r.niv];
-  return`<div style="margin:6px 0;padding:6px 8px;border:1px solid ${col};border-radius:8px;background:rgba(255,255,255,.03)">🛡 <b style="color:${col}">Resistencia ${r.niv.toUpperCase()}</b> <span class="sub">(${r.p} de 10)</span><div class="sub">${r.r.map(esc).join(" · ")}</div>${r.ov.length?`<div class="sub">⛏ Overlaps cerca: ${r.ov.map(o=>`<b>${esc(o[1])}</b> en ${esc(o[0])}${CP(o[0])} ${o[2]<1?"(aquí)":c1(o[2])+" ly"}`).join(" · ")}</div>`:""}</div>`}
+  return`<div style="margin:6px 0;padding:6px 8px;border:1px solid ${col};border-radius:8px;background:rgba(255,255,255,.03)">🛡 <b style="color:${col}">Resistencia ${r.niv.toUpperCase()}</b> <span class="sub">(${r.p} de 10)</span><div class="sub">${r.r.map(esc).join(" · ")}</div>${r.mi.an.length?`<div class="sub">💍 Anillos: ${r.mi.an.map(([k,v])=>`${esc(k.replace(s.sys+" ",""))} (${esc(v.c)}${v.res?", "+esc(v.res):""})`).join(" · ")}</div>`:""}${r.mi.hot.length?`<div class="sub">🔥 Hotspots: ${r.mi.hot.map(([k,v])=>`${esc(k.replace(s.sys+" ",""))}: ${Object.entries(v).filter(([x])=>x!="t").map(([x,n])=>esc(mes(x))+(n>1?" ×"+n:"")).join(", ")}`).join(" · ")}</div>`:""}${r.mi.compra.length?`<div class="sub">💰 Compran: ${r.mi.compra.slice(0,4).map(m=>`${esc(m.n)} a ${m.p.toLocaleString("es")} en ${esc(m.e)}`).join(" · ")}</div>`:""}${r.ov.length?`<div class="sub">⛏ Overlaps cerca: ${r.ov.map(o=>`<b>${esc(o[1])}</b> en ${esc(o[0])}${CP(o[0])} ${o[2]<1?"(aquí)":c1(o[2])+" ly"}`).join(" · ")}</div>`:""}</div>`}
