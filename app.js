@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.24.2";
+const VERSION="v1.24.3";
 const NOVEDADES=[
+ ["v1.24.3","26/11/2026",["Arreglado: salía ESTACIÓN DAÑADA por una obra en construcción (o ya terminada). Ahora solo avisa de daños, ataques, reparaciones o abandono de verdad"]],
  ["v1.24.2","26/11/2026",["El próximo tick sale pequeño arriba, junto al último mensaje de EDDN (antes ocupaba una tarjeta entera)"]],
  ["v1.24.1","25/11/2026",["El arquitecto (con foto si es de CDSN) sale también al abrir un sistema en la Tabla","Miembros: al tocar un comandante se despliegan sus sistemas de arquitecto; al tocar uno se abre su ficha","Arquitectos: al tocar una línea se abre la ficha del sistema"]],
  ["v1.24","25/11/2026",["Ficha del sistema: si el arquitecto es de CDSN sale una tarjeta con su foto y su nombre; al tocarla te lleva a él en Miembros"]],
@@ -118,7 +119,10 @@ const SEGT=["sin ley","baja","media","alta"];
 // expansiones de otras facciones que pueden llegar a cada sistema nuestro: {sistema: [{n,desde,est,ly}]}
 function amenazas(){const A={};for(const[desde,v]of Object.entries(D.vecinos||{}))for(const e of v.exp||[])for(const[n,ly]of e.obj||[])(A[n]??=[]).push({n:e.n,desde,est:e.est,ly,inf:e.inf});return A}
 let AMZ={};
-const estMal=s=>Object.entries(s.estaciones||{}).filter(([n,e])=>e.estado&&EST_ES[e.estado]&&(e.f==FAC||e.estado=="UnderAttack"||e.estado=="Damaged"));
+// v1.24.3: las obras no son daños, y no cuenta una estacion si hay otra con el mismo id de mercado mas nueva (obra ya terminada)
+const estMal=s=>{const E=Object.entries(s.estaciones||{});return E.filter(([n,e])=>e.estado&&e.estado!="Construction"&&EST_ES[e.estado]&&(e.f==FAC||e.estado=="UnderAttack"||e.estado=="Damaged")
+  &&!E.some(([n2,e2])=>n2!=n&&e.mid&&e2.mid==e.mid&&(e2.t||0)>(e.t||0)))};
+const estTit=e=>e.estado=="UnderAttack"?"ESTACIÓN BAJO ATAQUE":e.estado=="Damaged"?"ESTACIÓN DAÑADA":"ESTACIÓN "+EST_ES[e.estado].toUpperCase();
 function segBaja(s){const h=s.hsis||[];if(h.length<2)return null;const a=h[h.length-2],b=h[h.length-1],x=SEGN[a[2]],y=SEGN[b[2]];
   return x!=null&&y!=null&&y<x&&now()-b[0]<3*86400?{de:SEGT[x],a:SEGT[y],t:b[0]}:null}
 // obras (construction sites): las que aun no tienen su estacion terminada -> [{n nombre final, sitio, pl planetaria, t}]
@@ -157,7 +161,7 @@ function alerta(s){
   if(s.prev!=null&&s.prev-s.inf>=3)return[1,"BAJADA",`${c1(s.inf-s.prev)} desde ayer`,"av"];
   if(at&&!at.sube)return[1,"ACTIVIDAD INUSUAL",at.txt,"av"];
   if(at)return[1,"ACTIVIDAD A FAVOR",at.txt+" (gente propia o ayuda externa)","fa"];
-  const em=estMal(s);if(em.length)return[1,em[0][1].estado=="UnderAttack"?"ESTACIÓN BAJO ATAQUE":"ESTACIÓN DAÑADA",`${em[0][0]} ${EST_ES[em[0][1].estado]}${em.length>1?` y ${em.length-1} más`:""}`,"av"];
+  const em=estMal(s);if(em.length)return[1,estTit(em[0][1]),`${em[0][0]} ${EST_ES[em[0][1].estado]}${em.length>1?` y ${em.length-1} más`:""}`,"av"];
   const am=AMZ[s.sys];if(am)return[1,"EXPANSIÓN ENEMIGA",`${am[0].n} desde ${am[0].desde} (${c1(am[0].ly)} al)${am.length>1?` y ${am.length-1} más`:""}`,"av","🛸"];
   const sb=segBaja(s);if(sb)return[1,"SEGURIDAD BAJADA",`de ${sb.de} a ${sb.a}`,"av"];
   if((s.pendientes||[]).includes("Expansion"))return[1,"EXPANSIÓN PEND.","","av"];
@@ -457,7 +461,7 @@ function tareas(){
     else if(s.prev!=null&&s.prev-s.inf>=3)add(60,"BAJADA","av",`${c1(s.inf-s.prev)} puntos desde ayer`,SUB);
     else if(ataque(s)?.sube)add(45,"ACTIVIDAD A FAVOR","fa",ataque(s).txt+": alguien trabaja a favor de CDSN (gente propia o ayuda externa)","Seguir así; si no es nuestra gente, averiguar quién nos ayuda");
     else if(ataque(s))add(55,"ACTIVIDAD INUSUAL","av",ataque(s).txt+": vigilar la influencia en el próximo tick","Pasar por el sistema y ver qué misiones se están haciendo; si baja la influencia, "+SUB.toLowerCase());
-    else if(estMal(s).length){const[n,e]=estMal(s)[0];add(57,e.estado=="UnderAttack"?"ESTACIÓN BAJO ATAQUE":"ESTACIÓN DAÑADA","av",`${n} está ${EST_ES[e.estado]}${e.f==FAC?" (es nuestra)":""}`,e.estado=="UnderAttack"?"Defender la estación: misiones y combate contra los atacantes":"Ayudar a repararla: misiones de reparación y entregar materiales en la estación")}
+    else if(estMal(s).length){const[n,e]=estMal(s)[0];add(57,estTit(e),"av",`${n} está ${EST_ES[e.estado]}${e.f==FAC?" (es nuestra)":""}`,e.estado=="UnderAttack"?"Defender la estación: misiones y combate contra los atacantes":"Ayudar a repararla: misiones de reparación y entregar materiales en la estación")}
     else if(AMZ[s.sys]){const a=AMZ[s.sys][0];add(56,"EXPANSIÓN ENEMIGA","av",`${a.n} prepara una expansión desde ${a.desde} (a ${c1(a.ly)} al) y este sistema tiene hueco (${(s.todas||[]).length} facciones)`,"Mantener la influencia de CDSN alta para que la facción nueva entre lo más baja posible","🛸")}
     else if(segBaja(s)){const b=segBaja(s);add(52,"SEGURIDAD BAJADA","av",`la seguridad ha bajado de ${b.de} a ${b.a} hace ${hace(b.t)}: puede haber piratería o misiones en contra`,"Cazar recompensas y entregar los bonos en estaciones de CDSN")}
     else if(s.ctrl&&v<10)add(50,"VENTAJA AJUSTADA","av",`${c1(v)} puntos sobre ${s.segunda}`,SUB);
