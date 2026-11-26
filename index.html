@@ -52,7 +52,7 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 .fav{cursor:pointer;color:#6b4a1c;font-size:16px;padding:0 4px 0 0}.fav.on{color:#ffd228}
 .hoy{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer}.hoy b{font-size:15px}.hoy .acc{color:#5adc78;margin-top:3px}
 .favb{background:var(--p);color:#ffd228;border:1px solid var(--l);border-radius:8px;padding:9px 14px;font-weight:700;font-size:15px;margin-left:8px;cursor:pointer}
-@media(max-width:560px){.tabs{display:grid;grid-template-columns:repeat(5,1fr)}.tabs button{max-width:none;font-size:12px}#tArq{font-size:10.5px;letter-spacing:-.2px}}
+@media(max-width:560px){.tabs{display:grid;grid-template-columns:repeat(5,1fr)}.tabs button{max-width:none;font-size:12px}#tArq,#tAnq{font-size:10.5px;letter-spacing:-.2px}}
 .mieG{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}.mieC{display:flex;gap:10px;align-items:center;background:var(--p);border:1px solid var(--l);border-radius:8px;padding:6px}.mieC b{font-size:12px;overflow-wrap:break-word}
 .cons{max-width:860px}.cons h3{margin:14px 0 6px}.cons ul{margin:0 0 6px;padding-left:20px}.cons li{margin:3px 0}.cons table{min-width:0;margin-bottom:6px}.cons td,.cons th{font-size:13px}.cons .fnt{font-size:12px;color:#b06a10;margin-top:14px}.cons a{color:#ff8c00}
 .vper{display:flex;gap:6px}.vper button{flex:1;max-width:120px;background:var(--p);color:var(--v);border:1px solid var(--l);border-radius:8px;padding:7px 4px;font-weight:700;cursor:pointer}.vper button.on{background:#5aaaff;color:#000;border-color:#5aaaff}
@@ -110,7 +110,7 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 <div id="defensa" hidden></div>
 <div id="fijaBar" hidden></div>
 <div id="atk" hidden><div class="atkc" id="atkc"></div></div>
-<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button><button id="tGra" data-v="gra">Gráficos</button><button id="tCro" data-v="cro">Crónica</button><button id="tCon" data-v="con">Consejos</button><button id="tArq" data-v="arq">Arquitectos</button><button id="tMie" data-v="mie">Miembros</button></div>
+<div class="tabs"><button id="tTabla" class="on" data-v="tabla">Tabla</button><button id="tRadar" data-v="radar">Radar</button><button id="tHoy" data-v="hoy">Hoy</button><button id="tPP" data-v="pp">Powerplay</button><button id="tVis" data-v="vis">Visitas</button><button id="tEvo" data-v="evo">Evolución</button><button id="tGra" data-v="gra">Gráficos</button><button id="tCro" data-v="cro">Crónica</button><button id="tCon" data-v="con">Consejos</button><button id="tArq" data-v="arq">Arquitectos</button><button id="tMie" data-v="mie">Miembros</button><button id="tAnq" data-v="anq">Anarquías</button></div>
 <div id="vHoy" hidden style="padding:0 16px 12px"></div>
 <div id="vEvo" hidden style="padding:0 16px 12px"></div>
 <div id="vGra" hidden style="padding:0 16px 12px;position:relative"></div>
@@ -118,6 +118,7 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 <div id="vCon" hidden style="padding:0 16px 12px"></div>
 <div id="vArq" hidden style="padding:0 16px 12px"></div>
 <div id="vMie" hidden style="padding:0 16px 12px"></div>
+<div id="vAnq" hidden style="padding:0 16px 12px"></div>
 <div id="vPP" hidden style="padding:0 16px 12px"></div>
 <div id="vVis" hidden style="padding:0 16px 12px"></div>
 <div id="vRadar" hidden><div id="rexp" hidden></div><canvas id="rad"></canvas>
