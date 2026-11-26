@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.25";
+const VERSION="v1.26";
 const NOVEDADES=[
+ ["v1.26","26/11/2026",["Pestaña Anarquías (versión previa a Law & Disorder): los sistemas anárquicos a 30 ly o menos de cada sistema que controla CDSN, con la distancia, su facción y estado, población y puerto grande","Dos vistas: por sistema nuestro o por anárquico; NUEVO 🆕 durante 7 días cuando aparece uno; se actualiza una vez al día (EDSM)","Desde el 9/12 también cuenta los sistemas Criminales de Law & Disorder"]],
  ["v1.25","26/11/2026",["Historial de 60 días (escucha v12.5): en Gráficos › Influencia, CDSN contra las otras facciones del sistema","Zonas de conflicto por día y portanaves de los últimos 60 días, en Gráficos y en la ficha de cada sistema"]],
  ["v1.24.3","26/11/2026",["Arreglado: salía ESTACIÓN DAÑADA por una obra en construcción (o ya terminada). Ahora solo avisa de daños, ataques, reparaciones o abandono de verdad"]],
  ["v1.24.2","26/11/2026",["El próximo tick sale pequeño arriba, junto al último mensaje de EDDN (antes ocupaba una tarjeta entera)"]],
@@ -211,7 +212,7 @@ function pinta(){
     if(abiertos.has(s.sys))h+=`<tr class="det"><td colspan="11"><div style="max-width:520px">${arqCard(s.sys)}</div>${detalle(s)}</td></tr>`;}
   document.getElementById("tb").innerHTML=h;
   radarDatos();
-  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();if(!document.getElementById("vArq").hidden)pintaArq();if(!document.getElementById("vMie").hidden)pintaMie();
+  if(!document.getElementById("vHoy").hidden)pintaHoy();if(!document.getElementById("vPP").hidden)pintaPP();if(!document.getElementById("vVis").hidden)pintaVis();if(!document.getElementById("vEvo").hidden)pintaEvo();else guardaDia();if(!document.getElementById("vGra").hidden)pintaGra();if(!document.getElementById("vCro").hidden)pintaCro();if(!document.getElementById("vCon").hidden)pintaCon();if(!document.getElementById("vArq").hidden)pintaArq();if(!document.getElementById("vMie").hidden)pintaMie();if(!document.getElementById("vAnq").hidden)pintaAnq();
 }
 function grafica(h){
   if(!h||h.length<2)return'<span class="sub">histórico: aprendiendo...</span>';
@@ -427,7 +428,7 @@ const suelta=e=>{if(!R_.pt.has(e.pointerId))return;const p=pos(e);R_.pt.delete(e
 cv.addEventListener("pointerup",suelta);cv.addEventListener("pointercancel",suelta);
 cv.addEventListener("wheel",e=>{e.preventDefault();const p=pos(e);zoomEn(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
 cv.addEventListener("dblclick",e=>e.preventDefault());
-const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro",con:"vCon",arq:"vArq",mie:"vMie"};
+const VISTAS={tabla:"vTabla",radar:"vRadar",hoy:"vHoy",pp:"vPP",vis:"vVis",evo:"vEvo",gra:"vGra",cro:"vCro",con:"vCon",arq:"vArq",mie:"vMie",anq:"vAnq"};
 // ---------- contador de visitas anonimo (GoatCounter, cdsngoatcountercom.goatcounter.com) ----------
 // Sin cookies ni scripts de fuera: una imagen de 1 pixel por pagina y por pestaña vista (una vez por pestaña y carga).
 const CONTADOR="https://cdsngoatcountercom.goatcounter.com/count",CONTADAS=new Set();
@@ -439,7 +440,7 @@ function vista(v){
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
-  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();if(v=="arq")pintaArq();if(v=="mie")pintaMie();
+  if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();if(v=="arq")pintaArq();if(v=="mie")pintaMie();if(v=="anq")pintaAnq();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
 try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
@@ -1086,3 +1087,49 @@ function pintaCon(){const v=document.getElementById("vCon");if(!v)return;const S
   v.innerHTML=`<div class="cons"><h3>Ahora mismo</h3>${ya||'<p class="sub">Ningún conflicto en marcha.</p>'}`+
    (L.length?`<details class="ley"><summary>Cerca de la retirada (${nr}) o de la expansión (${ne}) · toca para ver</summary>${ot}</details>`:"")+CONS_TXT+"</div>";
   v.onclick=e=>{const d=e.target.closest("[data-s]");if(d&&!e.target.closest(".cp"))abreFicha(d.dataset.s)}}
+// ---------- v1.26: pestaña Anarquías (anarquicos.json de cdsn-datos, lo calcula GitHub Actions una vez al día) ----------
+const ANQ_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/anarquicos.json";
+let ANQ=null,ANQ_T=0,ANQ_CARGANDO=false,ANQ_Q="",ANQ_MODO="nuestro",ANQ_L=false,ANQ_AB=new Set();
+async function cargaAnq(){if(ANQ_CARGANDO||(ANQ&&Date.now()-ANQ_T<30*60e3))return;ANQ_CARGANDO=true;
+  try{const r=await fetch(ANQ_URL+"?"+Date.now());if(r.ok){ANQ=await r.json();ANQ_T=Date.now()}}catch(e){}
+  ANQ_CARGANDO=false;if(!document.getElementById("vAnq").hidden)pintaAnq()}
+function anqEsNuevo(a){return!!(ANQ&&a.primero>0&&(ANQ.t-a.primero)<(ANQ.dias_nuevo||7)*86400)}
+const ANQ_EST={War:"Guerra",CivilWar:"Guerra civil",Election:"Elecciones",Boom:"Auge",Bust:"Crisis",CivilUnrest:"Disturbios",Famine:"Hambruna",Outbreak:"Epidemia",Lockdown:"Confinamiento",Retreat:"Retirada",Expansion:"Expansión",Investment:"Inversión",PirateAttack:"Ataque pirata",Drought:"Sequía",Blight:"Plaga",InfrastructureFailure:"Fallo de infraestructura",NaturalDisaster:"Desastre natural",PublicHoliday:"Festivo",Terrorism:"Terrorismo",None:"",null:""};
+function anqEst(e){if(!e)return"";const k=String(e).replace(/\s+/g,"");return ANQ_EST[k]!==undefined?ANQ_EST[k]:e}
+function anqGov(g){return/crimin/i.test(g||"")?'<span style="color:#d070ff;font-weight:700">Criminal</span>':'<span style="color:#ff5050">Anarquía</span>'}
+function anqPad(p){return p=="L"?'<b style="color:#4cd964">L</b>':p=="M"?"M":p=="-"?'<span class="sub">—</span>':'<span class="sub">?</span>'}
+function anqFila(n,ly,a,extra){return`<tr><td>${anqEsNuevo(a)?'<b style="color:#ffd60a">🆕</b> ':""}${esc(n)}${CP(n)}</td><td class="num">${c1(ly)}</td><td>${anqGov(a.gov)}</td><td class="sub">${esc(a.fac||"—")}${a.est&&anqEst(a.est)?` · <span style="color:#ff8c00">${esc(anqEst(a.est))}</span>`:""}</td><td class="num sub">${pob(a.pob||null)}</td><td class="num">${anqPad(a.pad)}</td>${extra||""}<td class="sub"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(n)}">Inara ↗</a></td></tr>`}
+function pintaAnq(){const v=document.getElementById("vAnq");if(!v)return;
+  if(!ANQ){v.innerHTML=`<div class="cons"><h3>🏴‍☠️ Anarquías cerca</h3><p class="sub">${ANQ_CARGANDO?"Cargando…":"Aún no hay datos. Se calculan una vez al día; si acabas de estrenar la pestaña, vuelve en un rato."}</p></div>`;cargaAnq();return}
+  cargaAnq();
+  const A=ANQ.anarquicos||{},N=ANQ.nuestros||{},q=ANQ_Q.toLowerCase(),R=ANQ.radio||30;
+  const ok=n=>{const a=A[n];return a&&(!ANQ_L||a.pad=="L")};
+  const nAnq=Object.keys(A).filter(ok).length,nNue=Object.values(A).filter(anqEsNuevo).length,nCri=Object.values(A).filter(a=>/crimin/i.test(a.gov||"")).length;
+  const conAnq=Object.values(N).filter(s=>s.anq.some(([n])=>ok(n))).length;
+  const cab='<tr><th>Sistema</th><th>ly</th><th>Gobierno</th><th>Facción · estado</th><th>Población</th><th>Puerto</th>';
+  let cuerpo="";
+  if(ANQ_MODO=="nuestro"){
+    const L=Object.entries(N).map(([n,s])=>[n,s.anq.filter(([x])=>ok(x))]).filter(([n,l])=>!q||n.toLowerCase().includes(q)||l.some(([x])=>x.toLowerCase().includes(q)))
+      .sort((a,b)=>(a[1].length?a[1][0][1]:1e9)-(b[1].length?b[1][0][1]:1e9)||a[0].localeCompare(b[0],"es"));
+    cuerpo=L.map(([n,l])=>{const ab=ANQ_AB.has(n)||!!q;const cerca=l.length?l[0][1]:null;
+      return`<div class="cons" style="margin:8px 0;padding:8px 10px"><div data-ab="${esc(n)}" style="display:flex;justify-content:space-between;gap:8px;cursor:pointer;align-items:center"><div><b style="color:#ff8c00">■ ${esc(n)}</b>${CP(n)} <span data-s="${esc(n)}" class="sub" style="cursor:pointer;text-decoration:underline">ficha</span></div><div class="sub" style="white-space:nowrap">${l.length?`<b style="color:${cerca<10?"#ff5050":cerca<20?"#ff8c00":"var(--v)"}">${l.length}</b> anárquico${l.length>1?"s":""} · el más cerca a <b>${c1(cerca)} ly</b>`:"ninguno"} ${l.length?(ab?"▾":"▸"):""}</div></div>
+${ab&&l.length?`<div class="tw" style="padding:0;margin-top:6px"><table>${cab}<th></th></tr>${l.map(([x,ly])=>anqFila(x,ly,A[x])).join("")}</table></div>`:""}</div>`}).join("")||'<p class="sub">Nada con ese nombre.</p>';
+  }else{
+    const L=Object.entries(A).filter(([n])=>ok(n)).filter(([n,a])=>!q||n.toLowerCase().includes(q)||Object.keys(a.cerca).some(x=>x.toLowerCase().includes(q))||(a.fac||"").toLowerCase().includes(q)).sort((a,b)=>a[1].min-b[1].min);
+    cuerpo=`<div class="tw" style="padding:0"><table>${cab}<th>Cerca de</th><th></th></tr>${L.map(([n,a])=>{const c=Object.entries(a.cerca).sort((x,y)=>x[1]-y[1]);
+      return anqFila(n,a.min,a,`<td class="sub">${c.slice(0,3).map(([x,ly])=>`<span data-s="${esc(x)}" style="color:#ff8c00;cursor:pointer">${esc(x)}</span> ${c1(ly)}`).join(" · ")}${c.length>3?` <b>+${c.length-3}</b>`:""}</td>`)}).join("")||'<tr><td colspan=8 class="sub">Nada con ese nombre.</td></tr>'}</table></div>`;
+  }
+  v.innerHTML=`<div class="cons"><h3>🏴‍☠️ Anarquías cerca de CDSN</h3>
+<div style="margin:6px 0 10px;padding:8px 10px;border:1px solid #ffd60a;border-radius:8px;background:rgba(255,214,10,.08)">⚠ <b>${esc(ANQ.nota||"Versión previa a Law & Disorder")}</b>. Con la actualización, las anarquías habitadas pasan a ser <b>sistemas Criminales</b> (con sus propias autoridades y recompensas); esta pestaña ya los cuenta y se repasará cuando salga.</div>
+<p>Sistemas <b>anárquicos</b> a <b>${R} ly o menos</b> de cada sistema que <b>controla CDSN</b>. Son el sitio de donde suelen venir piratas y facciones que se expanden hacia nosotros. Toca ⧉ para copiar el nombre y pegarlo en el mapa de la galaxia.</p>
+<p><b>${nAnq}</b> anárquicos cerca de <b>${conAnq}</b> de nuestros ${Object.keys(N).length} sistemas${nNue?` · <b style="color:#ffd60a">${nNue} nuevo${nNue>1?"s":""} 🆕</b>`:""}${nCri?` · <b style="color:#d070ff">${nCri} criminales</b>`:""} · <span class="sub">actualizado hace ${hace(ANQ.t)} (${esc(ANQ.fuente||"EDSM")}, una vez al día)</span>${(ANQ.errores||[]).length?` <span class="sub">· sin datos hoy: ${ANQ.errores.length}</span>`:""}</p>
+<div class="ctl" style="padding:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><input type="search" id="anqQ" placeholder="Buscar sistema o facción..." value="${esc(ANQ_Q)}" style="flex:1 1 200px">
+<span class="tabs" style="padding:0;flex:0 1 auto"><button data-m="nuestro" class="${ANQ_MODO=="nuestro"?"on":""}">Nuestros</button><button data-m="anq" class="${ANQ_MODO=="anq"?"on":""}">Anárquicos</button></span>
+<label><input type="checkbox" id="anqL"${ANQ_L?" checked":""}> solo puerto L</label></div>
+${cuerpo}
+<p class="sub" style="margin-top:10px">Distancias en años luz (ly) en línea recta. Puerto: <b>L</b> = hay estación con plataforma grande, M = solo puestos avanzados, — = sin estaciones. 🆕 = apareció en los últimos ${ANQ.dias_nuevo||7} días. Datos de EDSM: pueden ir algo retrasados si nadie ha pasado por el sistema.</p></div>`;
+  v.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{ANQ_MODO=b.dataset.m;pintaAnq()});
+  document.getElementById("anqL").onchange=e=>{ANQ_L=e.target.checked;pintaAnq()};
+  v.onclick=e=>{if(e.target.closest("a,button,[data-cp],input,label"))return;const s_=e.target.closest("[data-s]");if(s_){abreFicha(s_.dataset.s);return}
+    const t=e.target.closest("[data-ab]");if(t){const n=t.dataset.ab;ANQ_AB.has(n)?ANQ_AB.delete(n):ANQ_AB.add(n);pintaAnq()}};
+  const i=document.getElementById("anqQ");i.oninput=()=>{ANQ_Q=i.value;const p=i.selectionStart;pintaAnq();const j=document.getElementById("anqQ");j.focus();j.setSelectionRange(p,p)}}

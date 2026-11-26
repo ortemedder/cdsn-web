@@ -6,6 +6,7 @@ alertas, conflictos, facciones, tick, visitas, Powerplay, zonas de conflicto, po
 - Lee `faccion.json` del repositorio [ortemedder/cdsn-datos](https://github.com/ortemedder/cdsn-datos),
   que sube cada 15 min el escucha de EDDN.
 - Es una sola página (`index.html`), sin servidor: se publica con GitHub Pages.
+- La pestaña **Anarquías** lee `anarquicos.json` (cdsn-datos): anárquicos a ≤30 ly de cada sistema que controla CDSN, calculado una vez al día con EDSM.
 - Se refresca sola cada 5 minutos. Tocando un sistema se ve todo su detalle.
 
 Creado por CMDR ORTEM ED DER (ortemedder@gmail.com) con Claude.
