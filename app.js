@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.26";
+const VERSION="v1.27";
 const NOVEDADES=[
+ ["v1.27","26/11/2026",["RESISTENCIA de cada sistema (alta, media o baja): ventaja sobre la segunda, número de facciones, población, si es minero (economía o un overlap de hotspots a 20 ly o menos) y si la estación es de CDSN. Sale en la ficha con sus motivos","PROBABLE POWERPLAY ⚡ (naranja) en vez de POSIBLE ATAQUE cuando hay pico de visitas, Powerplay en el sistema, portanaves y la bajada es pequeña","Con resistencia alta y una bajada de menos de 3 puntos, el aviso baja a ACTIVIDAD INUSUAL","Overlaps de minería (Platino, Painita y LTD) cerca de cada sistema, en la ficha","Con el escucha v12.6: anillos del sistema (tipo y si están vírgenes), sus hotspots y los minerales que compran nuestras estaciones; también cuentan para la resistencia"]],
  ["v1.26","26/11/2026",["Pestaña Anarquías (versión previa a Law & Disorder): los sistemas anárquicos a 30 ly o menos de cada sistema que controla CDSN, con la distancia, su facción y estado, población y puerto grande","Dos vistas: por sistema nuestro o por anárquico; NUEVO 🆕 durante 7 días cuando aparece uno; se actualiza una vez al día (EDSM)","Desde el 9/12 también cuenta los sistemas Criminales de Law & Disorder"]],
  ["v1.25","26/11/2026",["Historial de 60 días (escucha v12.5): en Gráficos › Influencia, CDSN contra las otras facciones del sistema","Zonas de conflicto por día y portanaves de los últimos 60 días, en Gráficos y en la ficha de cada sistema"]],
  ["v1.24.3","26/11/2026",["Arreglado: salía ESTACIÓN DAÑADA por una obra en construcción (o ya terminada). Ahora solo avisa de daños, ataques, reparaciones o abandono de verdad"]],
@@ -165,7 +166,10 @@ function alerta(s){
   if(s.inf>0&&s.inf<2.5)return[2,"RETIRADA INMINENTE",`${c1(s.inf)} % · ${dBajo(s)} por debajo del 2,5 % (se va a los 5–6)`,"gr","",true,true];
   const vent=s.inf-(s.segunda_inf||0);
   if(s.ctrl&&vent<5)return[2,"VENTAJA BAJA",`solo ${c1(vent)} sobre ${s.segunda}`,"gr"];
-  const at=ataque(s);if(at&&at.baja)return[2,"POSIBLE ATAQUE",at.txt,"gr","",false,true];
+  const at=ataque(s);if(at&&at.baja){const pw=ppProb(s),r=resist(s);   // v1.27: explicacion probable y resistencia
+    if(pw)return[1,"PROBABLE POWERPLAY",`${at.txt} · ${pw} · resistencia ${r.niv}`,"av","⚡"];
+    if(r.niv=="alta"&&s.prev-s.inf<3)return[1,"ACTIVIDAD INUSUAL",`${at.txt} · resistencia alta: poco preocupante`,"av"];
+    return[2,"POSIBLE ATAQUE",`${at.txt} · resistencia ${r.niv}`,"gr","",false,true]}
   if(s.prev!=null&&s.prev-s.inf>=3)return[1,"BAJADA",`${c1(s.inf-s.prev)} desde ayer`,"av"];
   if(at&&!at.sube)return[1,"ACTIVIDAD INUSUAL",at.txt,"av"];
   if(at)return[1,"ACTIVIDAD A FAVOR",at.txt+" (gente propia o ayuda externa)","fa"];
@@ -271,6 +275,7 @@ function zona(){
 async function carga(){
   try{
     D=await fetch(DATOS+"?"+Date.now()).then(r=>r.json());AMZ=amenazas();
+    try{await cargaAnq()}catch(x){}   // v1.27: overlaps para la resistencia
     try{const t=await fetch(FIJA_URL+"?"+Date.now()).then(r=>r.ok?r.text():"");   // las lineas con # no salen; --- separa noticias
       FIJA=t.split(/^---\s*$/m).map(b=>b.split("\n").filter(l=>!l.trim().startsWith("#")).join("\n").trim()).filter(Boolean)
         .map(b=>{const[a,...r]=b.split("\n");return[a.trim(),r.join("\n").trim()]})}catch(x){}
@@ -379,7 +384,7 @@ function tocaEn(x,y){
 function fichaHTML(o){const s=o.s,v=s.inf-(s.segunda_inf||0);
   return`<b style="font-size:17px;color:${s.ctrl?"#fff":"#ff8c00"}">${esc(s.sys)}</b>${CP(s.sys)} ${s.ctrl?"<span class='sub'>(controlado)</span>":""}
    ${o.niv?`<div style="margin:4px 0">${TAG(o.al)} <span class="sub">${esc(o.al[2])}</span></div>`:""}
-   ${arqCard(s.sys)}
+   ${arqCard(s.sys)}${resistHTML(s)}
    <div class="sub" style="margin:4px 0">Influencia ${c1(s.inf)} % · ventaja ${c1(v)} · ${s.prev!=null?"ayer "+(s.inf-s.prev>0?"+":"")+c1(s.inf-s.prev)+" · ":""}dato de hace ${hace(s.t)}</div>
    <div style="margin:6px 0 4px"><a target="_blank" rel="noopener" style="color:#ff8c00" href="https://inara.cz/elite/starsystem/?search=${encodeURIComponent(s.sys)}">Inara ↗</a> &nbsp; <a target="_blank" rel="noopener" style="color:#ff8c00" href="https://spansh.co.uk/search/${encodeURIComponent(s.sys)}">Spansh ↗</a> <span class="sub">(arquitecto, estaciones…)</span></div>`}
 function ficha(o){   // un toque: linea corta bajo el radar
@@ -468,7 +473,9 @@ function tareas(){
     if(act.includes("Retreat")||pen.includes("Retreat"))add(95,"RETIRADA","gr",`influencia ${c1(s.inf)} %, CDSN puede salir del sistema`,SUB);
     else if(s.inf>0&&s.inf<2.5)add(99,"RETIRADA INMINENTE","gr",`${c1(s.inf)} %, ${dBajo(s)} por debajo del 2,5 %: si sigue así 5–6 días, CDSN sale del sistema`,SUB,"",true);
     else if(s.inf<5)add(85,"RIESGO RETIRADA","gr",`influencia ${c1(s.inf)} %, por debajo del 5 %`,SUB);
-    else if(ataque(s)?.baja)add(88,"POSIBLE ATAQUE","gr",ataque(s).txt+": puede que alguien esté trabajando contra CDSN",SUB);
+    else if(ataque(s)?.baja&&alerta(s)[1]=="PROBABLE POWERPLAY")add(58,"PROBABLE POWERPLAY","av",alerta(s)[2],"Seguramente son pilotos de Powerplay y no un ataque al BGS. Vigilar la influencia en el próximo tick; si sigue bajando, "+SUB.toLowerCase());
+    else if(ataque(s)?.baja&&alerta(s)[1]=="POSIBLE ATAQUE")add(88,"POSIBLE ATAQUE","gr",alerta(s)[2]+": puede que alguien esté trabajando contra CDSN",SUB);
+    else if(ataque(s)?.baja&&alerta(s)[1]=="ACTIVIDAD INUSUAL")add(52,"ACTIVIDAD INUSUAL","av",alerta(s)[2],"Vigilar la influencia en el próximo tick");
     else if(s.ctrl&&v<5)add(80,"VENTAJA BAJA","gr",`solo ${c1(v)} puntos sobre ${s.segunda}: puede haber conflicto por el control`,SUB);
     else if(s.prev!=null&&s.prev-s.inf>=3)add(60,"BAJADA","av",`${c1(s.inf-s.prev)} puntos desde ayer`,SUB);
     else if(ataque(s)?.sube)add(45,"ACTIVIDAD A FAVOR","fa",ataque(s).txt+": alguien trabaja a favor de CDSN (gente propia o ayuda externa)","Seguir así; si no es nuestra gente, averiguar quién nos ayuda");
@@ -594,7 +601,7 @@ function diasAtras(n){const d=new Date();d.setUTCDate(d.getUTCDate()-n);return d
 function pintaVis(){
   if(!D)return;
   const dias=VP==-1?[diasAtras(1)]:[...Array(VP).keys()].map(diasAtras),ult5=[...Array(5).keys()].map(diasAtras).reverse();
-  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>{const t=s.trafico||{};const t1=alerta(s)[1];return{s,at:t1=="POSIBLE ATAQUE"?3:t1=="ACTIVIDAD INUSUAL"?2:t1=="ACTIVIDAD A FAVOR"?1:0,n:dias.reduce((a,d)=>a+(t[d]||0),0),serie:ult5.map(d=>t[d]||0)}});
+  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>{const t=s.trafico||{};const t1=alerta(s)[1];return{s,at:t1=="POSIBLE ATAQUE"?3:t1=="ACTIVIDAD INUSUAL"||t1=="PROBABLE POWERPLAY"?2:t1=="ACTIVIDAD A FAVOR"?1:0,n:dias.reduce((a,d)=>a+(t[d]||0),0),serie:ult5.map(d=>t[d]||0)}});
   const tot=L.reduce((a,o)=>a+o.n,0),con=L.filter(o=>o.n>0||o.at).sort((a,b)=>b.at-a.at||b.n-a.n||b.s.inf-a.s.inf),mx=con.length?con[0].n:1;
   const sp=v=>{const m=Math.max(1,...v);return`<span class="spk">${v.map(x=>`<i style="height:${x?Math.max(2,Math.round(x/m*18)):1}px;${x?"":"background:#3a2a12"}"></i>`).join("")}</span>`};
   document.getElementById("vVis").innerHTML=`<div class="vper">${VPS.map(([d,n])=>`<button data-d="${d}" class="${d==VP?"on":""}">${n}</button>`).join("")}</div>
@@ -1089,7 +1096,7 @@ function pintaCon(){const v=document.getElementById("vCon");if(!v)return;const S
   v.onclick=e=>{const d=e.target.closest("[data-s]");if(d&&!e.target.closest(".cp"))abreFicha(d.dataset.s)}}
 // ---------- v1.26: pestaña Anarquías (anarquicos.json de cdsn-datos, lo calcula GitHub Actions una vez al día) ----------
 const ANQ_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/anarquicos.json";
-let ANQ=null,ANQ_T=0,ANQ_CARGANDO=false,ANQ_Q="",ANQ_MODO="nuestro",ANQ_L=false,ANQ_AB=new Set();
+var ANQ=null,ANQ_T=0,ANQ_CARGANDO=false,ANQ_Q="",ANQ_MODO="nuestro",ANQ_L=false,ANQ_AB=new Set();
 async function cargaAnq(){if(ANQ_CARGANDO||(ANQ&&Date.now()-ANQ_T<30*60e3))return;ANQ_CARGANDO=true;
   try{const r=await fetch(ANQ_URL+"?"+Date.now());if(r.ok){ANQ=await r.json();ANQ_T=Date.now()}}catch(e){}
   ANQ_CARGANDO=false;if(!document.getElementById("vAnq").hidden)pintaAnq()}
@@ -1133,3 +1140,37 @@ ${cuerpo}
   v.onclick=e=>{if(e.target.closest("a,button,[data-cp],input,label"))return;const s_=e.target.closest("[data-s]");if(s_){abreFicha(s_.dataset.s);return}
     const t=e.target.closest("[data-ab]");if(t){const n=t.dataset.ab;ANQ_AB.has(n)?ANQ_AB.delete(n):ANQ_AB.add(n);pintaAnq()}};
   const i=document.getElementById("anqQ");i.oninput=()=>{ANQ_Q=i.value;const p=i.selectionStart;pintaAnq();const j=document.getElementById("anqQ");j.focus();j.setSelectionRange(p,p)}}
+
+// ---------- v1.27: resistencia del sistema y explicacion probable de las alertas ----------
+// Resistencia = lo dificil que es bajar a CDSN: ventaja sobre la 2.a, facciones (la bajada se reparte), poblacion,
+// si es minero (economia Extraccion/Refineria u overlap de hotspots cerca: el comercio sube a CDSN) y estacion propia.
+const ECO_MIN=/extraction|refinery/i;
+function resist(s){const r=[];let p=0;
+  const v=s.inf-(s.segunda_inf||0);
+  if(v>=30){p+=3;r.push(`ventaja de ${c1(v)} puntos`)}else if(v>=15){p+=2;r.push(`ventaja de ${c1(v)}`)}else if(v>=8){p+=1;r.push(`ventaja justa (${c1(v)})`)}else r.push(`ventaja escasa (${c1(v)})`);
+  const nf=(s.todas||[]).length;if(nf>=7){p+=2;r.push(`${nf} facciones (la bajada se reparte)`)}else if(nf>=5){p+=1;r.push(`${nf} facciones`)}else if(nf)r.push(`solo ${nf} facciones`);
+  const pob=(s.sis||{}).pob||0;if(pob>=1e9){p+=2;r.push("población muy alta")}else if(pob>=1e6){p+=1;r.push("población media")}else if(pob)r.push("población baja (se mueve fácil)");
+  const eco=((s.sis||{}).eco||"")+" "+((s.sis||{}).eco2||"");if(ECO_MIN.test(eco)){p+=1;r.push("economía minera")}
+  const ov=((ANQ&&ANQ.ovl_cerca)||{})[s.sys],mi=minSis(s);   // v1.27: overlaps + datos de mineria del escucha v12.6
+  if((ov&&ov.length&&ov[0][2]<1)||mi.hotBuenos.length){p+=2;r.push(mi.hotBuenos.length?`hotspots de ${mi.hotBuenos.join(", ")} en el sistema`:`overlap de ${ov[0][1]} en el sistema`)}
+  else if(ov&&ov.length){p+=1;r.push(`overlap de ${ov[0][1]} a ${c1(ov[0][2])} ly`)}
+  else if(mi.virgen){p+=1;r.push("anillo metálico virgen")}
+  if(mi.compra.length){p+=1;r.push(`${mi.compra[0].e} compra ${mi.compra[0].n}`)}
+
+  if(Object.values(s.estaciones||{}).some(e=>e.f==FAC)){p+=1;r.push("estación de CDSN")}
+  p=Math.min(p,10);return{p,niv:p>=6?"alta":p>=3?"media":"baja",r,ov:ov||[],mi}}
+const MIN_BUENOS=["Platinum","Painite","LTD","Void Opals","Osmium"],MIN_ES={Platinum:"Platino",Painite:"Painita",Osmium:"Osmio","Void Opals":"Ópalos del vacío",Monazite:"Monacita",Musgravite:"Musgravita",Serendibite:"Serendibita",Grandidierite:"Grandidierita",Benitoite:"Benitoita",Alexandrite:"Alejandrita",Tritium:"Tritio",Bromellite:"Bromelita"};
+const mes=n=>MIN_ES[n]||n;
+function minSis(s){   // anillos, hotspots y minerales que compran las estaciones (escucha v12.6)
+  const an=Object.entries(s.anillos||{}),hot=Object.entries(s.hot||{});
+  const hotBuenos=[...new Set(hot.flatMap(([k,v])=>Object.keys(v).filter(x=>MIN_BUENOS.includes(x))))].map(mes);
+  const virgen=an.some(([k,v])=>v.res=="Virgen"&&/metal/i.test(v.c||""));
+  const compra=Object.entries(s.estaciones||{}).flatMap(([e,x])=>((x.mer||{}).min||[]).filter(m=>MIN_BUENOS.includes(m.n)&&(m.d||0)>0).map(m=>({e,n:mes(m.n),p:m.p,d:m.d}))).sort((a,b)=>b.p-a.p);
+  return{an,hot,hotBuenos,virgen,compra}}
+function fcRec(s){const t=now()-48*3600;return Object.values(s.pn||{}).filter(v=>(v.t||0)>=t).length}   // portanaves vistos en 48 h
+function ppProb(s){const pp=s.pp||{},pot=pp.pot||(pp.pots||[])[0];if(!pot)return"";
+  if(s.prev!=null&&s.prev-s.inf>=5)return"";                       // bajada grande: no se descarta un ataque
+  const fc=fcRec(s),act=(pp.ref||0)+(pp.soc||0);if(fc<3&&act<500)return"";
+  return`${fc?fc+" portanaves y ":""}Powerplay de ${pot}${pp.ref!=null||pp.soc!=null?` (refuerzo ${pp.ref??"—"} / socavamiento ${pp.soc??"—"})`:""}`}
+function resistHTML(s){if(s.inf==null)return"";const r=resist(s),col={alta:"#4cd964",media:"#ffd60a",baja:"#ff5050"}[r.niv];
+  return`<div style="margin:6px 0;padding:6px 8px;border:1px solid ${col};border-radius:8px;background:rgba(255,255,255,.03)">🛡 <b style="color:${col}">Resistencia ${r.niv.toUpperCase()}</b> <span class="sub">(${r.p} de 10)</span><div class="sub">${r.r.map(esc).join(" · ")}</div>${r.mi.an.length?`<div class="sub">💍 Anillos: ${r.mi.an.map(([k,v])=>`${esc(k.replace(s.sys+" ",""))} (${esc(v.c)}${v.res?", "+esc(v.res):""})`).join(" · ")}</div>`:""}${r.mi.hot.length?`<div class="sub">🔥 Hotspots: ${r.mi.hot.map(([k,v])=>`${esc(k.replace(s.sys+" ",""))}: ${Object.entries(v).filter(([x])=>x!="t").map(([x,n])=>esc(mes(x))+(n>1?" ×"+n:"")).join(", ")}`).join(" · ")}</div>`:""}${r.mi.compra.length?`<div class="sub">💰 Compran: ${r.mi.compra.slice(0,4).map(m=>`${esc(m.n)} a ${m.p.toLocaleString("es")} en ${esc(m.e)}`).join(" · ")}</div>`:""}${r.ov.length?`<div class="sub">⛏ Overlaps cerca: ${r.ov.map(o=>`<b>${esc(o[1])}</b> en ${esc(o[0])}${CP(o[0])} ${o[2]<1?"(aquí)":c1(o[2])+" ly"}`).join(" · ")}</div>`:""}</div>`}
