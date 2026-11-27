@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.31";
 const NOVEDADES=[
- ["v1.31","27/11/2026",["◆ Sistemas IMPRESCINDIBLES: los elige el almirante en imprescindibles.txt (cdsn-datos), por niveles; los de nivel 1 llevan ◆ dorado junto al nombre en todas las listas y en la ficha (los de otros niveles, ◇)","🏛 Sistemas HISTÓRICOS: los heredados (anteriores a la colonización, de arquitectos.txt) llevan 🏛","En un imprescindible de nivel 1, BAJADA, ACTIVIDAD INUSUAL y PROBABLE POWERPLAY pasan de aviso a grave (rojo), salta VENTAJA BAJA con menos de 10 puntos (en vez de 5) y BAJADA desde 1,5 puntos (en vez de 3)","El parte de la IA los tiene en cuenta y los pone primero","La Crónica más limpia: los avisos «Expansión activo» de cada sistema se juntan en una sola noticia al día, y los «Elecciones/Guerra activo» repetidos ya no salen si está la noticia del conflicto"]],
+ ["v1.31","27/11/2026",["◆ Sistemas IMPRESCINDIBLES: los elige el almirante en imprescindibles.txt (cdsn-datos), por niveles; los de nivel 1 llevan ◆ dorado junto al nombre en todas las listas y en la ficha (los de otros niveles, ◇)","🏛 Sistemas HISTÓRICOS: los heredados (anteriores a la colonización, de arquitectos.txt) llevan 🏛","En un imprescindible de nivel 1, BAJADA, ACTIVIDAD INUSUAL y PROBABLE POWERPLAY pasan de aviso a grave (rojo), salta VENTAJA BAJA con menos de 10 puntos (en vez de 5) y BAJADA desde 1,5 puntos (en vez de 3)","El parte de la IA los tiene en cuenta y los pone primero","La Crónica más limpia: el Vecindario en una sola noticia al día (toca «ver resumen» para ver cada facción); las retiradas de otras facciones en nuestros sistemas pasan a la nueva sección 🎯 Oportunidades (dejan hueco para crecer); los avisos «Expansión activo» de cada sistema se juntan en una sola noticia al día, y los «Elecciones/Guerra activo» repetidos ya no salen si está la noticia del conflicto"]],
  ["v1.30","27/11/2026",["🛰 Nuevo sello del Informe de inteligencia: tira de papel descifrada «SIGINT // CDSN // CRÍTICO, VIGILANCIA o NOMINAL // fecha», en rojo, ámbar o verde según el riesgo del parte, con letra de máquina de escribir gastada (sustituye a «ACCESO: ALMIRANTAZGO»)","📌 La noticia fija del almirante ya no sale en la franja amarilla de arriba (se cortaba y no se leía): ahora va entera en La Crónica, justo debajo del Informe de inteligencia, como COMUNICADO DEL ALMIRANTE"]],
  ["v1.29","27/11/2026",["La Crónica de Sion renovada: emblemas, estrellas, banda HUD con AÑO y N.º de edición (fecha galáctica) y las noticias de hoy, teletipo con los titulares, colores por sección y sellos de URGENTE","La web abre ahora en La Crónica","ÚLTIMA HORA en una franja roja compacta (solo si hay algo urgente en 24 h); la portada es el Informe de inteligencia","El parte de la IA como INFORME DE INTELIGENCIA, con semáforo de riesgo y la cinta de telegrama «puede tener errores de desencriptado»","🔊 Escuchar parte: lo lee en voz alta con la voz del móvil u ordenador","Si el parte llega roto: ⚠ TRANSMISIÓN INTERCEPTADA POR FUERZAS HOSTILES","La noticia fija pasa al final, como reportaje"]],
  ["v1.28","27/11/2026",["🧠 PARTE DEL DÍA en La Crónica: cada día a las 15:00 la IA (Claude) escribe el parte de inteligencia de CDSN: titular, lo esencial, puntos clave, qué hacer hoy y una oportunidad","Los sistemas del parte se pueden tocar para abrir su ficha; si la IA cita un sistema que no conocemos, sale marcado ⚠","Debajo, quién lo escribió, cuántos sistemas estaban al día tras el tick y lo que costó; y los partes de días anteriores","Franja con el titular arriba de Hoy","Durante la prueba salen juntos los partes de Haiku, Sonnet y Opus para compararlos"]],
@@ -895,7 +895,7 @@ function pintaGra(){
 
 // ---------- pestaña Crónica: La Crónica de Sion (los avisos del escucha v11.6 como periódico) ----------
 // D.noticias = [[hora, texto, seccion, urgente, sistema], ...] (las 300 ultimas, la mas nueva al final)
-const SECS=[["","Todas"],["cronica","📌 Almirante"],["conflictos","⚔ Conflictos"],["expansion","🛸 Expansión"],["vecindario","🔭 Vecindario"],["obras","🏗 Obras"],["estaciones","🏢 Estaciones"],["poblacion","👥 Población"],["actividad","📈 Actividad"],["thargoides","👾 Thargoides"],["resumen","📊 Resúmenes"]];
+const SECS=[["","Todas"],["cronica","📌 Almirante"],["conflictos","⚔ Conflictos"],["expansion","🛸 Expansión"],["vecindario","🔭 Vecindario"],["oportunidad","🎯 Oportunidades"],["obras","🏗 Obras"],["estaciones","🏢 Estaciones"],["poblacion","👥 Población"],["actividad","📈 Actividad"],["thargoides","👾 Thargoides"],["resumen","📊 Resúmenes"]];
 let CS="";   // seccion elegida
 const negritas=t=>esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
 const sinMarcas=t=>String(t).replace(/\*\*/g,"").replace(/^[^\p{L}\p{N}]+/u,"").trim();   // sin negritas ni el icono del principio
@@ -907,11 +907,18 @@ function diaTit(t){const d=new Date(t*1000),h=new Date(),a=new Date(Date.now()-8
 // «📣 X: Elecciones/Guerra activo» sobra si ya hay la noticia del conflicto (✉/⚔) de ese sistema en 24 h
 function agrupaNot(L){const dia=t=>new Date(t*1000).toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),G={},out=[];
   const conf=L.filter(n=>n[2]=="conflictos"&&/^(✉️|⚔️?)/.test(String(n[1])));
-  for(const n of L){const t=String(n[1]).replace(/\*\*/g,"");let m=t.match(/^📣 (.+?): Expansión activo$/);
+  const V={};
+  for(let n of L){const t=String(n[1]).replace(/\*\*/g,"");
+    if(t.startsWith("🏃"))n=[n[0],n[1],"oportunidad",n[3],n[4],n[5]];   // retirada de otra faccion en un sistema nuestro: hueco para crecer
+    if(n[2]=="vecindario"){const d=dia(n[0]);if(!V[d]){V[d]={n:[n[0],"","vecindario",0,"",""],s:[]};out.push(V[d].n)}V[d].s.push(t);V[d].n[0]=Math.max(V[d].n[0],n[0]);continue}
+    let m=t.match(/^📣 (.+?): Expansión activo$/);
     if(m){const d=dia(n[0]);if(!G[d]){G[d]={n:[n[0],"","expansion",0,"",""],s:[]};out.push(G[d].n)}G[d].s.push(m[1]);G[d].n[0]=Math.max(G[d].n[0],n[0]);continue}
     m=t.match(/^📣 (.+?): (Elecciones|Guerra|Guerra civil) activo$/);
     if(m&&conf.some(c=>String(c[1]).includes(m[1])&&Math.abs(c[0]-n[0])<86400))continue;
     out.push(n)}
+  for(const g of Object.values(V)){const ex=g.s.filter(x=>/está en expansión|prepara una expansión/.test(x)).length,fin=g.s.filter(x=>/terminó su expansión/.test(x)).length,ot=g.s.length-ex-fin;
+    g.n[1]=`🔭 **Vecindario**: ${ex?`${ex} facci${ex==1?"ón":"ones"} en expansión cerca`:""}${ex&&fin?" · ":""}${fin?`${fin} terminaron su expansión`:""}${ot?`${ex||fin?" · ":""}${ot} aviso${ot==1?"":"s"} más`:""}`;
+    g.n[5]=g.s.join("\n")}
   for(const g of Object.values(G)){const S=[...new Set(g.s)];g.n[1]=`📣 **Expansión de CDSN activa** en ${S.length} sistema${S.length==1?"":"s"}: ${S.join(", ")}`;if(S.length==1)g.n[4]=S[0]}
   return out.sort((a,b)=>a[0]-b[0])}
 function pintaCro(){
