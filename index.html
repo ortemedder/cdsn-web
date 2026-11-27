@@ -25,7 +25,14 @@ h1{margin:0;font-size:20px;color:var(--az);letter-spacing:.5px}#est{color:var(--
 .card{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:8px 14px;min-width:120px}
 .card b{display:block;font-size:22px}.card span{color:var(--v);font-size:12px;text-transform:uppercase}
 .ctl{display:flex;flex-wrap:wrap;gap:12px;padding:0 16px 10px;align-items:center}
-input[type=search]{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 10px;border-radius:6px;min-width:200px}
+/* v1.42: buscadores bien visibles: borde naranja, lupa que late y ✕ para borrar */
+input[type=search]{-webkit-appearance:none;appearance:none;background:#1a1206 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff8c00' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='6.5'/%3E%3Cpath d='M15 15l6 6'/%3E%3C/svg%3E") no-repeat 12px center/20px;border:2px solid #ff8c00;color:#ffe9c7;font:inherit;font-size:16px;height:44px;padding:0 12px 0 42px;border-radius:10px;min-width:200px;box-sizing:border-box;animation:lupa 1.8s ease-in-out infinite}
+input[type=search]::placeholder{color:#c9a36a;opacity:1}
+input[type=search]:focus{outline:none;border-color:#ffd228;box-shadow:0 0 0 3px #ffd22833;animation:none;background-size:20px}
+input[type=search]:not(:placeholder-shown){animation:none;background-size:20px}
+input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;width:18px;height:18px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23c9a36a' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") no-repeat center/18px;cursor:pointer}
+@keyframes lupa{0%,100%{background-size:18px}50%{background-size:25px}}
+@media (prefers-reduced-motion:reduce){input[type=search]{animation:none}}
 label{color:var(--nm);cursor:pointer}
 .tw{overflow-x:auto;padding:0 8px 20px}table{border-collapse:collapse;width:100%;min-width:1100px}
 th{position:sticky;top:0;background:var(--p);color:var(--v);text-align:left;font-weight:600;font-size:12px;text-transform:uppercase;padding:8px 6px;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--l)}

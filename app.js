@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.41";
+const VERSION="v1.42";
 const NOVEDADES=[
+ ["v1.42","27/11/2026",["🔍 Buscadores más visibles en todas las pestañas: borde naranja, más altos, lupa que late hasta que escribes y ✕ para borrar de un toque"]],
  ["v1.41","27/11/2026",["👀 Los ojos de las calaveras de la cabecera de La Crónica se encienden según el riesgo del parte del día: rojos y parpadeando rápido (alto), ámbar respirando (medio), verdes casi fijos (bajo) y apagados si no hay parte"]],
  ["v1.40","27/11/2026",["Cinta SIGINT más baja (menos de la mitad): sello mini con el logo a la izquierda, la línea principal limpia y debajo, en pequeño, N.º · RECIBIDO hora y modelo (Haiku) · foco · graves · tick · STOP"]],
  ["v1.39","27/11/2026",["La cinta SIGINT del Informe de inteligencia trae más datos, como un telegrama: ⌖ foco (el sistema más urgente del parte), ▲ alertas graves, ◷ próximo tick y hora del parte con STOP","Lleva estampado el sello del ESTADO MAYOR con el logo de Caballeros de Sion y el número del parte (cada día un poco distinto, como un tampón de verdad)"]],
