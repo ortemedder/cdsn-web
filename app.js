@@ -1,6 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.47";
+const VERSION="v1.48";
+const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
+if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.48","28/11/2026",["🌌 Fondo de la web con una foto del almirante Ortem Ed Der (planeta, estación y SRV); las tarjetas son algo transparentes para que se vea"]],
  ["v1.47","27/11/2026",["🖼 Pantalla de arranque con foto de fondo (captura del almirante Ortem Ed Der) y la versión abajo"]],
  ["v1.46","27/11/2026",["Informe de inteligencia más compacto: la cabecera dice SITREP AM // PARTE MATUTINO o SITREP PM // PARTE VESPERTINO, sin línea aparte, y la cinta lleva el estado y la fecha arriba y el PARTE N.º solo en el pie"]],
  ["v1.45","27/11/2026",["La cabecera de La Crónica dice AÑO · EDICIÓN (una por día) y el informe PARTE N.º (uno por parte de la IA), para no confundirlos","🎉 Noticia cuando Caballeros de Sion entra en un sistema nuevo (con el arquitecto si es de CDSN, ¡enhorabuena!) y 📉 si deja de estar en uno"]],
