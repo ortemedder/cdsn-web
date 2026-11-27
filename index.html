@@ -68,6 +68,10 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 #ataque b{color:var(--r)}
 .cp{background:none;border:1px solid var(--l);color:var(--nm);border-radius:5px;font-size:12px;line-height:1;padding:2px 5px;margin-left:6px;cursor:pointer;vertical-align:middle}.cp:hover{color:#ff8c00;border-color:#ff8c00}
 #toast{position:fixed;left:50%;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;bottom:24px;transform:translateX(-50%);background:#ff8c00;color:#000;font-weight:700;padding:8px 14px;border-radius:8px;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
+#princ{border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600;border:2px solid}#princ[hidden]{display:none}
+.prV{background:#0d2414;border-color:#2fae55!important}.prA{background:#1c1606;border-color:#ffd228!important}.prR{background:#1c1606;border-color:#ff4632!important}
+.prL{overflow:hidden;white-space:nowrap}.prT{display:inline-block}.prT.corre{padding-left:100%;animation:prM linear infinite}@keyframes prM{to{transform:translateX(-100%)}}
+.prC{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.prC button{background:#120c05;border:1px solid;border-radius:10px;padding:3px 9px;font:inherit;font-size:13px;cursor:pointer}
 #inusual{background:#2a1407;border:2px solid #ff6400;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
 #inusual b{color:#ff6400}
 #defensa{background:#0b2a12;border:2px solid #5adc78;border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600}
@@ -173,6 +177,7 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 <div class="cards" id="cards"></div>
 <div id="sinred" hidden style="background:#4a1a0a;color:#ffb27a;padding:8px 16px;font-weight:600"></div>
 <div id="ataque" hidden></div>
+<div id="princ" hidden></div>
 <div id="inusual" hidden></div>
 <div id="defensa" hidden></div>
 <div id="fijaBar" hidden></div>
