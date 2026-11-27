@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.36";
+const VERSION="v1.37";
 const NOVEDADES=[
+ ["v1.37","27/11/2026",["◆ Franja fija de SISTEMAS PRINCIPALES (imprescindibles de nivel 1 y 2): en verde «sin novedad» si todo va bien; si no, los que tienen algo, de más a menos grave. Si no cabe en una línea, corre como un teletipo. Al tocarla se para y salen los sistemas para abrir su ficha","La franja naranja de actividad inusual ya no repite los sistemas principales"]],
  ["v1.36","27/11/2026",["Orden de las alertas en Hoy, por gravedad: 1) lo que se puede perder ya (día decisivo, derrota, retirada, posible ataque, hueco), 2) lo grave (riesgo de retirada, ventaja baja…), 3) conflictos en marcha (disputado, pendientes), 4) avisos y 5) buenas noticias; y dentro de cada grupo, los imprescindibles de nivel 1, los de nivel 2, los históricos y el resto. Vale para Hoy, las franjas de arriba y la lista del Radar","Hoy: los imprescindibles con alerta grave (por ejemplo un hueco) suben a rojo también aquí","Hoy más limpio: los sistemas normales que solo tienen una expansión enemiga cerca van juntos en un botón al final"]],
  ["v1.35","27/11/2026",["Resumen nuevo en la cabecera, en una línea: 🛡 controlados/sistemas · 🔴 alertas graves · 👥 tráfico de hoy. Al tocarlo se despliegan las tarjetas: Territorio (con barra, imprescindibles e históricos), Alertas (graves en grande, avisos aparte y lo más urgente) y Tráfico (con el de ayer y la gráfica de los últimos días)"]],
  ["v1.34","27/11/2026",["Línea de estado más corta: ⏱ antigüedad de los datos · 🟢/🔴 EDDN y su último mensaje · ⏭ próximo tick (deja el dedo o el ratón encima para la explicación)"]],
@@ -360,7 +361,7 @@ async function carga(){
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}" title="${viejo?"El escucha no ha subido datos en más de 1 h":"Antigüedad de los datos"}">⏱ ${sub}${viejo?" ⚠":""}</span>`+
       (e?` · <span style="color:${e.ok&&e.ultimo&&(D.t||now())-e.ultimo<900?"#5adc78":"#ff4632"}" title="EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}">${e.ok?"🟢":"🔴"} EDDN${e.ok?"":" caído"}${e.ultimo?" "+hace(e.ultimo):""}</span>`:"")+`<span id="tickmini" style="color:#ffb43c"></span>`;
     document.getElementById("pie").textContent=`Escucha EDDN de CDSN · ${Object.keys(D.sistemas||{}).length} sistemas · página actualizada ${new Date().toLocaleTimeString("es-ES")} (se refresca sola cada 5 min)`;
-    pinta();sinRed();revisaAtaques();revisaInusual();revisaDefensa();
+    pinta();sinRed();revisaAtaques();revisaPrincipales();revisaInusual();revisaDefensa();
   }catch(x){if(D){sinRed(true)}else document.getElementById("est").textContent="no se pudieron leer los datos: "+x}
 }
 document.getElementById("cab").onclick=e=>{const k=e.target.dataset.k;if(!k)return;if(k==orden)asc=!asc;else{orden=k;asc=k=="sys"}pinta()};
@@ -753,9 +754,28 @@ document.getElementById("atk").onclick=e=>{
 addEventListener("keydown",e=>{if(e.key=="Escape")cierraAtaque(true)});
 
 // ---------- franja de ACTIVIDAD INUSUAL (pico de visitas sin bajada de influencia) ----------
+// v1.37: franja fija de sistemas principales (imprescindibles): fija si cabe, teletipo si no; al tocar se para y salen los sistemas
+let PRIN_ABIERTA=false;
+function revisaPrincipales(){
+  const b=document.getElementById("princ");if(!b||!D)return;
+  const P=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&nivImp(s.sys)).map(s=>({s,a:alerta(s)}))
+    .sort((x,y)=>y.a[0]-x.a[0]||nivImp(x.s.sys)-nivImp(y.s.sys)||x.s.sys.localeCompare(y.s.sys));
+  if(!P.length){b.hidden=true;return}
+  const mal=P.filter(o=>o.a[0]&&o.a[3]!="fa"),ok=P.length-mal.length,col=o=>o.a[0]==2?"#ff4632":"#ff9a2e",nom=o=>(nivImp(o.s.sys)==2?"◇ ":"")+o.s.sys;   // lo bueno (actividad a favor) cuenta como sin novedad
+  const corto=t=>t.replace(/ EN (IMPRESCINDIBLE|HISTÓRICO)$/,"").toLowerCase();
+  const G={};mal.filter(o=>o.a[0]==1).forEach(o=>(G[o.a[1]]=G[o.a[1]]||[]).push(o));   // los avisos leves, juntos por tipo
+  const txt=mal.length?`<b style="color:#ffd228">◆ PRINCIPALES</b> · `+[...mal.filter(o=>o.a[0]==2).map(o=>`<b style="color:${col(o)}">${esc(nom(o))}</b>: ${esc(corto(o.a[1]))}`),
+      ...Object.entries(G).map(([k,L])=>`<span style="color:#ff9a2e">${esc(corto(k))}</span>: ${L.map(o=>`<b>${esc(nom(o))}</b>`).join(", ")}`)].join(" · ")+(ok?` · <span style="color:#5adc78">${ok} sin novedad</span>`:"")
+    :`<b style="color:#5adc78">◆ PRINCIPALES · sin novedad en los ${P.length} sistemas</b>`;
+  b.className=mal.some(o=>o.a[0]==2)?"prR":mal.length?"prA":"prV";
+  b.innerHTML=`<div class="prL"><span class="prT">${txt}</span></div>`+(PRIN_ABIERTA?`<div class="prC">`+P.map(o=>{const m=mal.includes(o),c=m?col(o):"#7fe08f";return`<button data-s="${esc(o.s.sys)}" style="color:${c};border-color:${m?c:"#2fae55"}">${esc(nom(o))}${o.a[0]?" · "+esc(corto(o.a[1])):""}</button>`}).join("")+`</div>`:"");
+  b.hidden=false;
+  const L=b.querySelector(".prL"),T=b.querySelector(".prT");
+  if(!PRIN_ABIERTA&&T.scrollWidth>L.clientWidth+2){T.classList.add("corre");T.style.animationDuration=Math.max(10,T.scrollWidth/45)+"s"}}
+document.getElementById("princ").onclick=e=>{const c=e.target.closest("button[data-s]");if(c){abreFicha(c.dataset.s);return}PRIN_ABIERTA=!PRIN_ABIERTA;revisaPrincipales()};
 function revisaInusual(){
   const b=document.getElementById("inusual");if(!b||!D)return;
-  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,a:ataque(s)})).filter(o=>o.a&&alerta(o.s)[1]=="ACTIVIDAD INUSUAL")
+  const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&!nivImp(s.sys)).map(s=>({s,a:ataque(s)})).filter(o=>o.a&&alerta(o.s)[1]=="ACTIVIDAD INUSUAL")   // v1.37: los principales van en su franja
     .sort((x,y)=>prImp(x.s.sys)-prImp(y.s.sys)||(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)));
   if(!L.length){b.hidden=true;return}
   const o=L[0];
