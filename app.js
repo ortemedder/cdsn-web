@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.44";
+const VERSION="v1.45";
 const NOVEDADES=[
+ ["v1.45","27/11/2026",["La cabecera de La Crónica dice AÑO · EDICIÓN (una por día) y el informe PARTE N.º (uno por parte de la IA), para no confundirlos","🎉 Noticia cuando Caballeros de Sion entra en un sistema nuevo (con el arquitecto si es de CDSN, ¡enhorabuena!) y 📉 si deja de estar en uno"]],
  ["v1.44","27/11/2026",["🛰 El parte de la IA sale ahora por tick: SITREP PM (Parte Vespertino) 2 h después del tick y, si no se detectó el tick, SITREP AM (Parte Matutino) a las 08:00. Si hay dos el mismo día, arriba el PM y debajo el AM plegado","El parte avisa de los sistemas con datos de más de 2 días (hay que pasar con EDMC) y valora si lo que pidió el anterior ha servido","⚙ Las alertas se calculan una sola vez en el servidor (alertas.json) y las usan igual la web y el parte de la IA, para que siempre digan lo mismo"]],
  ["v1.43","27/11/2026",["👤 Sistemas de CMDRs de CDSN: si el arquitecto es miembro, el sistema lleva 👤 junto al nombre y sus alertas en Hoy dicen «👤 arquitecto: X (CDSN) · avísale»","Nuevo orden en todo (Hoy, franjas, Radar): primero lo que se puede perder hoy (día decisivo, derrota, retirada, posible ataque, hueco); después, por grupos: ◆ imprescindibles nivel 1, ◇ nivel 2, 👤 sistemas de CMDRs de CDSN, 🏛 históricos y el resto; dentro de cada grupo, de más a menos grave","Cinta SIGINT con letra más gruesa"]],
  ["v1.42","27/11/2026",["🔍 Buscadores más visibles en todas las pestañas: borde naranja, más altos, lupa que late hasta que escribes y ✕ para borrar de un toque"]],
@@ -62,6 +63,8 @@ function novedades(){const n=document.getElementById("nov");if(!n.hidden){n.hidd
   n.innerHTML="<b>Novedades</b>"+NOVEDADES.map(([v,f,c])=>`<div style="margin-top:8px"><b style="color:#ff8c00">${v}</b> <span class="sub">${f}</span><ul style="margin:2px 0 0 18px;padding:0">${c.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");n.hidden=false;n.scrollIntoView({behavior:"smooth"})}
 const FAC="Caballeros de Sion";
 const DATOS="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/faccion.json";
+const EXTRA_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/noticias_extra.json";   // v1.45: 🎉 sistemas nuevos / 📉 perdidos
+let EXTRA=[];
 const HIST_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/historial.json";   // v1.25: rivales, zonas y portanaves (60 dias, escucha v12.5)
 let HIS={rivales:{},zonas:{},portanaves:{}};
 const COLR=["#5aaaff","#ff4632","#5adc78","#c77dff","#ffd228","#3fd0c9"];
@@ -369,6 +372,7 @@ async function carga(){
         const m=x.match(/^\[\s*nivel\s*(\d+)\s*\]$/i);if(m){nv=+m[1];continue}M.set(x.toLowerCase(),nv)}
       IMP=M}catch(x){}
     try{const r=await fetch(ALR_URL+"?"+Date.now());if(r.ok)ALR=await r.json()}catch(x){}   // v1.43
+    try{const r=await fetch(EXTRA_URL+"?"+Date.now());if(r.ok)EXTRA=(await r.json()).noticias||[]}catch(x){}   // v1.45
     try{const t=await fetch("miembros.txt?"+Date.now()).then(r=>r.ok?r.text():"");const M=new Map();
       for(const l of t.split("\n")){const n=l.trim();if(n&&!n.startsWith("#"))M.set(n.toLowerCase(),n)}
       if(M.size)MIEM=M}catch(x){}
@@ -1027,7 +1031,7 @@ function agrupaNot(L){const dia=t=>new Date(t*1000).toLocaleDateString("sv-SE",{
   return out.sort((a,b)=>a[0]-b[0])}
 function pintaCro(){
   if(!D)return;const v=document.getElementById("vCro");
-  const N=agrupaNot((D.noticias||[]).filter(n=>n[2]!="escucha").map(n=>n[2]=="expansion"&&String(n[1]).startsWith("🛸")?[n[0],n[1],"vecindario",0,n[4],n[5]]:n)).reverse();   // la mas nueva primero; v1.20: 🛸 de otras facciones = vecindario
+  const N=agrupaNot([...(D.noticias||[]),...EXTRA].filter(n=>n[2]!="escucha").map(n=>n[2]=="expansion"&&String(n[1]).startsWith("🛸")?[n[0],n[1],"vecindario",0,n[4],n[5]]:n)).reverse();   // la mas nueva primero; v1.20: 🛸 de otras facciones = vecindario
   // v1.29: cabecera con emblemas y banda HUD (AÑO · N.º · noticias de hoy), teletipo, ultima hora compacta, informe
   const hoyMad=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),diaMad=t=>new Date(t*1000).toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
   const nHoy=N.filter(n=>diaMad(n[0])==hoyMad).length,ed=edicion(),tk=D.tick_global?Math.max(0,Math.round((D.tick_global+86400-now())/3600)):null;
@@ -1035,7 +1039,7 @@ function pintaCro(){
   const emb=l=>`<span class="cabE ${l} ojos o-${ojo}"><img src="icon-192.png" alt=""><i></i><i></i></span>`;
   let h=`<div class="cro deco"><div class="cab">${emb("i")}${emb("d")}
     <div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
-    <div class="hud"><b>◆ ${esc(fechaJuego(now()).toUpperCase())}</b>${ed?`<b>AÑO ${ed[0]} · N.º ${ed[1]}</b>`:""}<span>${nHoy} NOTICIA${nHoy==1?"":"S"} HOY</span><span>HORA GALÁCTICA ${hora(now())}</span>${tk!=null?`<span>TICK EN ~${tk} H</span>`:""}</div></div>`;
+    <div class="hud"><b>◆ ${esc(fechaJuego(now()).toUpperCase())}</b>${ed?`<b>AÑO ${ed[0]} · EDICIÓN ${ed[1]}</b>`:""}<span>${nHoy} NOTICIA${nHoy==1?"":"S"} HOY</span><span>HORA GALÁCTICA ${hora(now())}</span>${tk!=null?`<span>TICK EN ~${tk} H</span>`:""}</div></div>`;
   const TT=N.slice(0,12).map(n=>sinMarcas(n[1]).split(" · ")[0]);
   if(TT.length)h+=`<div class="tele"><span>${TT.map(esc).join("<i>◆</i>")}</span></div>`;
   if(!D.noticias){v.innerHTML=h+(CS?"":parteHTML()+fijas())+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+hemeroteca()+pieCro()+`</div>`;return}
@@ -1356,7 +1360,7 @@ ${CINTA}${pie}`}
 function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),pub=H.sel.publicar_t||0;
   const tarde=H.f<hoy&&now()>pub+86400;   // ya deberia haber salido el de hoy
-  const nu=H.sel.numero?` · N.º ${H.sel.numero}${H.sel.edicion?" · "+H.sel.edicion:""}`:"";
+  const nu=H.sel.numero?` · PARTE N.º ${H.sel.numero}${H.sel.edicion?" · "+H.sel.edicion:""}`:"";
   let h=`<div class="fija intel"><div class="intelK"><span>🛰 INFORME DE INTELIGENCIA · ${esc(diaTit(pub).toUpperCase())}${nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${H.sel.edicion?`<div class="sitrep">${SITREP[H.sel.edicion]}</div>`:""}${sello(H.sel,pub)}
   ${!parteRoto(H.sel)&&!H.sel.perdido&&("speechSynthesis" in window)?`<div class="vozb"><button data-voz="leer" class="favb">🔊 Escuchar parte</button><button data-voz="pausa" class="favb">Pausa</button><button data-voz="parar" class="favb">Parar</button></div>`:""}`;
   if(H.L.length>1)h+=`<div class="vper" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:4px">${H.L.map(p=>`<button data-pm="${esc(p.modelo)}" class="${p===H.sel?"on":""}">${esc(PARTE_NOM[p.modelo]||p.modelo)}</button>`).join("")}</div><div class="sub" style="margin-bottom:4px">Prueba: el mismo parte escrito por ${H.L.length} modelos, para elegir.</div>`;
@@ -1376,10 +1380,11 @@ function sello(p,t){   // v1.40: cinta baja: sello mini + linea principal + pie 
   const r=p.roto||p.perdido?"alto":(p.riesgo||"medio"),pal={alto:"CRÍTICO",medio:"VIGILANCIA",bajo:"NOMINAL"}[r]||"VIGILANCIA";
   const d=new Date(t*1000),f=`${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()+1286}`;
   const hh=x=>{const z=new Date(x*1000);return String(z.getHours()).padStart(2,"0")+":"+String(z.getMinutes()).padStart(2,"0")};
-  const foco=((p.puntos||[])[0]||{}).titulo?.split(":")[0]||((p.titular||"").match(/\[\[(.+?)\]\]/)||[])[1]||"";
+  const p0=(p.puntos||[])[0]||{},t0=(p0.titulo||"").split(":")[0];   // v1.45: el foco tiene que ser un sistema
+  const foco=((`${p0.titulo||""} ${p0.texto||""} ${p.titular||""}`).match(/\[\[(.+?)\]\]/)||[])[1]||(D&&(D.sistemas||{})[t0]?t0:"")||(Object.keys((D||{}).sistemas||{}).find(n=>(p0.titulo||"").includes(n))||"");
   const gr=D?Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&alerta(s)[0]==2).length:0;
   const rec=p.t||t,mod=String(p.modelo||"").toUpperCase();
-  const pie=[`N.º ${p.numero||1}${p.edicion?" "+p.edicion:""}`,`RECIBIDO ${hh(rec)}${mod?` <span class="sigM">${esc(mod)}</span>`:""}`,foco?`⌖ ${esc(foco.toUpperCase())}`:"",`▲ ${gr}`,window.TG?`◷ ${hh(window.TG)}`:"","STOP"].filter(Boolean).join(" · ");
+  const pie=[`PARTE N.º ${p.numero||1}${p.edicion?" "+p.edicion:""}`,`RECIBIDO ${hh(rec)}${mod?` <span class="sigM">${esc(mod)}</span>`:""}`,foco?`⌖ ${esc(foco.toUpperCase())}`:"",`▲ ${gr}`,window.TG?`◷ ${hh(window.TG)}`:"","STOP"].filter(Boolean).join(" · ");
   let k=0;for(const c of String(p.fecha||t))k=(k*31+c.charCodeAt(0))%997;
   return`<div class="sig ${r}"><img class="sigI" src="sello-cdsn.png" alt="" style="transform:rotate(${-5-k%8}deg)"><div class="sigX"><div class="sigL">SIGINT // CDSN // ${pal}${p.edicion?` // SITREP ${p.edicion}`:""} // ${f}</div><div class="sigP">${pie}</div></div></div>`}
 
