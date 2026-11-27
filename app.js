@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.33";
+const VERSION="v1.34";
 const NOVEDADES=[
+ ["v1.34","27/11/2026",["Línea de estado más corta: ⏱ antigüedad de los datos · 🟢/🔴 EDDN y su último mensaje · ⏭ próximo tick (deja el dedo o el ratón encima para la explicación)"]],
  ["v1.33","27/11/2026",["◇ Imprescindibles de nivel 2 (sistemas donde lo importante es no perder presencia, como Hyades Sector DB-X d1-112 por el solape de painita): PRESENCIA EN PELIGRO en rojo si la influencia baja del 10 %, BAJADA en rojo desde 1,5 puntos en un día y EXPANSIÓN ENEMIGA en rojo"]],
  ["v1.32","27/11/2026",["⚠ HUECO EN HISTÓRICO / IMPRESCINDIBLE: si otra facción entra en retirada en uno de nuestros sistemas históricos o imprescindibles, deja hueco para que entre una facción de fuera. Sale en rojo si hay expansiones enemigas que pueden llegar (dice cuántas y la más cercana) y en naranja si no","En La Crónica, esas retiradas pasan de Oportunidades a Conflictos, marcadas como urgentes"]],
  ["v1.31","27/11/2026",["◆ Sistemas IMPRESCINDIBLES: los elige el almirante en imprescindibles.txt (cdsn-datos), por niveles; los de nivel 1 llevan ◆ dorado junto al nombre en todas las listas y en la ficha (los de otros niveles, ◇)","🏛 Sistemas HISTÓRICOS: los heredados (anteriores a la colonización, de arquitectos.txt) llevan 🏛","En un imprescindible de nivel 1, BAJADA, ACTIVIDAD INUSUAL y PROBABLE POWERPLAY pasan de aviso a grave (rojo), salta VENTAJA BAJA con menos de 10 puntos (en vez de 5) y BAJADA desde 1,5 puntos (en vez de 3)","El parte de la IA los tiene en cuenta y los pone primero","La Crónica más limpia: el Vecindario en una sola noticia al día (toca «ver resumen» para ver cada facción); las retiradas de otras facciones en nuestros sistemas pasan a la nueva sección 🎯 Oportunidades (dejan hueco para crecer); los avisos «Expansión activo» de cada sistema se juntan en una sola noticia al día, y los «Elecciones/Guerra activo» repetidos ya no salen si está la noticia del conflicto"]],
@@ -231,7 +232,7 @@ function pinta(){
   if(!tg&&D.tick_global){tg=D.tick_global+86400;while(tg<now()-1800)tg+=86400}
   document.getElementById("cards").innerHTML=[["Sistemas",tot],["Controlados",ctrl],["Alertas",al],["Tráfico hoy",traf]]
     .map(([a,b])=>`<div class="card"><span>${a}</span><b>${b}</b></div>`).join("");
-  const tm=document.getElementById("tickmini");if(tm)tm.textContent=" · próx. tick "+(tg?"~"+hora(tg):"aprendiendo");
+  const tm=document.getElementById("tickmini");if(tm){tm.textContent=" · ⏭ "+(tg?hora(tg):"…");tm.title=tg?"Próximo tick, aproximado":"Próximo tick: el escucha aún lo está aprendiendo"}
   if(q)F=F.filter(f=>f.sys.toLowerCase().includes(q));
   if(document.getElementById("fc").checked)F=F.filter(f=>f.s.ctrl);
   if(document.getElementById("fa").checked)F=F.filter(f=>f.niv);
@@ -328,8 +329,8 @@ async function carga(){
     revisaFija();
     const e=D.eddn||null;
     const sub=D.t?hace(D.t):"—", viejo=D.t&&now()-D.t>3600;
-    document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}">datos de hace ${sub}${viejo?" (el escucha no ha subido datos en más de 1 h)":""}</span>`+
-      (e?` · <span style="color:${e.ok&&e.ultimo&&(D.t||now())-e.ultimo<900?"#5adc78":"#ff4632"}">EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}</span>`:"")+`<span id="tickmini" style="color:#ffb43c"></span>`;
+    document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}" title="${viejo?"El escucha no ha subido datos en más de 1 h":"Antigüedad de los datos"}">⏱ ${sub}${viejo?" ⚠":""}</span>`+
+      (e?` · <span style="color:${e.ok&&e.ultimo&&(D.t||now())-e.ultimo<900?"#5adc78":"#ff4632"}" title="EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}">${e.ok?"🟢":"🔴"} EDDN${e.ok?"":" caído"}${e.ultimo?" "+hace(e.ultimo):""}</span>`:"")+`<span id="tickmini" style="color:#ffb43c"></span>`;
     document.getElementById("pie").textContent=`Escucha EDDN de CDSN · ${Object.keys(D.sistemas||{}).length} sistemas · página actualizada ${new Date().toLocaleTimeString("es-ES")} (se refresca sola cada 5 min)`;
     pinta();sinRed();revisaAtaques();revisaInusual();revisaDefensa();
   }catch(x){if(D){sinRed(true)}else document.getElementById("est").textContent="no se pudieron leer los datos: "+x}
