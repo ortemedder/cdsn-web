@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.45";
+const VERSION="v1.46";
 const NOVEDADES=[
+ ["v1.46","27/11/2026",["Informe de inteligencia más compacto: la cabecera dice SITREP AM // PARTE MATUTINO o SITREP PM // PARTE VESPERTINO, sin línea aparte, y la cinta lleva el estado y la fecha arriba y el PARTE N.º solo en el pie"]],
  ["v1.45","27/11/2026",["La cabecera de La Crónica dice AÑO · EDICIÓN (una por día) y el informe PARTE N.º (uno por parte de la IA), para no confundirlos","🎉 Noticia cuando Caballeros de Sion entra en un sistema nuevo (con el arquitecto si es de CDSN, ¡enhorabuena!) y 📉 si deja de estar en uno"]],
  ["v1.44","27/11/2026",["🛰 El parte de la IA sale ahora por tick: SITREP PM (Parte Vespertino) 2 h después del tick y, si no se detectó el tick, SITREP AM (Parte Matutino) a las 08:00. Si hay dos el mismo día, arriba el PM y debajo el AM plegado","El parte avisa de los sistemas con datos de más de 2 días (hay que pasar con EDMC) y valora si lo que pidió el anterior ha servido","⚙ Las alertas se calculan una sola vez en el servidor (alertas.json) y las usan igual la web y el parte de la IA, para que siempre digan lo mismo"]],
  ["v1.43","27/11/2026",["👤 Sistemas de CMDRs de CDSN: si el arquitecto es miembro, el sistema lleva 👤 junto al nombre y sus alertas en Hoy dicen «👤 arquitecto: X (CDSN) · avísale»","Nuevo orden en todo (Hoy, franjas, Radar): primero lo que se puede perder hoy (día decisivo, derrota, retirada, posible ataque, hueco); después, por grupos: ◆ imprescindibles nivel 1, ◇ nivel 2, 👤 sistemas de CMDRs de CDSN, 🏛 históricos y el resto; dentro de cada grupo, de más a menos grave","Cinta SIGINT con letra más gruesa"]],
@@ -1338,7 +1339,7 @@ function parteHoy(){const P=partesVisibles();if(!P.length)return null;
   const ed=T.some(p=>p.edicion=="PM")?"PM":T.some(p=>p.edicion=="AM")?"AM":"",L=T.filter(p=>(p.edicion||"")==ed);
   const sel=L.find(p=>p.modelo==PARTE_M)||L.find(p=>p.modelo==(PARTE||{}).modelo)||L[0];
   const am=ed=="PM"?T.filter(p=>p.edicion=="AM").sort((a,b)=>(b.t||0)-(a.t||0))[0]:null;return{f,L,sel,am}}
-const SITREP={AM:"SITREP AM (Situation Report) // Parte Matutino",PM:"SITREP PM (Situation Report) // Parte Vespertino"};
+const SITREP={AM:"SITREP AM (Situation Report) // Parte Matutino",PM:"SITREP PM (Situation Report) // Parte Vespertino"},SITREP_C={AM:"SITREP AM // PARTE MATUTINO",PM:"SITREP PM // PARTE VESPERTINO"};
 function marcaSis(t,dud){return esc(t||"").replace(/\[\[(.+?)\]\]/g,(m,n)=>{const raw=n.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"');
   return(D&&(D.sistemas||{})[raw])?`<span data-s="${n}" style="color:#ff8c00;cursor:pointer;text-decoration:underline">${n}</span>`:`<b>${n}</b>${(dud||[]).includes(raw)?' <span title="La IA cita un sistema que no está en nuestros datos">⚠</span>':""}`})}
 const CINTA=`<div class="cinta">Esta transcripción puede tener errores de desencriptado · STOP</div>`;
@@ -1361,7 +1362,7 @@ function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),pub=H.sel.publicar_t||0;
   const tarde=H.f<hoy&&now()>pub+86400;   // ya deberia haber salido el de hoy
   const nu=H.sel.numero?` · PARTE N.º ${H.sel.numero}${H.sel.edicion?" · "+H.sel.edicion:""}`:"";
-  let h=`<div class="fija intel"><div class="intelK"><span>🛰 INFORME DE INTELIGENCIA · ${esc(diaTit(pub).toUpperCase())}${nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${H.sel.edicion?`<div class="sitrep">${SITREP[H.sel.edicion]}</div>`:""}${sello(H.sel,pub)}
+  let h=`<div class="fija intel"><div class="intelK"><span>🛰 ${H.sel.edicion?SITREP_C[H.sel.edicion]:"INFORME DE INTELIGENCIA"} · ${esc(diaTit(pub).toUpperCase())}${H.sel.edicion?"":nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${sello(H.sel,pub)}
   ${!parteRoto(H.sel)&&!H.sel.perdido&&("speechSynthesis" in window)?`<div class="vozb"><button data-voz="leer" class="favb">🔊 Escuchar parte</button><button data-voz="pausa" class="favb">Pausa</button><button data-voz="parar" class="favb">Parar</button></div>`:""}`;
   if(H.L.length>1)h+=`<div class="vper" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:4px">${H.L.map(p=>`<button data-pm="${esc(p.modelo)}" class="${p===H.sel?"on":""}">${esc(PARTE_NOM[p.modelo]||p.modelo)}</button>`).join("")}</div><div class="sub" style="margin-bottom:4px">Prueba: el mismo parte escrito por ${H.L.length} modelos, para elegir.</div>`;
   PARTE_VOZ=H.sel;
@@ -1384,9 +1385,9 @@ function sello(p,t){   // v1.40: cinta baja: sello mini + linea principal + pie 
   const foco=((`${p0.titulo||""} ${p0.texto||""} ${p.titular||""}`).match(/\[\[(.+?)\]\]/)||[])[1]||(D&&(D.sistemas||{})[t0]?t0:"")||(Object.keys((D||{}).sistemas||{}).find(n=>(p0.titulo||"").includes(n))||"");
   const gr=D?Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&alerta(s)[0]==2).length:0;
   const rec=p.t||t,mod=String(p.modelo||"").toUpperCase();
-  const pie=[`PARTE N.º ${p.numero||1}${p.edicion?" "+p.edicion:""}`,`RECIBIDO ${hh(rec)}${mod?` <span class="sigM">${esc(mod)}</span>`:""}`,foco?`⌖ ${esc(foco.toUpperCase())}`:"",`▲ ${gr}`,window.TG?`◷ ${hh(window.TG)}`:"","STOP"].filter(Boolean).join(" · ");
+  const pie=[`PARTE N.º ${p.numero||1}`,`RECIBIDO ${hh(rec)}${mod?` <span class="sigM">${esc(mod)}</span>`:""}`,foco?`⌖ ${esc(foco.toUpperCase())}`:"",`▲ ${gr}`,window.TG?`◷ ${hh(window.TG)}`:"","STOP"].filter(Boolean).join(" · ");
   let k=0;for(const c of String(p.fecha||t))k=(k*31+c.charCodeAt(0))%997;
-  return`<div class="sig ${r}"><img class="sigI" src="sello-cdsn.png" alt="" style="transform:rotate(${-5-k%8}deg)"><div class="sigX"><div class="sigL">SIGINT // CDSN // ${pal}${p.edicion?` // SITREP ${p.edicion}`:""} // ${f}</div><div class="sigP">${pie}</div></div></div>`}
+  return`<div class="sig ${r}"><img class="sigI" src="sello-cdsn.png" alt="" style="transform:rotate(${-5-k%8}deg)"><div class="sigX"><div class="sigL">SIGINT // CDSN // ${pal} // ${f}</div><div class="sigP">${pie}</div></div></div>`}
 
 // ---------- v1.29: La Cronica renovada (numeracion, noticia fija al final, pie, voz) ----------
 var PARTE_VOZ=null;

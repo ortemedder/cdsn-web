@@ -1,7 +1,7 @@
 // sw.js - permite instalar la web como app y que abra aunque falle la conexion
 // La pagina se guarda en el movil; los datos (faccion.json) se piden siempre nuevos y,
 // si no hay red, se usa la ultima copia guardada.
-const CACHE = "cdsn-v58";
+const CACHE = "cdsn-v59";
 const BASE = ["./", "index.html", "app.js", "manifest.json", "icon-192.png", "icon-512.png", "favicon.png", "special-elite.woff2", "sello-cdsn.png"];
 
 self.addEventListener("install", e => {
