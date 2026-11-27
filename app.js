@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.46";
+const VERSION="v1.47";
 const NOVEDADES=[
+ ["v1.47","27/11/2026",["🖼 Pantalla de arranque con foto de fondo (captura del almirante Ortem Ed Der) y la versión abajo"]],
  ["v1.46","27/11/2026",["Informe de inteligencia más compacto: la cabecera dice SITREP AM // PARTE MATUTINO o SITREP PM // PARTE VESPERTINO, sin línea aparte, y la cinta lleva el estado y la fecha arriba y el PARTE N.º solo en el pie"]],
  ["v1.45","27/11/2026",["La cabecera de La Crónica dice AÑO · EDICIÓN (una por día) y el informe PARTE N.º (uno por parte de la IA), para no confundirlos","🎉 Noticia cuando Caballeros de Sion entra en un sistema nuevo (con el arquitecto si es de CDSN, ¡enhorabuena!) y 📉 si deja de estar en uno"]],
  ["v1.44","27/11/2026",["🛰 El parte de la IA sale ahora por tick: SITREP PM (Parte Vespertino) 2 h después del tick y, si no se detectó el tick, SITREP AM (Parte Matutino) a las 08:00. Si hay dos el mismo día, arriba el PM y debajo el AM plegado","El parte avisa de los sistemas con datos de más de 2 días (hay que pasar con EDMC) y valora si lo que pidió el anterior ha servido","⚙ Las alertas se calculan una sola vez en el servidor (alertas.json) y las usan igual la web y el parte de la IA, para que siempre digan lo mismo"]],
@@ -551,7 +552,7 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.datas
 try{vista("cro")}catch(e){}   // v1.29: siempre abre en La Crónica
 document.getElementById("acerca").onclick=e=>{e.preventDefault();const a=document.getElementById("acd");a.hidden=!a.hidden;if(!a.hidden)a.scrollIntoView({behavior:"smooth"})};
 const vl=document.getElementById("verl");vl.textContent=VERSION+" · novedades";vl.onclick=e=>{e.preventDefault();novedades()};
-document.getElementById("verA").textContent=VERSION;
+document.getElementById("verA").textContent=VERSION+(NOVEDADES[0]?" · "+NOVEDADES[0][1]:"");
 // ---------- sin conexion ----------
 function sinRed(fallo){const b=document.getElementById("sinred"),off=fallo||!navigator.onLine;b.hidden=!off;
   if(off)b.textContent=`📡 Sin conexión · mostrando los datos guardados${D&&D.t?" de hace "+hace(D.t):""}`}
