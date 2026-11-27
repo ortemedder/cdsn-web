@@ -97,6 +97,54 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 .hemeI summary{cursor:pointer;list-style:none}.hemeI summary::-webkit-details-marker{display:none}
 #gtip{position:absolute;z-index:5;background:#ff8c00;color:#000;font-weight:700;font-size:13px;padding:4px 8px;border-radius:6px;pointer-events:none;white-space:nowrap}#gtip[hidden]{display:none}
 .evo svg{width:100%;height:auto;background:#0f0a04;border:1px solid var(--l);border-radius:6px}
+
+/* v1.29: La Cronica renovada */
+.deco{position:relative;padding:0 6px 10px;background:
+ radial-gradient(1px 1px at 12% 8%,#fff8 50%,transparent 51%),radial-gradient(1px 1px at 78% 3%,#fff6 50%,transparent 51%),
+ radial-gradient(1.5px 1.5px at 40% 14%,#ffd9a088 50%,transparent 51%),radial-gradient(1px 1px at 92% 22%,#fff5 50%,transparent 51%),
+ radial-gradient(1px 1px at 5% 40%,#fff4 50%,transparent 51%),radial-gradient(1px 1px at 60% 33%,#fff3 50%,transparent 51%),
+ radial-gradient(1px 1px at 25% 60%,#fff4 50%,transparent 51%),radial-gradient(1.5px 1.5px at 85% 55%,#9cf6 50%,transparent 51%),
+ radial-gradient(1px 1px at 48% 80%,#fff3 50%,transparent 51%),radial-gradient(1px 1px at 70% 92%,#fff4 50%,transparent 51%),
+ radial-gradient(ellipse at 50% 0%,#ff8c0022,transparent 55%)}
+.deco .cab{position:relative;border:0;padding:14px 0 0;background:linear-gradient(180deg,#1a0f02,transparent);margin-bottom:0}
+.deco .cab1{color:#ffe7c4;text-shadow:0 0 12px #ff8c00aa,0 0 30px #ff8c0055;letter-spacing:4px;padding:0 clamp(44px,10vw,84px)}
+.deco .cab2{color:#ffb347}
+.cabE{position:absolute;top:12px;width:clamp(40px,9vw,74px);height:auto;filter:drop-shadow(0 0 8px #ff8c0088)}
+.cabE.i{left:4px}.cabE.d{right:4px;transform:scaleX(-1)}
+.hud{margin:8px 0 0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 10px;font:12px/1.4 ui-monospace,Consolas,monospace;
+ color:#140b00;background:linear-gradient(90deg,#ff8c00,#ffb347 50%,#ff8c00);padding:4px 14px;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)}
+.hud b{letter-spacing:1px}
+.tele{overflow:hidden;white-space:nowrap;border-top:1px solid #ff8c0066;border-bottom:1px solid #ff8c0066;background:#0b0700;margin:6px 0 12px;font:13px ui-monospace,Consolas,monospace;color:#ffcf8a}
+.tele span{display:inline-block;padding-left:100%;animation:tele 70s linear infinite}.tele i{color:#ff4632;font-style:normal;margin:0 10px}
+@keyframes tele{to{transform:translateX(-100%)}}
+.ult{background:#2a0503;border:1px solid #ff4632;border-left:5px solid #ff4632;padding:6px 10px;margin-bottom:8px;font:14px/1.35 system-ui,sans-serif;cursor:pointer}
+.ult b{color:#ff4632;letter-spacing:1px}.ultH{color:#ffb347;font-family:ui-monospace,monospace}.ultS{color:#b06a10}
+.deco .cron{border-left:3px solid #3a2a12;padding-left:6px;position:relative}
+.cron.s-conflictos{border-left-color:#ff4632}.cron.s-expansion{border-left-color:#4cd964}.cron.s-obras{border-left-color:#ffd228}
+.cron.s-estaciones{border-left-color:#66cbff}.cron.s-poblacion{border-left-color:#c98bff}.cron.s-actividad{border-left-color:#ff8c00}
+.cron.s-vecindario{border-left-color:#3b82f6}.cron.s-resumen{border-left-color:#e0d2bf}.cron.s-thargoides{border-left-color:#2ef2a0}.cron.s-cronica{border-left-color:#ffd228}
+.deco .cron.urg::after{content:"URGENTE";position:absolute;right:6px;top:4px;transform:rotate(-9deg);font:700 11px/1 ui-monospace,monospace;letter-spacing:2px;
+ color:#ff4632;border:2px solid #ff4632;padding:2px 5px;border-radius:3px;opacity:.85;pointer-events:none}
+.deco .crod{display:flex;align-items:center;gap:8px;color:#ffb347;border:0}
+.deco .crod::before,.deco .crod::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,#ff8c00aa,transparent)}
+.deco .crod img{width:16px;height:16px;opacity:.8}
+.intel{position:relative;border:1px solid #66cbff!important;background:repeating-linear-gradient(0deg,#06121d 0 2px,#071725 2px 4px)!important;box-shadow:0 0 0 1px #000,0 0 20px #66cbff33}
+.intel::before{content:"";position:absolute;inset:6px;border:1px dashed #66cbff44;pointer-events:none}
+.intelK{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font:700 11px ui-monospace,Consolas,monospace;letter-spacing:2px;color:#66cbff;border-bottom:1px solid #66cbff55;padding-bottom:4px;margin-bottom:6px}
+.intelK .cla{color:#ff4632;border:1px solid #ff4632;padding:0 5px}
+.vozb{display:flex;gap:6px;margin:4px 0 6px;font-family:system-ui,sans-serif}.vozb .favb{margin:0;padding:5px 10px;font-size:13px}
+.semaf{display:inline-flex;gap:5px;align-items:center;margin:2px 0 6px;font:700 12px ui-monospace,monospace;letter-spacing:1px;color:#e0d2bf}
+.semaf i{width:14px;height:14px;border-radius:50%;background:#222;box-shadow:inset 0 0 3px #000}
+.semaf i.on.b{background:#4cd964;box-shadow:0 0 10px #4cd964}.semaf i.on.m{background:#ffd228;box-shadow:0 0 10px #ffd228}.semaf i.on.a{background:#ff4632;box-shadow:0 0 12px #ff4632;animation:late 1.2s infinite}
+@keyframes late{50%{opacity:.45}}
+.hostil{background:#c40000;color:#ffe600;font:900 clamp(14px,3.6vw,19px)/1.25 ui-monospace,Consolas,monospace;text-align:center;letter-spacing:1px;padding:8px 6px;margin:4px 0 8px;border:2px solid #ffe600;animation:parp .8s steps(1) infinite}
+.hostil small{display:block;font-size:12px;font-weight:700;letter-spacing:2px}
+@keyframes parp{50%{background:#ffe600;color:#c40000}}
+.danado{font:13px/1.4 ui-monospace,Consolas,monospace;color:#9fe;opacity:.85;white-space:pre-wrap;word-break:break-word;max-height:150px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
+.cinta{margin:10px -4px 2px;padding:5px 12px;background:linear-gradient(180deg,#e9dcb5,#d8c792);color:#3b2a10;font:700 12px/1.3 "Courier New",ui-monospace,monospace;letter-spacing:2px;text-transform:uppercase;text-align:center;box-shadow:0 2px 0 #0006,0 0 0 1px #b9a46a inset;transform:rotate(-.6deg)}
+.cinta::before{content:"✉ "}
+.pie{text-align:center;margin:16px 0 4px;font:12px ui-monospace,Consolas,monospace;color:#b06a10;letter-spacing:1px}.pie img{width:22px;vertical-align:middle;margin:0 6px;opacity:.8}
+@media (prefers-reduced-motion:reduce){.hostil,.tele span,.semaf i.on.a{animation:none}}
 </style></head><body>
 <div id="arranque" style="position:fixed;inset:0;z-index:99;background:#0d0904;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .6s">
 <img src="icon-512.png" alt="" style="width:min(55vw,260px);height:auto;border-radius:50%">

@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.28";
+const VERSION="v1.29";
 const NOVEDADES=[
+ ["v1.29","27/11/2026",["La Crónica de Sion renovada: emblemas, estrellas, banda HUD con AÑO y N.º de edición (fecha galáctica) y las noticias de hoy, teletipo con los titulares, colores por sección y sellos de URGENTE","La web abre ahora en La Crónica","ÚLTIMA HORA en una franja roja compacta (solo si hay algo urgente en 24 h); la portada es el Informe de inteligencia","El parte de la IA como INFORME DE INTELIGENCIA, con semáforo de riesgo y la cinta de telegrama «puede tener errores de desencriptado»","🔊 Escuchar parte: lo lee en voz alta con la voz del móvil u ordenador","Si el parte llega roto: ⚠ TRANSMISIÓN INTERCEPTADA POR FUERZAS HOSTILES","La noticia fija pasa al final, como reportaje"]],
  ["v1.28","27/11/2026",["🧠 PARTE DEL DÍA en La Crónica: cada día a las 15:00 la IA (Claude) escribe el parte de inteligencia de CDSN: titular, lo esencial, puntos clave, qué hacer hoy y una oportunidad","Los sistemas del parte se pueden tocar para abrir su ficha; si la IA cita un sistema que no conocemos, sale marcado ⚠","Debajo, quién lo escribió, cuántos sistemas estaban al día tras el tick y lo que costó; y los partes de días anteriores","Franja con el titular arriba de Hoy","Durante la prueba salen juntos los partes de Haiku, Sonnet y Opus para compararlos"]],
  ["v1.27","26/11/2026",["RESISTENCIA de cada sistema (alta, media o baja): ventaja sobre la segunda, número de facciones, población, si es minero (economía o un overlap de hotspots a 20 ly o menos) y si la estación es de CDSN. Sale en la ficha con sus motivos","PROBABLE POWERPLAY ⚡ (naranja) en vez de POSIBLE ATAQUE cuando hay pico de visitas, Powerplay en el sistema, portanaves y la bajada es pequeña","Con resistencia alta y una bajada de menos de 3 puntos, el aviso baja a ACTIVIDAD INUSUAL","Overlaps de minería (Platino, Painita y LTD) cerca de cada sistema, en la ficha","Con el escucha v12.6: anillos del sistema (tipo y si están vírgenes), sus hotspots y los minerales que compran nuestras estaciones; también cuentan para la resistencia"]],
  ["v1.26","26/11/2026",["Pestaña Anarquías (versión previa a Law & Disorder): los sistemas anárquicos a 30 ly o menos de cada sistema que controla CDSN, con la distancia, su facción y estado, población y puerto grande","Dos vistas: por sistema nuestro o por anárquico; NUEVO 🆕 durante 7 días cuando aparece uno; se actualiza una vez al día (EDSM)","Desde el 9/12 también cuenta los sistemas Criminales de Law & Disorder"]],
@@ -450,7 +451,7 @@ function vista(v){
   if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();if(v=="arq")pintaArq();if(v=="mie")pintaMie();if(v=="anq")pintaAnq();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>vista(b.dataset.v));
-try{vista(localStorage.getItem("cdsn_vista")||"tabla")}catch(e){}
+try{vista("cro")}catch(e){}   // v1.29: siempre abre en La Crónica
 document.getElementById("acerca").onclick=e=>{e.preventDefault();const a=document.getElementById("acd");a.hidden=!a.hidden;if(!a.hidden)a.scrollIntoView({behavior:"smooth"})};
 const vl=document.getElementById("verl");vl.textContent=VERSION+" · novedades";vl.onclick=e=>{e.preventDefault();novedades()};
 document.getElementById("verA").textContent=VERSION;
@@ -887,35 +888,34 @@ function diaTit(t){const d=new Date(t*1000),h=new Date(),a=new Date(Date.now()-8
 function pintaCro(){
   if(!D)return;const v=document.getElementById("vCro");
   const N=(D.noticias||[]).filter(n=>n[2]!="escucha").map(n=>n[2]=="expansion"&&String(n[1]).startsWith("🛸")?[n[0],n[1],"vecindario",0,n[4],n[5]]:n).reverse();   // la mas nueva primero; v1.20: 🛸 de otras facciones = vecindario
-  const ed=D.t?hora(D.t):hora(now());
-  let h=`<div class="cro"><div class="cab"><div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
-    <div class="cab3"><span>${esc((x=>x.charAt(0).toUpperCase()+x.slice(1))(fechaJuego(D.t||now())))}</span><span>Edición de las ${ed}</span><span>${N.length} noticias</span></div></div>`;
-  if(!CS)h+=parteHTML();   // v1.28
-  for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 NOTICIA FIJA</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;
-  if(!D.noticias){v.innerHTML=h+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+hemeroteca()+`</div>`;return}
-  // portada: la urgente mas reciente de las ultimas 24 h; si no hay, la ultima que no sea un resumen
-  const P=N.find(n=>n[3]&&n[2]!="vecindario"&&now()-n[0]<86400)||N.find(n=>n[2]!="resumen"&&n[2]!="vecindario");
-  if(P&&!CS){const tx=sinMarcas(P[1]);let[tit,...resto]=tx.split(" · ");
-    const k=tit.indexOf(" desde ");if(k>0){resto.unshift(tit.slice(k+1));tit=tit.slice(0,k)}   // titular corto: "X prepara una expansión" / "desde ..."
-    resto=resto.map(x=>x.charAt(0).toUpperCase()+x.slice(1));
-    const di=datosImg(P,320),ac=accion(P);
-    h+=`<div class="por${P[3]?" urg":""}"${P[4]?` data-s="${esc(P[4])}"`:""}><div class="porK">${P[3]?"ÚLTIMA HORA":"PORTADA"}</div>
-      <div class="porG">${ilus(tipoNot(P),120)}<div><div class="porT">${icono(P[1])} ${esc(tit)}</div>${resto.length?`<div class="porE">${esc(resto.join(" · "))}</div>`:""}</div></div>
-      ${di?`<div class="porD">${di}</div>`:""}${ac?`<div class="acc">${ac}</div>`:""}
-      <div class="porF">${diaTit(P[0])}, ${hora(P[0])}${P[4]?" · "+esc(P[4]):""}</div></div>`}
+  // v1.29: cabecera con emblemas y banda HUD (AÑO · N.º · noticias de hoy), teletipo, ultima hora compacta, informe
+  const hoyMad=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),diaMad=t=>new Date(t*1000).toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
+  const nHoy=N.filter(n=>diaMad(n[0])==hoyMad).length,ed=edicion(),tk=D.tick_global?Math.max(0,Math.round((D.tick_global+86400-now())/3600)):null;
+  let h=`<div class="cro deco"><div class="cab"><img class="cabE i" src="icon-192.png" alt=""><img class="cabE d" src="icon-192.png" alt="">
+    <div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
+    <div class="hud"><b>◆ ${esc(fechaJuego(now()).toUpperCase())}</b>${ed?`<b>AÑO ${ed[0]} · N.º ${ed[1]}</b>`:""}<span>${nHoy} NOTICIA${nHoy==1?"":"S"} HOY</span><span>HORA GALÁCTICA ${hora(now())}</span>${tk!=null?`<span>TICK EN ~${tk} H</span>`:""}</div></div>`;
+  const TT=N.slice(0,12).map(n=>sinMarcas(n[1]).split(" · ")[0]);
+  if(TT.length)h+=`<div class="tele"><span>${TT.map(esc).join("<i>◆</i>")}</span></div>`;
+  if(!D.noticias){v.innerHTML=h+(CS?"":parteHTML())+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+fijas()+hemeroteca()+pieCro()+`</div>`;return}
+  if(!CS){const U=N.filter(n=>n[3]&&n[2]!="vecindario"&&now()-n[0]<86400).slice(0,2);   // ÚLTIMA HORA: solo urgentes de 24 h, compacta
+    for(const P of U){const tit=sinMarcas(P[1]).split(" · ")[0];
+      h+=`<div class="ult"${P[4]?` data-s="${esc(P[4])}"`:""}><b>🚨 ÚLTIMA HORA</b> <span class="ultH">${hora(P[0])}</span> ${esc(tit)}${P[4]?` <span class="ultS">· ${esc(P[4])}</span>`:""}</div>`}
+    h+=parteHTML()}
   h+=`<div class="vper csec">${SECS.map(([k,n])=>`<button data-c="${k}" class="${k==CS?"on":""}">${n}</button>`).join("")}</div>`;
   const L=N.filter(n=>CS?n[2]==CS:n[2]!="vecindario");   // v1.20: «Todas» = lo nuestro; lo de otras facciones en Vecindario
   if(!L.length)h+=`<p class="sub" style="text-align:center;margin:16px">Sin noticias en esta sección.</p>`;
   else{h+=`<div class="crol">`;let dia="";
-    for(const n of L){const d=diaTit(n[0]);if(d!=dia){dia=d;h+=`<div class="crod">${esc(d.charAt(0).toUpperCase()+d.slice(1))}</div>`}
+    for(const n of L){const d=diaTit(n[0]);if(d!=dia){dia=d;h+=`<div class="crod"><img src="icon-192.png" alt="">${esc(d.charAt(0).toUpperCase()+d.slice(1))}</div>`}
       const k_=tipoNot(n),gr=["guerra","elecciones","retirada","llega","vecindario"].includes(k_),di=gr?datosImg(n,260):"",ac=gr||k_=="resumen"?accion(n):"";
-      h+=`<div class="cron${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}${ilus(k_,40)}</span><span>${negritas(n[1])}${di?`<div class="crdat">${di}</div>`:""}${ac?`<div class="acc">${ac}</div>`:""}${n[5]?`<details><summary class="sub">ver resumen</summary><div class="porE">${negritas(n[5]).replace(/\n/g,"<br>")}</div></details>`:""}</span></div>`}
+      h+=`<div class="cron s-${n[2]}${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}${ilus(k_,40)}</span><span>${negritas(n[1])}${di?`<div class="crdat">${di}</div>`:""}${ac?`<div class="acc">${ac}</div>`:""}${n[5]?`<details><summary class="sub">ver resumen</summary><div class="porE">${negritas(n[5]).replace(/\n/g,"<br>")}</div></details>`:""}</span></div>`}
     h+=`</div>`}
+  if(!CS)h+=fijas();   // v1.29: la noticia fija va al final, como reportaje
   h+=hemeroteca();
-  v.innerHTML=h+`<div class="sub" style="text-align:center;margin:14px 0 4px">Las ${(D.noticias||[]).length} últimas noticias del escucha de EDDN · toca una para abrir la ficha del sistema</div></div>`;
+  v.innerHTML=h+`<div class="sub" style="text-align:center;margin:14px 0 4px">Las ${(D.noticias||[]).length} últimas noticias del escucha de EDDN · toca una para abrir la ficha del sistema</div>`+pieCro()+`</div>`;
 }
 document.getElementById("vCro").onclick=e=>{const b=e.target.closest(".csec button");if(b){CS=b.dataset.c;pintaCro();return}
-  const pm=e.target.closest("[data-pm]");if(pm){PARTE_M=pm.dataset.pm;pintaCro();return}
+  const vz=e.target.closest("[data-voz]");if(vz){voz(vz.dataset.voz);return}
+  const pm=e.target.closest("[data-pm]");if(pm){vozPara();PARTE_M=pm.dataset.pm;pintaCro();return}
   const pa=e.target.closest("[data-pa]");if(pa){PARTE_ANT=PARTE_ANT==pa.dataset.pa?"":pa.dataset.pa;pintaCro();return}
   const n=e.target.closest("[data-s]");if(n&&(D.sistemas||{})[n.dataset.s])abreFicha(n.dataset.s)};
 
@@ -1192,18 +1192,30 @@ function parteHoy(){const P=partesVisibles();if(!P.length)return null;
   const sel=L.find(p=>p.modelo==PARTE_M)||L.find(p=>p.modelo==(PARTE||{}).modelo)||L[0];return{f,L,sel}}
 function marcaSis(t,dud){return esc(t||"").replace(/\[\[(.+?)\]\]/g,(m,n)=>{const raw=n.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"');
   return(D&&(D.sistemas||{})[raw])?`<span data-s="${n}" style="color:#ff8c00;cursor:pointer;text-decoration:underline">${n}</span>`:`<b>${n}</b>${(dud||[]).includes(raw)?' <span title="La IA cita un sistema que no está en nuestros datos">⚠</span>':""}`})}
-function parteCuerpo(p){const d=p.dudosos,riesgo={alto:"#ff4632",medio:"#ffd228",bajo:"#4cd964"}[p.riesgo]||"#b06a10";
-  return`<div class="porT">${marcaSis(p.titular,d)}</div>${p.riesgo?`<div style="font-size:12px;font-weight:700;color:${riesgo};letter-spacing:1px;margin-bottom:4px">RIESGO ${esc(String(p.riesgo).toUpperCase())}</div>`:""}
+const CINTA=`<div class="cinta">Esta transcripción puede tener errores de desencriptado · STOP</div>`;
+function parteRoto(p){return!!(p.roto||(!p.perdido&&(/^\s*\{/.test(p.entradilla||"")||(!(p.puntos||[]).length&&!(p.hacer||[]).length))))}
+function ruido(t){return String(t).replace(/[aeiosrnt]/g,c=>Math.random()<.1?"▓▒░#%"[Math.floor(Math.random()*5)]:c)}
+function parteCuerpo(p){const d=p.dudosos,r=p.riesgo;
+  const pie=`<div class="porF">${p.perdido?"Sin respuesta de":"Recibido de"} ${esc(PARTE_NOM[p.modelo]||p.modelo)} · ${p.al_dia!=null?`sistemas con dato nuevo tras el tick: ${p.al_dia} de ${p.ctrl} · `:""}${(p.tokens_in||0).toLocaleString("es")} + ${(p.tokens_out||0).toLocaleString("es")} tokens · ${String(p.coste??"0").replace(".",",")} $${(d||[]).length?` · ⚠ sistemas dudosos: ${d.map(esc).join(", ")}`:""}</div>`;
+  if(p.perdido)return`<div class="hostil">📡 TRANSMISIÓN PERDIDA<small>NO SE RECIBIÓ EL PARTE DE HOY</small></div>`+pie;
+  if(parteRoto(p)){const salva=(p.titular&&!/^parte del día$/i.test(p.titular)&&!/^\s*\{/.test(p.entradilla||""));
+    return`<div class="hostil">⚠ TRANSMISIÓN INTERCEPTADA POR FUERZAS HOSTILES ⚠<small>POSIBLES DATOS ERRÓNEOS</small></div>`+
+      (salva?`<div class="porT">${marcaSis(p.titular,d)}</div><div class="porE">${marcaSis(p.entradilla,d)}</div>`:"")+
+      `<div class="danado">${esc(ruido(String(p.bruto||p.entradilla||"").slice(0,420)))}…[señal perdida]</div>`+CINTA+pie}
+  return`<div class="porT">${marcaSis(p.titular,d)}</div>${r?`<div class="semaf"><i class="b ${r=="bajo"?"on":""}"></i><i class="m ${r=="medio"?"on":""}"></i><i class="a ${r=="alto"?"on":""}"></i> RIESGO ${esc(String(r).toUpperCase())}</div>`:""}
 <div class="porE">${marcaSis(p.entradilla,d)}</div>
 ${(p.puntos||[]).length?`<div style="margin-top:8px">${p.puntos.map(x=>`<div style="margin:6px 0"><b style="color:#ffd228">▸ ${marcaSis(x.titulo,d)}</b><div class="porE" style="font-size:14px">${marcaSis(x.texto,d)}</div></div>`).join("")}</div>`:""}
 ${(p.hacer||[]).length?`<div style="margin-top:8px"><b style="color:#4cd964">QUÉ HACER HOY</b><ol style="margin:4px 0 0 18px;padding:0">${p.hacer.map(x=>`<li class="porE" style="font-size:14px;margin:3px 0">${marcaSis(x,d)}</li>`).join("")}</ol></div>`:""}
 ${p.oportunidad?`<div style="margin-top:8px"><b style="color:#66cbff">💡 OPORTUNIDAD</b><div class="porE" style="font-size:14px">${marcaSis(p.oportunidad,d)}</div></div>`:""}
-<div class="porF">Escrito por ${esc(PARTE_NOM[p.modelo]||p.modelo)} · ${p.al_dia!=null?`datos al día tras el tick: ${p.al_dia} de ${p.ctrl} sistemas · `:""}${(p.tokens_in||0).toLocaleString("es")} + ${(p.tokens_out||0).toLocaleString("es")} tokens · ${String(p.coste??"").replace(".",",")} $${(d||[]).length?` · ⚠ sistemas dudosos: ${d.map(esc).join(", ")}`:""}</div>`}
+${CINTA}${pie}`}
 function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),pub=H.sel.publicar_t||0;
   const tarde=H.f<hoy&&now()>pub+86400;   // ya deberia haber salido el de hoy
-  let h=`<div class="fija" style="border-color:#66cbff;background:#06121d"><div class="porK" style="color:#66cbff">🧠 PARTE DEL DÍA · ${esc(diaTit(pub))}${tarde?' · <span style="color:#ffd228">el de hoy llega con retraso</span>':""}</div>`;
+  const nu=H.sel.numero?` · N.º ${H.sel.numero}`:"";
+  let h=`<div class="fija intel"><div class="intelK"><span>🛰 INFORME DE INTELIGENCIA · ${esc(diaTit(pub).toUpperCase())}${nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span><span class="cla">ACCESO: ALMIRANTAZGO</span></div>
+  ${!parteRoto(H.sel)&&!H.sel.perdido&&("speechSynthesis" in window)?`<div class="vozb"><button data-voz="leer" class="favb">🔊 Escuchar parte</button><button data-voz="pausa" class="favb">Pausa</button><button data-voz="parar" class="favb">Parar</button></div>`:""}`;
   if(H.L.length>1)h+=`<div class="vper" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:4px">${H.L.map(p=>`<button data-pm="${esc(p.modelo)}" class="${p===H.sel?"on":""}">${esc(PARTE_NOM[p.modelo]||p.modelo)}</button>`).join("")}</div><div class="sub" style="margin-bottom:4px">Prueba: el mismo parte escrito por ${H.L.length} modelos, para elegir.</div>`;
+  PARTE_VOZ=H.sel;
   h+=parteCuerpo(H.sel);
   const ant=[...new Set(partesVisibles().map(p=>p.fecha))].sort().reverse().filter(f=>f!=H.f).slice(0,14);
   if(ant.length)h+=`<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Partes anteriores (${ant.length})</summary>${ant.map(f=>{const L=partesVisibles().filter(p=>p.fecha==f),p=L.find(x=>x.modelo==(PARTE||{}).modelo)||L[0];
@@ -1211,3 +1223,27 @@ function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   return h+`</div>`}
 function parteFranja(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   return`<div class="pfr" style="cursor:pointer;border:1px solid #66cbff;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:rgba(102,203,255,.07)">🧠 <b style="color:#66cbff">Parte del día:</b> ${marcaSis(H.sel.titular,[]).replace(/data-s="[^"]*"/g,"")} <span class="sub">· leer en La Crónica ➜</span></div>`}
+
+// ---------- v1.29: La Cronica renovada (numeracion, noticia fija al final, pie, voz) ----------
+var PARTE_VOZ=null;
+function edicion(){const ini=(PARTE||{}).inicio;if(!ini)return null;   // AÑO (año galáctico - 3311) y N.º continuo desde el primer parte
+  const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
+  return[Number(hoy.slice(0,4))+1286-3311,Math.round((Date.parse(hoy)-Date.parse(ini))/864e5)+1]}
+function fijas(){let h="";for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 REPORTAJE</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;return h}
+function pieCro(){return`<div class="pie"><img src="icon-192.png" alt="">REDACCIÓN: ESCUCHAS DE SION · IMPRESO EN MELVIN CITY · NDABANGLUYA<img src="icon-192.png" alt=""></div>`}
+function vozTexto(p){const s=t=>String(t||"").replace(/\[\[(.+?)\]\]/g,"$1").replace(/[*_#@]/g,"").trim();
+  const L=[`Informe de inteligencia de Caballeros de Sion.`,s(p.titular)+".",s(p.entradilla)];
+  (p.puntos||[]).forEach(x=>L.push(s(x.titulo)+". "+s(x.texto)));
+  if((p.hacer||[]).length)L.push("Qué hacer hoy.",...p.hacer.map((x,i)=>`${i+1}. ${s(x)}`));
+  if(p.oportunidad)L.push("Oportunidad. "+s(p.oportunidad));
+  L.push("Fin del informe.");return L.join(" ")}
+function vozPara(){try{speechSynthesis.cancel()}catch(e){}}
+function voz(acc){const S=window.speechSynthesis;if(!S)return;
+  if(acc=="parar"){S.cancel();return}
+  if(acc=="pausa"){if(S.paused)S.resume();else if(S.speaking)S.pause();return}
+  if(S.paused){S.resume();return}
+  S.cancel();if(!PARTE_VOZ)return;
+  const vs=S.getVoices(),vo=vs.find(v=>/^es[-_]ES/i.test(v.lang))||vs.find(v=>/^es/i.test(v.lang));
+  // trozos cortos: algunos navegadores cortan las frases largas
+  const tro=vozTexto(PARTE_VOZ).match(/[^.!?]+[.!?]*/g)||[];
+  for(const t of tro){if(!t.trim())continue;const u=new SpeechSynthesisUtterance(t.trim());u.lang="es-ES";if(vo)u.voice=vo;u.rate=1;S.speak(u)}}
