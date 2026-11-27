@@ -131,6 +131,17 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 .deco .cab2{color:#ffb347}
 .cabE{position:absolute;top:12px;width:clamp(40px,9vw,74px);height:auto;filter:drop-shadow(0 0 8px #ff8c0088)}
 .cabE.i{left:4px}.cabE.d{right:4px;transform:scaleX(-1)}
+/* v1.41: ojos de la calavera segun el riesgo del parte */
+span.cabE{display:block}span.cabE img{width:100%;height:auto;display:block}
+.ojos i{position:absolute;top:54.3%;width:4.6%;height:3.4%;margin:-1.7% 0 0 -2.3%;border-radius:50%;background:#000;opacity:0}
+.ojos i:nth-of-type(1){left:44.1%}.ojos i:nth-of-type(2){left:55.9%}
+.o-alto i{background:#ff2a1a;box-shadow:0 0 2px 1px #ff2a1acc,0 0 5px 1px #ff2a1a66;animation:ojoA 2.6s infinite}
+.o-medio i{background:#ffb02e;box-shadow:0 0 2px 1px #ffb02ecc,0 0 5px 1px #ffb02e55;animation:ojoM 3.6s ease-in-out infinite}
+.o-bajo i{background:#4cff7a;box-shadow:0 0 2px 1px #4cff7a88;animation:ojoB 7s infinite}
+@keyframes ojoA{0%,38%,46%,52%,60%,100%{opacity:1}42%,56%{opacity:0}70%{opacity:.7}74%{opacity:1}}
+@keyframes ojoM{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes ojoB{0%,92%,100%{opacity:.75}95%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.ojos i{animation:none}.o-medio i{opacity:1}}
 .hud{margin:8px 0 0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 10px;font:12px/1.4 ui-monospace,Consolas,monospace;
  color:#140b00;background:linear-gradient(90deg,#ff8c00,#ffb347 50%,#ff8c00);padding:4px 14px;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)}
 .hud b{letter-spacing:1px}
