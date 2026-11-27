@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.34";
+const VERSION="v1.35";
 const NOVEDADES=[
+ ["v1.35","27/11/2026",["Resumen nuevo en la cabecera, en una línea: 🛡 controlados/sistemas · 🔴 alertas graves · 👥 tráfico de hoy. Al tocarlo se despliegan las tarjetas: Territorio (con barra, imprescindibles e históricos), Alertas (graves en grande, avisos aparte y lo más urgente) y Tráfico (con el de ayer y la gráfica de los últimos días)"]],
  ["v1.34","27/11/2026",["Línea de estado más corta: ⏱ antigüedad de los datos · 🟢/🔴 EDDN y su último mensaje · ⏭ próximo tick (deja el dedo o el ratón encima para la explicación)"]],
  ["v1.33","27/11/2026",["◇ Imprescindibles de nivel 2 (sistemas donde lo importante es no perder presencia, como Hyades Sector DB-X d1-112 por el solape de painita): PRESENCIA EN PELIGRO en rojo si la influencia baja del 10 %, BAJADA en rojo desde 1,5 puntos en un día y EXPANSIÓN ENEMIGA en rojo"]],
  ["v1.32","27/11/2026",["⚠ HUECO EN HISTÓRICO / IMPRESCINDIBLE: si otra facción entra en retirada en uno de nuestros sistemas históricos o imprescindibles, deja hueco para que entre una facción de fuera. Sale en rojo si hay expansiones enemigas que pueden llegar (dice cuántas y la más cercana) y en naranja si no","En La Crónica, esas retiradas pasan de Oportunidades a Conflictos, marcadas como urgentes"]],
@@ -224,14 +225,39 @@ function filas(){
       conf:a[0]?a[1]:"",pob:(s.sis||{}).pob||0,pp:(s.pp||{}).pot||"",traf:(s.trafico||{})[hoy]||0,t:s.t||0,tick:proxTick(s),niv:a[0]};
   });
 }
+// v1.35: resumen en una linea en la cabecera; al tocarlo se despliegan las tarjetas
+function pintaResumen(F,tot,ctrl,traf){
+  const gr=F.filter(f=>f.niv==2),av=F.filter(f=>f.niv==1),ee=av.filter(f=>f.a[1]=="EXPANSIÓN ENEMIGA").length;
+  const dias=[];for(let i=6;i>=0;i--)dias.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));
+  const serie=dias.map(d=>F.reduce((a,f)=>a+((f.s.trafico||{})[d]||0),0)),ayer=serie[5];
+  const flecha="";   // hoy aun no ha terminado: no se compara en % con un dia completo
+  const imp=F.filter(f=>nivImp(f.sys)).length,his=F.filter(f=>esHist(f.sys)).length;
+  const cnt={};gr.forEach(f=>cnt[f.a[1]]=(cnt[f.a[1]]||0)+1);
+  const ico={"DÍA DECISIVO":"⚔","POSIBLE ATAQUE":"🚨","SISTEMA EN DERROTA":"⚔","RETIRADA INMINENTE":"🏳","DISPUTADO":"⚖","VENTAJA BAJA":"⚠","GUERRA PEND.":"⚔"};
+  const pills=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`<span class="rPill">${ico[k]||"⚠"} ${v} ${esc(k.toLowerCase())}</span>`).join("");
+  const S0=serie.slice(0,6),desde=S0.findIndex(v=>v>0),S=desde<0?[]:S0.slice(desde),mx=Math.max(1,...S);
+  const pts=S.map((v,i)=>`${S.length>1?Math.round(i*120/(S.length-1)):60},${Math.round(24-v/mx*20)}`).join(" ");
+  let r=document.getElementById("resumen");
+  if(!r){r=document.createElement("button");r.id="resumen";r.type="button";document.getElementById("est").after(r);
+    r.onclick=()=>{const c=document.getElementById("cards");c.hidden=!c.hidden;try{localStorage.setItem("cdsn_res",c.hidden?"0":"1")}catch(e){}}}
+  r.innerHTML=`🛡 ${ctrl}/${tot} · <span style="color:${gr.length?"#ff4632":"#5adc78"}">🔴 ${gr.length} grave${gr.length==1?"":"s"}</span> · 👥 ${traf} hoy <span class="rMas">▾</span>`;
+  const c=document.getElementById("cards");
+  c.innerHTML=`<div class="rC rW"><div class="rK">TERRITORIO</div><div><b class="rBig" style="color:#ffd228">${ctrl}</b><span class="rS2"> controlados de ${tot}</span></div>
+     <div class="rBar"><i style="width:${tot?Math.round(ctrl/tot*100):0}%"></i></div><div class="rS">${tot?Math.round(ctrl/tot*100):0} % · ◆ ${imp} imprescindibles · 🏛 ${his} históricos</div></div>
+   <div class="rC" id="rAl" style="cursor:pointer"><div class="rK">ALERTAS</div><div><b class="rBig" style="color:#ff4632">${gr.length}</b> <span style="color:#ff4632">grave${gr.length==1?"":"s"}</span></div>
+     <div class="rS"><span style="color:#ff9a2e">${av.length} avisos</span>${ee?` · ${ee} de expansión enemiga`:""}</div>${pills}</div>
+   <div class="rC"><div class="rK">TRÁFICO HOY</div><div><b class="rBig">${traf}</b> ${flecha}</div><div class="rS">pilotos en nuestros sistemas${ayer?` · ayer, el día entero: ${ayer}`:""}${S.length>1?" · gráfica: días completos":""}</div>
+     ${S.length>1?`<svg viewBox="0 0 120 26" width="100%" height="26" style="margin-top:6px;border:0;background:none"><polyline fill="none" stroke="#66cbff" stroke-width="2" points="${pts}"/></svg>`:""}</div>`;
+  let vis="0";try{vis=localStorage.getItem("cdsn_res")||"0"}catch(e){}
+  if(!c.dataset.ini){c.hidden=vis!="1";c.dataset.ini=1}
+  const al=document.getElementById("rAl");if(al)al.onclick=()=>{const b=document.querySelector('[data-v="hoy"]')||document.querySelector('[data-tab="hoy"]');if(b)b.click()}}
 function pinta(){
   if(!D)return;
   let F=filas();const q=document.getElementById("q").value.toLowerCase();
   const tot=F.length,ctrl=F.filter(f=>f.s.ctrl).length,al=F.filter(f=>f.niv).length,traf=F.reduce((a,f)=>a+f.traf,0);
   let tg=0;for(const f of F)if(f.tick&&f.s.tick_disp!=null&&f.s.tick_disp<=180&&(!tg||f.tick<tg))tg=f.tick;
   if(!tg&&D.tick_global){tg=D.tick_global+86400;while(tg<now()-1800)tg+=86400}
-  document.getElementById("cards").innerHTML=[["Sistemas",tot],["Controlados",ctrl],["Alertas",al],["Tráfico hoy",traf]]
-    .map(([a,b])=>`<div class="card"><span>${a}</span><b>${b}</b></div>`).join("");
+  pintaResumen(F,tot,ctrl,traf);
   const tm=document.getElementById("tickmini");if(tm){tm.textContent=" · ⏭ "+(tg?hora(tg):"…");tm.title=tg?"Próximo tick, aproximado":"Próximo tick: el escucha aún lo está aprendiendo"}
   if(q)F=F.filter(f=>f.sys.toLowerCase().includes(q));
   if(document.getElementById("fc").checked)F=F.filter(f=>f.s.ctrl);
