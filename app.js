@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.32";
 const NOVEDADES=[
- ["v1.32","27/11/2026",["⚠ HUECO EN HISTÓRICO / IMPRESCINDIBLE: si otra facción entra en retirada en uno de nuestros sistemas históricos o imprescindibles, deja hueco para que entre una facción de fuera. Sale en rojo si hay expansiones enemigas que pueden llegar (dice cuántas y la más cercana) y en naranja si no","En La Crónica, esas retiradas pasan de Oportunidades a Conflictos, marcadas como urgentes"]],
+ ["v1.32","27/11/2026",["⚠ HUECO EN HISTÓRICO / IMPRESCINDIBLE: si otra facción entra en retirada en uno de nuestros sistemas históricos o imprescindibles, deja hueco para que entre una facción de fuera. Sale en rojo si hay expansiones enemigas que pueden llegar (dice cuántas y la más cercana) y en naranja si no","Aviso previo en naranja, POSIBLE HUECO: una facción que no es nativa (no lleva el nombre del sistema) baja del 2,5 % y puede entrar en retirada. Las nativas no se van nunca de su sistema, así que no avisan","En La Crónica, esas retiradas pasan de Oportunidades a Conflictos, marcadas como urgentes"]],
  ["v1.31","27/11/2026",["◆ Sistemas IMPRESCINDIBLES: los elige el almirante en imprescindibles.txt (cdsn-datos), por niveles; los de nivel 1 llevan ◆ dorado junto al nombre en todas las listas y en la ficha (los de otros niveles, ◇)","🏛 Sistemas HISTÓRICOS: los heredados (anteriores a la colonización, de arquitectos.txt) llevan 🏛","En un imprescindible de nivel 1, BAJADA, ACTIVIDAD INUSUAL y PROBABLE POWERPLAY pasan de aviso a grave (rojo), salta VENTAJA BAJA con menos de 10 puntos (en vez de 5) y BAJADA desde 1,5 puntos (en vez de 3)","El parte de la IA los tiene en cuenta y los pone primero","La Crónica más limpia: el Vecindario en una sola noticia al día (toca «ver resumen» para ver cada facción); las retiradas de otras facciones en nuestros sistemas pasan a la nueva sección 🎯 Oportunidades (dejan hueco para crecer); los avisos «Expansión activo» de cada sistema se juntan en una sola noticia al día, y los «Elecciones/Guerra activo» repetidos ya no salen si está la noticia del conflicto"]],
  ["v1.30","27/11/2026",["🛰 Nuevo sello del Informe de inteligencia: tira de papel descifrada «SIGINT // CDSN // CRÍTICO, VIGILANCIA o NOMINAL // fecha», en rojo, ámbar o verde según el riesgo del parte, con letra de máquina de escribir gastada (sustituye a «ACCESO: ALMIRANTAZGO»)","📌 La noticia fija del almirante ya no sale en la franja amarilla de arriba (se cortaba y no se leía): ahora va entera en La Crónica, justo debajo del Informe de inteligencia, como COMUNICADO DEL ALMIRANTE"]],
  ["v1.29","27/11/2026",["La Crónica de Sion renovada: emblemas, estrellas, banda HUD con AÑO y N.º de edición (fecha galáctica) y las noticias de hoy, teletipo con los titulares, colores por sección y sellos de URGENTE","La web abre ahora en La Crónica","ÚLTIMA HORA en una franja roja compacta (solo si hay algo urgente en 24 h); la portada es el Informe de inteligencia","El parte de la IA como INFORME DE INTELIGENCIA, con semáforo de riesgo y la cinta de telegrama «puede tener errores de desencriptado»","🔊 Escuchar parte: lo lee en voz alta con la voz del móvil u ordenador","Si el parte llega roto: ⚠ TRANSMISIÓN INTERCEPTADA POR FUERZAS HOSTILES","La noticia fija pasa al final, como reportaje"]],
@@ -169,12 +169,14 @@ const sinConf=s=>!(s.conflictos||[]).some(c=>c.estado=="active"||c.estado=="pend
 // v1.32: hueco en un historico o imprescindible: otra faccion en retirada -> puede entrar una de fuera
 function hueco(s){if(!esHist(s.sys)&&!nivImp(s.sys))return null;
   const V=(s.todas||[]).filter(x=>x.n!=FAC&&[...(x.act||[]),...(x.pend||[])].includes("Retreat"));   // solo retirada de verdad: las nativas al 1 % no se van de su sistema
- if(!V.length)return null;
+ const nat=x=>x.n.toLowerCase().includes(s.sys.toLowerCase());   // nativa: lleva el nombre del sistema; nunca se retira de el
+  const P=V.length?[]:(s.todas||[]).filter(x=>x.n!=FAC&&!nat(x)&&x.inf>0&&x.inf<2.5);   // aviso previo: no nativa por debajo del 2,5 %
+  if(!V.length&&!P.length)return null;
   const E=(AMZ[s.sys]||[]).slice().sort((a,b)=>a.ly-b.ly).filter((e,i,A)=>A.findIndex(x=>x.n==e.n)==i),   // una vez por faccion (la mas cercana)
    tipo=nivImp(s.sys)?"IMPRESCINDIBLE":"HISTÓRICO";
-  const txt=V.map(x=>`${x.n} se retira (${c1(x.inf)} %)`).join(", ")+
+  const txt=(V.length?V.map(x=>`${x.n} se retira (${c1(x.inf)} %)`):P.map(x=>`${x.n} baja al ${c1(x.inf)} % (no es nativa: puede entrar en retirada)`)).join(", ")+
     " · "+(E.length?`${E.length} facci${E.length==1?"ón en expansión puede":"ones en expansión pueden"} llegar, la más cercana ${E[0].n} a ${c1(E[0].ly)} al`:"ninguna expansión enemiga cerca, por ahora");
-  return{tit:"HUECO EN "+tipo,txt,grave:E.length>0,V,E}}
+  return V.length?{tit:"HUECO EN "+tipo,txt,grave:E.length>0,V,E}:{tit:"POSIBLE HUECO EN "+tipo,txt,grave:false,V:P,E}}
 // alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, icono, parpadea, alarma]
 function alerta(s){const a=alerta0(s);if(!esImp(s.sys))return a;   // v1.31: un imprescindible se vigila con mas cuidado
   if(a[0]==1&&["BAJADA","ACTIVIDAD INUSUAL","PROBABLE POWERPLAY"].includes(a[1]))return[2,a[1],a[2]+" · ◆ imprescindible","gr",a[4],a[5],a[6]];
