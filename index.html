@@ -159,6 +159,12 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 .sig:before,.sig:after{content:"";position:absolute;left:0;right:0;height:5px;background:radial-gradient(circle,#0d0f14 1.6px,transparent 2px) 0 0/10px 5px}
 .sig:before{top:2px}.sig:after{bottom:2px}
 .sig .rd{position:absolute;inset:0;font:11px/14px ui-monospace,Consolas,monospace;-webkit-text-stroke:0;letter-spacing:.2em;padding:6px 10px;color:#6b5f45;opacity:.2;overflow:hidden;word-break:break-all;pointer-events:none}
+/* v1.39: pie de telegrama y sello del Estado Mayor */
+.sig{padding-right:118px!important;min-height:96px}
+.sigP{position:relative;display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font:700 11px/1.4 "Courier New",ui-monospace,monospace;letter-spacing:.06em;-webkit-text-stroke:0;opacity:.85}
+.sigS{position:absolute;right:10px;top:50%;margin-top:-46px;border:3px solid currentColor;padding:3px 5px;text-align:center;font:700 9px/1.25 "Courier New",ui-monospace,monospace;letter-spacing:.08em;-webkit-text-stroke:0;mix-blend-mode:multiply}
+.sigS img{width:54px;height:54px;display:block;margin:0 auto 1px}.sigS b{display:block}
+.sig.medio .sigS img,.sig.bajo .sigS img{filter:grayscale(1) brightness(.6)}
 .sig .tx{position:relative;text-shadow:1px 0 0 rgba(0,0,0,.18)}
 .sig.alto{color:#b3140e;border-color:#d92b22;animation:sigP 1.6s ease-in-out infinite}
 .sig.medio{color:#8a5200;border-color:#e09a12}

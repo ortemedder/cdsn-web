@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.38";
+const VERSION="v1.39";
 const NOVEDADES=[
+ ["v1.39","27/11/2026",["La cinta SIGINT del Informe de inteligencia trae más datos, como un telegrama: ⌖ foco (el sistema más urgente del parte), ▲ alertas graves, ◷ próximo tick y hora del parte con STOP","Lleva estampado el sello del ESTADO MAYOR con el logo de Caballeros de Sion y el número del parte (cada día un poco distinto, como un tampón de verdad)"]],
  ["v1.38","27/11/2026",["📰 La Crónica se abre en modo lectura: sin franjas ni resumen arriba, cabecera de una línea y las pestañas recogidas en ☰. Si hay algo crítico sale ⚠ junto al ☰ (al tocarlo, la alerta). En el PC, columna más ancha y letra algo mayor. Al ir a otra pestaña todo vuelve como estaba"]],
  ["v1.37","27/11/2026",["◆ Franja fija de SISTEMAS PRINCIPALES (imprescindibles de nivel 1 y 2): en verde «sin novedad» si todo va bien; si no, los que tienen algo, de más a menos grave. Si no cabe en una línea, corre como un teletipo. Al tocarla se para y salen los sistemas para abrir su ficha","La franja naranja de actividad inusual ya no repite los sistemas principales"]],
  ["v1.36","27/11/2026",["Orden de las alertas en Hoy, por gravedad: 1) lo que se puede perder ya (día decisivo, derrota, retirada, posible ataque, hueco), 2) lo grave (riesgo de retirada, ventaja baja…), 3) conflictos en marcha (disputado, pendientes), 4) avisos y 5) buenas noticias; y dentro de cada grupo, los imprescindibles de nivel 1, los de nivel 2, los históricos y el resto. Vale para Hoy, las franjas de arriba y la lista del Radar","Hoy: los imprescindibles con alerta grave (por ejemplo un hueco) suben a rojo también aquí","Hoy más limpio: los sistemas normales que solo tienen una expansión enemiga cerca van juntos en un botón al final"]],
@@ -261,6 +262,7 @@ function pinta(){
   const tot=F.length,ctrl=F.filter(f=>f.s.ctrl).length,al=F.filter(f=>f.niv).length,traf=F.reduce((a,f)=>a+f.traf,0);
   let tg=0;for(const f of F)if(f.tick&&f.s.tick_disp!=null&&f.s.tick_disp<=180&&(!tg||f.tick<tg))tg=f.tick;
   if(!tg&&D.tick_global){tg=D.tick_global+86400;while(tg<now()-1800)tg+=86400}
+  window.TG=tg;   // v1.39: para la cinta del parte
   pintaResumen(F,tot,ctrl,traf);
   const tm=document.getElementById("tickmini");if(tm){tm.textContent=" · ⏭ "+(tg?hora(tg):"…");tm.title=tg?"Próximo tick, aproximado":"Próximo tick: el escucha aún lo está aprendiendo"}
   if(q)F=F.filter(f=>f.sys.toLowerCase().includes(q));
@@ -1351,7 +1353,14 @@ function sello(p,t){const r=p.roto||p.perdido?"alto":(p.riesgo||"medio"),pal={al
   const txt=`SIGINT // CDSN // ${pal} // ${f}`,pos=new Set();while(pos.size<4){const i=Math.floor(Math.random()*txt.length);if(/[A-ZÍ0-9]/.test(txt[i]))pos.add(i)}
   const tx=[...txt].map((c,i)=>pos.has(i)?`<span class="g${1+Math.floor(Math.random()*4)}">${c}</span>`:esc(c)).join("");
   const hx=Array.from({length:60},()=>Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2,"0")).join(" ");
-  return`<div class="sig ${r}"><div class="rd">${hx}</div><span class="tx">${tx}</span></div>`}
+  // v1.39: pie de telegrama y sello del Estado Mayor
+  const foco=((p.puntos||[])[0]||{}).titulo?.split(":")[0]||((p.titular||"").match(/\[\[(.+?)\]\]/)||[])[1]||"";
+  const gr=D?Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&alerta(s)[0]==2).length:0;
+  const hh=x=>{const z=new Date(x*1000);return String(z.getHours()).padStart(2,"0")+":"+String(z.getMinutes()).padStart(2,"0")};
+  const pie=[foco?`⌖ FOCO ${esc(foco.toUpperCase())}`:"",`▲ ${gr} GRAVE${gr==1?"":"S"}`,window.TG?`◷ TICK ${hh(window.TG)}`:"",`${hh(t)} STOP`].filter(Boolean).map(x=>`<span>${x}</span>`).join("");
+  let k=0;for(const c of String(p.fecha||t))k=(k*31+c.charCodeAt(0))%997;   // giro y tinta distintos cada dia, fijos ese dia
+  const st=`<div class="sigS" style="transform:rotate(${-6-k%9}deg);opacity:${.72+(k%5)*.05}"><img src="sello-cdsn.png" alt=""><b>ESTADO MAYOR</b><b>N.º ${p.numero||1}</b></div>`;
+  return`<div class="sig ${r}"><div class="rd">${hx}</div><span class="tx">${tx}</span><div class="sigP">${pie}</div>${st}</div>`}
 
 // ---------- v1.29: La Cronica renovada (numeracion, noticia fija al final, pie, voz) ----------
 var PARTE_VOZ=null;
