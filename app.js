@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.35";
+const VERSION="v1.36";
 const NOVEDADES=[
+ ["v1.36","27/11/2026",["Las alertas de los imprescindibles salen primero: antes los de nivel 1, luego los de nivel 2 y después el resto (cada grupo, de más a menos grave). Vale para Hoy, las franjas de arriba y la lista del Radar"]],
  ["v1.35","27/11/2026",["Resumen nuevo en la cabecera, en una línea: 🛡 controlados/sistemas · 🔴 alertas graves · 👥 tráfico de hoy. Al tocarlo se despliegan las tarjetas: Territorio (con barra, imprescindibles e históricos), Alertas (graves en grande, avisos aparte y lo más urgente) y Tráfico (con el de ayer y la gráfica de los últimos días)"]],
  ["v1.34","27/11/2026",["Línea de estado más corta: ⏱ antigüedad de los datos · 🟢/🔴 EDDN y su último mensaje · ⏭ próximo tick (deja el dedo o el ratón encima para la explicación)"]],
  ["v1.33","27/11/2026",["◇ Imprescindibles de nivel 2 (sistemas donde lo importante es no perder presencia, como Hyades Sector DB-X d1-112 por el solape de painita): PRESENCIA EN PELIGRO en rojo si la influencia baja del 10 %, BAJADA en rojo desde 1,5 puntos en un día y EXPANSIÓN ENEMIGA en rojo"]],
@@ -97,6 +98,7 @@ function proxTick(s){let p=s.tick_prox;if(!p)return 0;while(p<now()-1800)p+=8640
 const IMP_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/imprescindibles.txt";
 let IMP=new Map();   // nombre en minusculas -> nivel (1 = el mas importante)
 const nivImp=n=>IMP.get((n||"").toLowerCase())||0,esImp=n=>nivImp(n)==1,esHist=n=>/^heredad/i.test(ARQ[(n||"").toLowerCase()]||"");
+const prImp=n=>{const v=nivImp(n);return v?v:99};   // v1.36: orden: nivel 1, nivel 2... y luego el resto
 const MK=n=>{const v=nivImp(n);return(v==1?`<span class="mkI" title="Imprescindible (nivel 1)">◆</span>`:v?`<span class="mkI" title="Imprescindible (nivel ${v})">◇</span>`:"")+(esHist(n)?`<span class="mkH" title="Histórico (heredado, anterior a la colonización)">🏛</span>`:"")};
 const CP=n=>MK(n)+`<button class="cp" data-cp="${esc(n)}" title="Copiar nombre" aria-label="Copiar ${esc(n)}">⧉</button>`;
 function copia(t){if(navigator.clipboard&&isSecureContext)return navigator.clipboard.writeText(t);
@@ -472,7 +474,7 @@ function franjaExp(){   // la expansion es de toda la faccion: una sola franja; 
   f.innerHTML=`⬆ EXPANSIÓN PENDIENTE · toda la facción <span class="sub">· ${R_.verExp?"toca para ocultar":"toca para ver"} ${n} sistemas</span>`;f.classList.toggle("on",R_.verExp)}
 document.getElementById("rexp").onclick=()=>{R_.verExp=!R_.verExp;for(const o of R_.S)if(o.exp)o.niv=R_.verExp?o.al[0]:0;pintaAlertas()};
 function pintaAlertas(){franjaExp();
-  const A=R_.S.filter(o=>o.niv).sort((a,b)=>b.niv-a.niv||a.s.inf-b.s.inf);
+  const A=R_.S.filter(o=>o.niv).sort((a,b)=>prImp(a.s.sys)-prImp(b.s.sys)||b.niv-a.niv||a.s.inf-b.s.inf);
   document.getElementById("ral").innerHTML=A.map(o=>`<button data-s="${esc(o.s.sys)}">${TAG(o.al)} ${esc(o.s.sys)}</button>`).join("");
   document.getElementById("rInfo").textContent=`${R_.S.length} sistemas · ${A.length} alertas`;
 }
@@ -554,7 +556,7 @@ function tareas(){
     else if(s.ctrl&&s.inf>=70)add(30,"CERCA DE EXPANSIÓN","fa",`${c1(s.inf)} %, la expansión salta al 75 %`,SUB);
     else if(retAjena(s).length){const r=retAjena(s)[0];add(35,"OPORTUNIDAD","fa",`${r.n} está en retirada (${c1(r.inf)} %): si sale, queda un hueco`,"Trabajar para CDSN mientras dura: su influencia se reparte entre las demás")}
   }
-  return L.sort((a,b)=>b.p-a.p||a.s.inf-b.s.inf);
+  return L.sort((a,b)=>prImp(a.s.sys)-prImp(b.s.sys)||b.p-a.p||a.s.inf-b.s.inf);
 }
 function pintaHoy(){
   if(!D)return;const L=tareas();
@@ -696,7 +698,7 @@ let ATK=[],atkI=0;
 function diaLocal(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function listaAtaques(){const R={"DÍA DECISIVO":3,"RETIRADA INMINENTE":2.5,"SISTEMA EN DERROTA":2,"POSIBLE ATAQUE":1};
   return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,al:alerta(s),a:ataque(s)})).filter(o=>o.al[6])
-  .sort((x,y)=>(R[y.al[1]]||0)-(R[x.al[1]]||0)||(y.a?y.a.v/Math.max(y.a.m,1):0)-(x.a?x.a.v/Math.max(x.a.m,1):0))}
+  .sort((x,y)=>prImp(x.s.sys)-prImp(y.s.sys)||(R[y.al[1]]||0)-(R[x.al[1]]||0)||(y.a?y.a.v/Math.max(y.a.m,1):0)-(x.a?x.a.v/Math.max(x.a.m,1):0))}
 function vistos(){try{return JSON.parse(localStorage.getItem("cdsn_atk")||"{}")}catch(e){return{}}}
 function marcaVistos(){const V={},h=diaLocal();for(const o of ATK)V[o.s.sys]={dia:h,v:o.a?o.a.v:0,baja:o.s.prev-o.s.inf,tit:o.al[1]+o.al[2]};try{localStorage.setItem("cdsn_atk",JSON.stringify(V))}catch(e){}}
 function revisaAtaques(){
@@ -746,7 +748,7 @@ addEventListener("keydown",e=>{if(e.key=="Escape")cierraAtaque(true)});
 function revisaInusual(){
   const b=document.getElementById("inusual");if(!b||!D)return;
   const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,a:ataque(s)})).filter(o=>o.a&&alerta(o.s)[1]=="ACTIVIDAD INUSUAL")
-    .sort((x,y)=>(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)));
+    .sort((x,y)=>prImp(x.s.sys)-prImp(y.s.sys)||(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)));
   if(!L.length){b.hidden=true;return}
   const o=L[0];
   b.innerHTML=`👁 <b>ACTIVIDAD INUSUAL</b> en ${esc(o.s.sys)} (${o.a.v} pilotos ${o.a.dia})${L.length>1?` y ${L.length-1} más`:""} · toca para ver`;
