@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.32";
+const VERSION="v1.33";
 const NOVEDADES=[
+ ["v1.33","27/11/2026",["◇ Imprescindibles de nivel 2 (sistemas donde lo importante es no perder presencia, como Hyades Sector DB-X d1-112 por el solape de painita): PRESENCIA EN PELIGRO en rojo si la influencia baja del 10 %, BAJADA en rojo desde 1,5 puntos en un día y EXPANSIÓN ENEMIGA en rojo"]],
  ["v1.32","27/11/2026",["⚠ HUECO EN HISTÓRICO / IMPRESCINDIBLE: si otra facción entra en retirada en uno de nuestros sistemas históricos o imprescindibles, deja hueco para que entre una facción de fuera. Sale en rojo si hay expansiones enemigas que pueden llegar (dice cuántas y la más cercana) y en naranja si no","En La Crónica, esas retiradas pasan de Oportunidades a Conflictos, marcadas como urgentes"]],
  ["v1.31","27/11/2026",["◆ Sistemas IMPRESCINDIBLES: los elige el almirante en imprescindibles.txt (cdsn-datos), por niveles; los de nivel 1 llevan ◆ dorado junto al nombre en todas las listas y en la ficha (los de otros niveles, ◇)","🏛 Sistemas HISTÓRICOS: los heredados (anteriores a la colonización, de arquitectos.txt) llevan 🏛","En un imprescindible de nivel 1, BAJADA, ACTIVIDAD INUSUAL y PROBABLE POWERPLAY pasan de aviso a grave (rojo), salta VENTAJA BAJA con menos de 10 puntos (en vez de 5) y BAJADA desde 1,5 puntos (en vez de 3)","El parte de la IA los tiene en cuenta y los pone primero","La Crónica más limpia: el Vecindario en una sola noticia al día (toca «ver resumen» para ver cada facción); las retiradas de otras facciones en nuestros sistemas pasan a la nueva sección 🎯 Oportunidades (dejan hueco para crecer); los avisos «Expansión activo» de cada sistema se juntan en una sola noticia al día, y los «Elecciones/Guerra activo» repetidos ya no salen si está la noticia del conflicto"]],
  ["v1.30","27/11/2026",["🛰 Nuevo sello del Informe de inteligencia: tira de papel descifrada «SIGINT // CDSN // CRÍTICO, VIGILANCIA o NOMINAL // fecha», en rojo, ámbar o verde según el riesgo del parte, con letra de máquina de escribir gastada (sustituye a «ACCESO: ALMIRANTAZGO»)","📌 La noticia fija del almirante ya no sale en la franja amarilla de arriba (se cortaba y no se leía): ahora va entera en La Crónica, justo debajo del Informe de inteligencia, como COMUNICADO DEL ALMIRANTE"]],
@@ -176,7 +177,13 @@ function hueco(s){if(!esHist(s.sys)&&!nivImp(s.sys))return null;
     " · "+(E.length?`${E.length} facci${E.length==1?"ón en expansión puede":"ones en expansión pueden"} llegar, la más cercana ${E[0].n} a ${c1(E[0].ly)} al`:"ninguna expansión enemiga cerca, por ahora");
   return{tit:"HUECO EN "+tipo,txt,grave:E.length>0,V,E}}
 // alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, icono, parpadea, alarma]
-function alerta(s){const a=alerta0(s);if(!esImp(s.sys))return a;   // v1.31: un imprescindible se vigila con mas cuidado
+function alerta(s){const a=alerta0(s),nv=nivImp(s.sys);
+  if(nv==2){if(a[0]==2)return a;   // v1.33: nivel 2 = no perder presencia
+    if(s.inf>0&&s.inf<10)return[2,"PRESENCIA EN PELIGRO",`${c1(s.inf)} % (por debajo del 10 %) · ◇ imprescindible`,"gr"];
+    if(s.prev!=null&&s.prev-s.inf>=1.5)return[2,"BAJADA",`${c1(s.inf-s.prev)} desde ayer · ◇ imprescindible`,"gr"];
+    if(a[1]=="EXPANSIÓN ENEMIGA"||a[1]=="BAJADA"||a[1]=="ACTIVIDAD INUSUAL")return[2,a[1],a[2]+" · ◇ imprescindible","gr",a[4],a[5],a[6]];
+    return a}
+  if(nv!=1)return a;   // v1.31: un imprescindible se vigila con mas cuidado
   if(a[0]==1&&["BAJADA","ACTIVIDAD INUSUAL","PROBABLE POWERPLAY"].includes(a[1]))return[2,a[1],a[2]+" · ◆ imprescindible","gr",a[4],a[5],a[6]];
   if(a[0])return a;
   const vent=s.inf-(s.segunda_inf||0);
