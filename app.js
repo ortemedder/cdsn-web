@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.39";
+const VERSION="v1.40";
 const NOVEDADES=[
+ ["v1.40","27/11/2026",["Cinta SIGINT más baja (menos de la mitad): sello mini con el logo a la izquierda, la línea principal limpia y debajo, en pequeño, N.º · RECIBIDO hora y modelo (Haiku) · foco · graves · tick · STOP"]],
  ["v1.39","27/11/2026",["La cinta SIGINT del Informe de inteligencia trae más datos, como un telegrama: ⌖ foco (el sistema más urgente del parte), ▲ alertas graves, ◷ próximo tick y hora del parte con STOP","Lleva estampado el sello del ESTADO MAYOR con el logo de Caballeros de Sion y el número del parte (cada día un poco distinto, como un tampón de verdad)"]],
  ["v1.38","27/11/2026",["📰 La Crónica se abre en modo lectura: sin franjas ni resumen arriba, cabecera de una línea y las pestañas recogidas en ☰. Si hay algo crítico sale ⚠ junto al ☰ (al tocarlo, la alerta). En el PC, columna más ancha y letra algo mayor. Al ir a otra pestaña todo vuelve como estaba"]],
  ["v1.37","27/11/2026",["◆ Franja fija de SISTEMAS PRINCIPALES (imprescindibles de nivel 1 y 2): en verde «sin novedad» si todo va bien; si no, los que tienen algo, de más a menos grave. Si no cabe en una línea, corre como un teletipo. Al tocarla se para y salen los sistemas para abrir su ficha","La franja naranja de actividad inusual ya no repite los sistemas principales"]],
@@ -1348,19 +1349,16 @@ function parteFranja(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   return`<div class="pfr" style="cursor:pointer;border:1px solid #66cbff;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:rgba(102,203,255,.07)">🧠 <b style="color:#66cbff">Parte del día:</b> ${marcaSis(H.sel.titular,[]).replace(/data-s="[^"]*"/g,"")} <span class="sub">· leer en La Crónica ➜</span></div>`}
 
 // ---------- v1.30: sello SIGINT (tira descifrada; color y palabra segun el riesgo; letras con fallos al azar) ----------
-function sello(p,t){const r=p.roto||p.perdido?"alto":(p.riesgo||"medio"),pal={alto:"CRÍTICO",medio:"VIGILANCIA",bajo:"NOMINAL"}[r]||"VIGILANCIA";
+function sello(p,t){   // v1.40: cinta baja: sello mini + linea principal + pie pequeno (sin letras con fallos)
+  const r=p.roto||p.perdido?"alto":(p.riesgo||"medio"),pal={alto:"CRÍTICO",medio:"VIGILANCIA",bajo:"NOMINAL"}[r]||"VIGILANCIA";
   const d=new Date(t*1000),f=`${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()+1286}`;
-  const txt=`SIGINT // CDSN // ${pal} // ${f}`,pos=new Set();while(pos.size<4){const i=Math.floor(Math.random()*txt.length);if(/[A-ZÍ0-9]/.test(txt[i]))pos.add(i)}
-  const tx=[...txt].map((c,i)=>pos.has(i)?`<span class="g${1+Math.floor(Math.random()*4)}">${c}</span>`:esc(c)).join("");
-  const hx=Array.from({length:60},()=>Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2,"0")).join(" ");
-  // v1.39: pie de telegrama y sello del Estado Mayor
+  const hh=x=>{const z=new Date(x*1000);return String(z.getHours()).padStart(2,"0")+":"+String(z.getMinutes()).padStart(2,"0")};
   const foco=((p.puntos||[])[0]||{}).titulo?.split(":")[0]||((p.titular||"").match(/\[\[(.+?)\]\]/)||[])[1]||"";
   const gr=D?Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&alerta(s)[0]==2).length:0;
-  const hh=x=>{const z=new Date(x*1000);return String(z.getHours()).padStart(2,"0")+":"+String(z.getMinutes()).padStart(2,"0")};
-  const pie=[foco?`⌖ FOCO ${esc(foco.toUpperCase())}`:"",`▲ ${gr} GRAVE${gr==1?"":"S"}`,window.TG?`◷ TICK ${hh(window.TG)}`:"",`${hh(t)} STOP`].filter(Boolean).map(x=>`<span>${x}</span>`).join("");
-  let k=0;for(const c of String(p.fecha||t))k=(k*31+c.charCodeAt(0))%997;   // giro y tinta distintos cada dia, fijos ese dia
-  const st=`<div class="sigS" style="transform:rotate(${-6-k%9}deg);opacity:${.72+(k%5)*.05}"><img src="sello-cdsn.png" alt=""><b>ESTADO MAYOR</b><b>N.º ${p.numero||1}</b></div>`;
-  return`<div class="sig ${r}"><div class="rd">${hx}</div><span class="tx">${tx}</span><div class="sigP">${pie}</div>${st}</div>`}
+  const rec=p.t||t,mod=String(p.modelo||"").toUpperCase();
+  const pie=[`N.º ${p.numero||1}`,`RECIBIDO ${hh(rec)}${mod?` <span class="sigM">${esc(mod)}</span>`:""}`,foco?`⌖ ${esc(foco.toUpperCase())}`:"",`▲ ${gr}`,window.TG?`◷ ${hh(window.TG)}`:"","STOP"].filter(Boolean).join(" · ");
+  let k=0;for(const c of String(p.fecha||t))k=(k*31+c.charCodeAt(0))%997;
+  return`<div class="sig ${r}"><img class="sigI" src="sello-cdsn.png" alt="" style="transform:rotate(${-5-k%8}deg)"><div class="sigX"><div class="sigL">SIGINT // CDSN // ${pal} // ${f}</div><div class="sigP">${pie}</div></div></div>`}
 
 // ---------- v1.29: La Cronica renovada (numeracion, noticia fija al final, pie, voz) ----------
 var PARTE_VOZ=null;
