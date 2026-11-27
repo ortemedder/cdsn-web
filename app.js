@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.43";
 const NOVEDADES=[
- ["v1.43","27/11/2026",["👤 Sistemas de CMDRs de CDSN: si el arquitecto es miembro, el sistema lleva 👤 junto al nombre y sus alertas en Hoy dicen «👤 arquitecto: X (CDSN) · avísale»","Nuevo orden en todo (Hoy, franjas, Radar): primero lo que se puede perder hoy (día decisivo, derrota, retirada, posible ataque, hueco); después, por grupos: ◆ imprescindibles nivel 1, ◇ nivel 2, 👤 sistemas de CMDRs de CDSN, 🏛 históricos y el resto; dentro de cada grupo, de más a menos grave","Cinta SIGINT con letra más gruesa"]],
+ ["v1.43","27/11/2026",["👤 Sistemas de CMDRs de CDSN: si el arquitecto es miembro, el sistema lleva 👤 junto al nombre y sus alertas en Hoy dicen «👤 arquitecto: X (CDSN) · avísale»","Nuevo orden en todo (Hoy, franjas, Radar): primero lo que se puede perder hoy (día decisivo, derrota, retirada, posible ataque, hueco); después, por grupos: ◆ imprescindibles nivel 1, ◇ nivel 2, 👤 sistemas de CMDRs de CDSN, 🏛 históricos y el resto; dentro de cada grupo, de más a menos grave","Cinta SIGINT con letra más gruesa","🛰 El parte de la IA sale ahora por tick: SITREP PM (Parte Vespertino) 2 h después del tick y, si no se detectó el tick, SITREP AM (Parte Matutino) a las 08:00. Si hay dos el mismo día, arriba el PM y debajo el AM plegado","El parte avisa de los sistemas con datos de más de 2 días (hay que pasar con EDMC) y valora si lo que pidió el anterior ha servido"]],
  ["v1.42","27/11/2026",["🔍 Buscadores más visibles en todas las pestañas: borde naranja, más altos, lupa que late hasta que escribes y ✕ para borrar de un toque"]],
  ["v1.41","27/11/2026",["👀 Los ojos de las calaveras de la cabecera de La Crónica se encienden según el riesgo del parte del día: rojos y parpadeando rápido (alto), ámbar respirando (medio), verdes casi fijos (bajo) y apagados si no hay parte"]],
  ["v1.40","27/11/2026",["Cinta SIGINT más baja (menos de la mitad): sello mini con el logo a la izquierda, la línea principal limpia y debajo, en pequeño, N.º · RECIBIDO hora y modelo (Haiku) · foco · graves · tick · STOP"]],
@@ -1320,8 +1320,12 @@ async function cargaParte(){if(PARTE&&Date.now()-PARTE_T<10*60e3)return;
   try{const r=await fetch(PARTE_URL+"?"+Date.now());if(r.ok){PARTE=await r.json();PARTE_T=Date.now()}}catch(e){}}
 function partesVisibles(){return((PARTE||{}).partes||[]).filter(p=>(p.publicar_t||0)<=now())}
 function parteHoy(){const P=partesVisibles();if(!P.length)return null;
-  const f=P.map(p=>p.fecha).sort().pop(),L=P.filter(p=>p.fecha==f);
-  const sel=L.find(p=>p.modelo==PARTE_M)||L.find(p=>p.modelo==(PARTE||{}).modelo)||L[0];return{f,L,sel}}
+  const f=P.map(p=>p.fecha).sort().pop(),T=P.filter(p=>p.fecha==f);
+  // v1.43: SITREP AM y PM: se enseña el más nuevo (PM antes que AM); el AM del mismo día va plegado debajo
+  const ed=T.some(p=>p.edicion=="PM")?"PM":T.some(p=>p.edicion=="AM")?"AM":"",L=T.filter(p=>(p.edicion||"")==ed);
+  const sel=L.find(p=>p.modelo==PARTE_M)||L.find(p=>p.modelo==(PARTE||{}).modelo)||L[0];
+  const am=ed=="PM"?T.filter(p=>p.edicion=="AM").sort((a,b)=>(b.t||0)-(a.t||0))[0]:null;return{f,L,sel,am}}
+const SITREP={AM:"SITREP AM (Situation Report) // Parte Matutino",PM:"SITREP PM (Situation Report) // Parte Vespertino"};
 function marcaSis(t,dud){return esc(t||"").replace(/\[\[(.+?)\]\]/g,(m,n)=>{const raw=n.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"');
   return(D&&(D.sistemas||{})[raw])?`<span data-s="${n}" style="color:#ff8c00;cursor:pointer;text-decoration:underline">${n}</span>`:`<b>${n}</b>${(dud||[]).includes(raw)?' <span title="La IA cita un sistema que no está en nuestros datos">⚠</span>':""}`})}
 const CINTA=`<div class="cinta">Esta transcripción puede tener errores de desencriptado · STOP</div>`;
@@ -1343,12 +1347,14 @@ ${CINTA}${pie}`}
 function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),pub=H.sel.publicar_t||0;
   const tarde=H.f<hoy&&now()>pub+86400;   // ya deberia haber salido el de hoy
-  const nu=H.sel.numero?` · N.º ${H.sel.numero}`:"";
-  let h=`<div class="fija intel"><div class="intelK"><span>🛰 INFORME DE INTELIGENCIA · ${esc(diaTit(pub).toUpperCase())}${nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${sello(H.sel,pub)}
+  const nu=H.sel.numero?` · N.º ${H.sel.numero}${H.sel.edicion?" · "+H.sel.edicion:""}`:"";
+  let h=`<div class="fija intel"><div class="intelK"><span>🛰 INFORME DE INTELIGENCIA · ${esc(diaTit(pub).toUpperCase())}${nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${H.sel.edicion?`<div class="sitrep">${SITREP[H.sel.edicion]}</div>`:""}${sello(H.sel,pub)}
   ${!parteRoto(H.sel)&&!H.sel.perdido&&("speechSynthesis" in window)?`<div class="vozb"><button data-voz="leer" class="favb">🔊 Escuchar parte</button><button data-voz="pausa" class="favb">Pausa</button><button data-voz="parar" class="favb">Parar</button></div>`:""}`;
   if(H.L.length>1)h+=`<div class="vper" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:4px">${H.L.map(p=>`<button data-pm="${esc(p.modelo)}" class="${p===H.sel?"on":""}">${esc(PARTE_NOM[p.modelo]||p.modelo)}</button>`).join("")}</div><div class="sub" style="margin-bottom:4px">Prueba: el mismo parte escrito por ${H.L.length} modelos, para elegir.</div>`;
   PARTE_VOZ=H.sel;
   h+=parteCuerpo(H.sel);
+  if(H.am){const r=H.am.roto||H.am.perdido?"interceptado":"riesgo "+(H.am.riesgo||"medio"),ha=new Date((H.am.t||H.am.publicar_t)*1000);
+    h+=`<details class="sitam"><summary>▸ ${SITREP.AM} · ${String(ha.getHours()).padStart(2,"0")}:${String(ha.getMinutes()).padStart(2,"0")} · ${esc(r)}</summary>${parteCuerpo(H.am)}</details>`}
   const ant=[...new Set(partesVisibles().map(p=>p.fecha))].sort().reverse().filter(f=>f!=H.f).slice(0,14);
   if(ant.length)h+=`<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Partes anteriores (${ant.length})</summary>${ant.map(f=>{const L=partesVisibles().filter(p=>p.fecha==f),p=L.find(x=>x.modelo==(PARTE||{}).modelo)||L[0];
     return`<div style="margin:6px 0"><span data-pa="${f}" style="cursor:pointer"><b>${esc(f.split("-").reverse().join("/"))}</b> · ${marcaSis(p.titular,p.dudosos)} ${PARTE_ANT==f?"▾":"▸"}</span>${PARTE_ANT==f?`<div style="margin:6px 0 0 8px">${parteCuerpo(p)}</div>`:""}</div>`}).join("")}</details>`;
@@ -1364,9 +1370,9 @@ function sello(p,t){   // v1.40: cinta baja: sello mini + linea principal + pie 
   const foco=((p.puntos||[])[0]||{}).titulo?.split(":")[0]||((p.titular||"").match(/\[\[(.+?)\]\]/)||[])[1]||"";
   const gr=D?Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&alerta(s)[0]==2).length:0;
   const rec=p.t||t,mod=String(p.modelo||"").toUpperCase();
-  const pie=[`N.º ${p.numero||1}`,`RECIBIDO ${hh(rec)}${mod?` <span class="sigM">${esc(mod)}</span>`:""}`,foco?`⌖ ${esc(foco.toUpperCase())}`:"",`▲ ${gr}`,window.TG?`◷ ${hh(window.TG)}`:"","STOP"].filter(Boolean).join(" · ");
+  const pie=[`N.º ${p.numero||1}${p.edicion?" "+p.edicion:""}`,`RECIBIDO ${hh(rec)}${mod?` <span class="sigM">${esc(mod)}</span>`:""}`,foco?`⌖ ${esc(foco.toUpperCase())}`:"",`▲ ${gr}`,window.TG?`◷ ${hh(window.TG)}`:"","STOP"].filter(Boolean).join(" · ");
   let k=0;for(const c of String(p.fecha||t))k=(k*31+c.charCodeAt(0))%997;
-  return`<div class="sig ${r}"><img class="sigI" src="sello-cdsn.png" alt="" style="transform:rotate(${-5-k%8}deg)"><div class="sigX"><div class="sigL">SIGINT // CDSN // ${pal} // ${f}</div><div class="sigP">${pie}</div></div></div>`}
+  return`<div class="sig ${r}"><img class="sigI" src="sello-cdsn.png" alt="" style="transform:rotate(${-5-k%8}deg)"><div class="sigX"><div class="sigL">SIGINT // CDSN // ${pal}${p.edicion?` // SITREP ${p.edicion}`:""} // ${f}</div><div class="sigP">${pie}</div></div></div>`}
 
 // ---------- v1.29: La Cronica renovada (numeracion, noticia fija al final, pie, voz) ----------
 var PARTE_VOZ=null;
