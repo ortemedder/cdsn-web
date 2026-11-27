@@ -131,7 +131,19 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 .intel{position:relative;border:1px solid #66cbff!important;background:repeating-linear-gradient(0deg,#06121d 0 2px,#071725 2px 4px)!important;box-shadow:0 0 0 1px #000,0 0 20px #66cbff33}
 .intel::before{content:"";position:absolute;inset:6px;border:1px dashed #66cbff44;pointer-events:none}
 .intelK{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font:700 11px ui-monospace,Consolas,monospace;letter-spacing:2px;color:#66cbff;border-bottom:1px solid #66cbff55;padding-bottom:4px;margin-bottom:6px}
-.intelK .cla{color:#ff4632;border:1px solid #ff4632;padding:0 5px}
+@font-face{font-family:"Special Elite";font-weight:400;font-display:swap;src:url(special-elite.woff2) format("woff2")}   /* letra Special Elite (Astigmatic, licencia Apache 2.0) */
+/* v1.30: sello SIGINT en tira de papel descifrada (Special Elite), color segun el riesgo del parte */
+@font-face{font-family:"Special Elite";font-style:normal;font-weight:400;font-display:swap;src:url(https://fonts.gstatic.com/s/specialelite/v19/XLYgIZbkc4JPUL5CVArUVL0ntnAOSA.woff2) format("woff2")}
+.sig{position:relative;display:block;width:100%;margin:6px 0 2px;padding:12px 12px;background:#efe6cf;border-left:6px solid;border-right:6px solid;border-radius:2px;overflow:hidden;font:400 15px/1.4 "Special Elite","Courier New",monospace;-webkit-text-stroke:.8px currentColor;letter-spacing:.22em;word-break:break-word;text-transform:none}
+.sig:before,.sig:after{content:"";position:absolute;left:0;right:0;height:5px;background:radial-gradient(circle,#0d0f14 1.6px,transparent 2px) 0 0/10px 5px}
+.sig:before{top:2px}.sig:after{bottom:2px}
+.sig .rd{position:absolute;inset:0;font:11px/14px ui-monospace,Consolas,monospace;-webkit-text-stroke:0;letter-spacing:.2em;padding:6px 10px;color:#6b5f45;opacity:.2;overflow:hidden;word-break:break-all;pointer-events:none}
+.sig .tx{position:relative;text-shadow:1px 0 0 rgba(0,0,0,.18)}
+.sig.alto{color:#b3140e;border-color:#d92b22;animation:sigP 1.6s ease-in-out infinite}
+.sig.medio{color:#8a5200;border-color:#e09a12}
+.sig.bajo{color:#146b2c;border-color:#2fae55}
+@keyframes sigP{50%{background:#f6d9d2}}
+.sig .g1{opacity:.45}.sig .g2{position:relative;top:2px}.sig .g3{opacity:.7;clip-path:inset(0 0 45% 0)}.sig .g4{position:relative;left:2px;opacity:.6}
 .vozb{display:flex;gap:6px;margin:4px 0 6px;font-family:system-ui,sans-serif}.vozb .favb{margin:0;padding:5px 10px;font-size:13px}
 .semaf{display:inline-flex;gap:5px;align-items:center;margin:2px 0 6px;font:700 12px ui-monospace,monospace;letter-spacing:1px;color:#e0d2bf}
 .semaf i{width:14px;height:14px;border-radius:50%;background:#222;box-shadow:inset 0 0 3px #000}

@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.29";
+const VERSION="v1.30";
 const NOVEDADES=[
+ ["v1.30","27/11/2026",["🛰 Nuevo sello del Informe de inteligencia: tira de papel descifrada «SIGINT // CDSN // CRÍTICO, VIGILANCIA o NOMINAL // fecha», en rojo, ámbar o verde según el riesgo del parte, con letra de máquina de escribir gastada (sustituye a «ACCESO: ALMIRANTAZGO»)","📌 La noticia fija del almirante ya no sale en la franja amarilla de arriba (se cortaba y no se leía): ahora va entera en La Crónica, justo debajo del Informe de inteligencia, como COMUNICADO DEL ALMIRANTE"]],
  ["v1.29","27/11/2026",["La Crónica de Sion renovada: emblemas, estrellas, banda HUD con AÑO y N.º de edición (fecha galáctica) y las noticias de hoy, teletipo con los titulares, colores por sección y sellos de URGENTE","La web abre ahora en La Crónica","ÚLTIMA HORA en una franja roja compacta (solo si hay algo urgente en 24 h); la portada es el Informe de inteligencia","El parte de la IA como INFORME DE INTELIGENCIA, con semáforo de riesgo y la cinta de telegrama «puede tener errores de desencriptado»","🔊 Escuchar parte: lo lee en voz alta con la voz del móvil u ordenador","Si el parte llega roto: ⚠ TRANSMISIÓN INTERCEPTADA POR FUERZAS HOSTILES","La noticia fija pasa al final, como reportaje"]],
  ["v1.28","27/11/2026",["🧠 PARTE DEL DÍA en La Crónica: cada día a las 15:00 la IA (Claude) escribe el parte de inteligencia de CDSN: titular, lo esencial, puntos clave, qué hacer hoy y una oportunidad","Los sistemas del parte se pueden tocar para abrir su ficha; si la IA cita un sistema que no conocemos, sale marcado ⚠","Debajo, quién lo escribió, cuántos sistemas estaban al día tras el tick y lo que costó; y los partes de días anteriores","Franja con el titular arriba de Hoy","Durante la prueba salen juntos los partes de Haiku, Sonnet y Opus para compararlos"]],
  ["v1.27","26/11/2026",["RESISTENCIA de cada sistema (alta, media o baja): ventaja sobre la segunda, número de facciones, población, si es minero (economía o un overlap de hotspots a 20 ly o menos) y si la estación es de CDSN. Sale en la ficha con sus motivos","PROBABLE POWERPLAY ⚡ (naranja) en vez de POSIBLE ATAQUE cuando hay pico de visitas, Powerplay en el sistema, portanaves y la bajada es pequeña","Con resistencia alta y una bajada de menos de 3 puntos, el aviso baja a ACTIVIDAD INUSUAL","Overlaps de minería (Platino, Painita y LTD) cerca de cada sistema, en la ficha","Con el escucha v12.6: anillos del sistema (tipo y si están vírgenes), sus hotspots y los minerales que compran nuestras estaciones; también cuentan para la resistencia"]],
@@ -896,11 +897,11 @@ function pintaCro(){
     <div class="hud"><b>◆ ${esc(fechaJuego(now()).toUpperCase())}</b>${ed?`<b>AÑO ${ed[0]} · N.º ${ed[1]}</b>`:""}<span>${nHoy} NOTICIA${nHoy==1?"":"S"} HOY</span><span>HORA GALÁCTICA ${hora(now())}</span>${tk!=null?`<span>TICK EN ~${tk} H</span>`:""}</div></div>`;
   const TT=N.slice(0,12).map(n=>sinMarcas(n[1]).split(" · ")[0]);
   if(TT.length)h+=`<div class="tele"><span>${TT.map(esc).join("<i>◆</i>")}</span></div>`;
-  if(!D.noticias){v.innerHTML=h+(CS?"":parteHTML())+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+fijas()+hemeroteca()+pieCro()+`</div>`;return}
+  if(!D.noticias){v.innerHTML=h+(CS?"":parteHTML()+fijas())+`<p class="sub" style="text-align:center;margin:20px">La Crónica empezará a publicarse en cuanto la Orange Pi tenga el escucha v11.6: desde entonces, cada aviso de Discord saldrá aquí.</p>`+hemeroteca()+pieCro()+`</div>`;return}
   if(!CS){const U=N.filter(n=>n[3]&&n[2]!="vecindario"&&now()-n[0]<86400).slice(0,2);   // ÚLTIMA HORA: solo urgentes de 24 h, compacta
     for(const P of U){const tit=sinMarcas(P[1]).split(" · ")[0];
       h+=`<div class="ult"${P[4]?` data-s="${esc(P[4])}"`:""}><b>🚨 ÚLTIMA HORA</b> <span class="ultH">${hora(P[0])}</span> ${esc(tit)}${P[4]?` <span class="ultS">· ${esc(P[4])}</span>`:""}</div>`}
-    h+=parteHTML()}
+    h+=parteHTML()+fijas()}   // v1.30: el comunicado del almirante, justo debajo del informe
   h+=`<div class="vper csec">${SECS.map(([k,n])=>`<button data-c="${k}" class="${k==CS?"on":""}">${n}</button>`).join("")}</div>`;
   const L=N.filter(n=>CS?n[2]==CS:n[2]!="vecindario");   // v1.20: «Todas» = lo nuestro; lo de otras facciones en Vecindario
   if(!L.length)h+=`<p class="sub" style="text-align:center;margin:16px">Sin noticias en esta sección.</p>`;
@@ -909,7 +910,6 @@ function pintaCro(){
       const k_=tipoNot(n),gr=["guerra","elecciones","retirada","llega","vecindario"].includes(k_),di=gr?datosImg(n,260):"",ac=gr||k_=="resumen"?accion(n):"";
       h+=`<div class="cron s-${n[2]}${n[3]?" urg":""}"${n[4]?` data-s="${esc(n[4])}"`:""}><span class="croh">${hora(n[0])}${ilus(k_,40)}</span><span>${negritas(n[1])}${di?`<div class="crdat">${di}</div>`:""}${ac?`<div class="acc">${ac}</div>`:""}${n[5]?`<details><summary class="sub">ver resumen</summary><div class="porE">${negritas(n[5]).replace(/\n/g,"<br>")}</div></details>`:""}</span></div>`}
     h+=`</div>`}
-  if(!CS)h+=fijas();   // v1.29: la noticia fija va al final, como reportaje
   h+=hemeroteca();
   v.innerHTML=h+`<div class="sub" style="text-align:center;margin:14px 0 4px">Las ${(D.noticias||[]).length} últimas noticias del escucha de EDDN · toca una para abrir la ficha del sistema</div>`+pieCro()+`</div>`;
 }
@@ -986,7 +986,7 @@ function accion(n){const k=tipoNot(n),s=n[4]?`<b>${esc(n[4])}</b>`:"el sistema",
 
 // ---------- noticia fija: franja arriba y hemeroteca (escucha v11.7: D.fija y D.hemeroteca) ----------
 function revisaFija(){const b=document.getElementById("fijaBar");if(!b)return;
-  if(!FIJA.length){b.hidden=true;return}
+  b.hidden=true;return;   // v1.30: sin franja; la noticia fija va entera en La Crónica
   b.innerHTML=`📌 <b>${esc(FIJA[0][0])}</b>${FIJA.length>1?` y ${FIJA.length-1} más`:""} · toca para leer`;b.hidden=false}
 document.getElementById("fijaBar").onclick=()=>{vista("cro");scrollTo({top:document.getElementById("vCro").offsetTop-10,behavior:"smooth"})};
 function hemeroteca(){
@@ -1212,7 +1212,7 @@ function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),pub=H.sel.publicar_t||0;
   const tarde=H.f<hoy&&now()>pub+86400;   // ya deberia haber salido el de hoy
   const nu=H.sel.numero?` · N.º ${H.sel.numero}`:"";
-  let h=`<div class="fija intel"><div class="intelK"><span>🛰 INFORME DE INTELIGENCIA · ${esc(diaTit(pub).toUpperCase())}${nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span><span class="cla">ACCESO: ALMIRANTAZGO</span></div>
+  let h=`<div class="fija intel"><div class="intelK"><span>🛰 INFORME DE INTELIGENCIA · ${esc(diaTit(pub).toUpperCase())}${nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${sello(H.sel,pub)}
   ${!parteRoto(H.sel)&&!H.sel.perdido&&("speechSynthesis" in window)?`<div class="vozb"><button data-voz="leer" class="favb">🔊 Escuchar parte</button><button data-voz="pausa" class="favb">Pausa</button><button data-voz="parar" class="favb">Parar</button></div>`:""}`;
   if(H.L.length>1)h+=`<div class="vper" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:4px">${H.L.map(p=>`<button data-pm="${esc(p.modelo)}" class="${p===H.sel?"on":""}">${esc(PARTE_NOM[p.modelo]||p.modelo)}</button>`).join("")}</div><div class="sub" style="margin-bottom:4px">Prueba: el mismo parte escrito por ${H.L.length} modelos, para elegir.</div>`;
   PARTE_VOZ=H.sel;
@@ -1224,12 +1224,20 @@ function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
 function parteFranja(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   return`<div class="pfr" style="cursor:pointer;border:1px solid #66cbff;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:rgba(102,203,255,.07)">🧠 <b style="color:#66cbff">Parte del día:</b> ${marcaSis(H.sel.titular,[]).replace(/data-s="[^"]*"/g,"")} <span class="sub">· leer en La Crónica ➜</span></div>`}
 
+// ---------- v1.30: sello SIGINT (tira descifrada; color y palabra segun el riesgo; letras con fallos al azar) ----------
+function sello(p,t){const r=p.roto||p.perdido?"alto":(p.riesgo||"medio"),pal={alto:"CRÍTICO",medio:"VIGILANCIA",bajo:"NOMINAL"}[r]||"VIGILANCIA";
+  const d=new Date(t*1000),f=`${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()+1286}`;
+  const txt=`SIGINT // CDSN // ${pal} // ${f}`,pos=new Set();while(pos.size<4){const i=Math.floor(Math.random()*txt.length);if(/[A-ZÍ0-9]/.test(txt[i]))pos.add(i)}
+  const tx=[...txt].map((c,i)=>pos.has(i)?`<span class="g${1+Math.floor(Math.random()*4)}">${c}</span>`:esc(c)).join("");
+  const hx=Array.from({length:60},()=>Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2,"0")).join(" ");
+  return`<div class="sig ${r}"><div class="rd">${hx}</div><span class="tx">${tx}</span></div>`}
+
 // ---------- v1.29: La Cronica renovada (numeracion, noticia fija al final, pie, voz) ----------
 var PARTE_VOZ=null;
 function edicion(){const ini=(PARTE||{}).inicio;if(!ini)return null;   // AÑO (año galáctico - 3311) y N.º continuo desde el primer parte
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
   return[Number(hoy.slice(0,4))+1286-3311,Math.round((Date.parse(hoy)-Date.parse(ini))/864e5)+1]}
-function fijas(){let h="";for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 REPORTAJE</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;return h}
+function fijas(){let h="";for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 COMUNICADO DEL ALMIRANTE</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;return h}
 function pieCro(){return`<div class="pie"><img src="icon-192.png" alt="">REDACCIÓN: ESCUCHAS DE SION · IMPRESO EN MELVIN CITY · NDABANGLUYA<img src="icon-192.png" alt=""></div>`}
 function vozTexto(p){const s=t=>String(t||"").replace(/\[\[(.+?)\]\]/g,"$1").replace(/[*_#@]/g,"").trim();
   const L=[`Informe de inteligencia de Caballeros de Sion.`,s(p.titular)+".",s(p.entradilla)];
