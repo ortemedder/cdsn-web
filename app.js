@@ -1,7 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
 const VERSION="v1.43";
 const NOVEDADES=[
- ["v1.43","27/11/2026",["👤 Sistemas de CMDRs de CDSN: si el arquitecto es miembro, el sistema lleva 👤 junto al nombre y sus alertas en Hoy dicen «👤 arquitecto: X (CDSN) · avísale»","Nuevo orden en todo (Hoy, franjas, Radar): primero lo que se puede perder hoy (día decisivo, derrota, retirada, posible ataque, hueco); después, por grupos: ◆ imprescindibles nivel 1, ◇ nivel 2, 👤 sistemas de CMDRs de CDSN, 🏛 históricos y el resto; dentro de cada grupo, de más a menos grave","Cinta SIGINT con letra más gruesa","🛰 El parte de la IA sale ahora por tick: SITREP PM (Parte Vespertino) 2 h después del tick y, si no se detectó el tick, SITREP AM (Parte Matutino) a las 08:00. Si hay dos el mismo día, arriba el PM y debajo el AM plegado","El parte avisa de los sistemas con datos de más de 2 días (hay que pasar con EDMC) y valora si lo que pidió el anterior ha servido"]],
+ ["v1.43","27/11/2026",["👤 Sistemas de CMDRs de CDSN: si el arquitecto es miembro, el sistema lleva 👤 junto al nombre y sus alertas en Hoy dicen «👤 arquitecto: X (CDSN) · avísale»","Nuevo orden en todo (Hoy, franjas, Radar): primero lo que se puede perder hoy (día decisivo, derrota, retirada, posible ataque, hueco); después, por grupos: ◆ imprescindibles nivel 1, ◇ nivel 2, 👤 sistemas de CMDRs de CDSN, 🏛 históricos y el resto; dentro de cada grupo, de más a menos grave","Cinta SIGINT con letra más gruesa","🛰 El parte de la IA sale ahora por tick: SITREP PM (Parte Vespertino) 2 h después del tick y, si no se detectó el tick, SITREP AM (Parte Matutino) a las 08:00. Si hay dos el mismo día, arriba el PM y debajo el AM plegado","El parte avisa de los sistemas con datos de más de 2 días (hay que pasar con EDMC) y valora si lo que pidió el anterior ha servido","⚙ Las alertas se calculan una sola vez en el servidor (alertas.json) y las usan igual la web y el parte de la IA, para que siempre digan lo mismo"]],
  ["v1.42","27/11/2026",["🔍 Buscadores más visibles en todas las pestañas: borde naranja, más altos, lupa que late hasta que escribes y ✕ para borrar de un toque"]],
  ["v1.41","27/11/2026",["👀 Los ojos de las calaveras de la cabecera de La Crónica se encienden según el riesgo del parte del día: rojos y parpadeando rápido (alto), ámbar respirando (medio), verdes casi fijos (bajo) y apagados si no hay parte"]],
  ["v1.40","27/11/2026",["Cinta SIGINT más baja (menos de la mitad): sello mini con el logo a la izquierda, la línea principal limpia y debajo, en pequeño, N.º · RECIBIDO hora y modelo (Haiku) · foco · graves · tick · STOP"]],
@@ -189,7 +189,14 @@ function hueco(s){if(!esHist(s.sys)&&!nivImp(s.sys))return null;
     " · "+(E.length?`${E.length} facci${E.length==1?"ón en expansión puede":"ones en expansión pueden"} llegar, la más cercana ${E[0].n} a ${c1(E[0].ly)} al`:"ninguna expansión enemiga cerca, por ahora");
   return{tit:"HUECO EN "+tipo,txt,grave:E.length>0,V,E}}
 // alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, icono, parpadea, alarma]
-function alerta(s){const a=alerta0(s),nv=nivImp(s.sys);
+// v1.43: alertas calculadas una sola vez en cdsn-datos (tools/alertas.py -> alertas.json), las mismas para web, radar y parte.
+// Se usan si son de los mismos datos que tiene la web; si no (unos minutos tras cada subida), se calculan aquí con las mismas reglas.
+const ALR_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/alertas.json";
+let ALR=null;
+function alerta(s){const x=ALR&&D&&ALR.dato_t==D.t&&(ALR.sistemas||{})[s.sys];
+  if(x)return[x.niv,x.tit,x.txt,x.tono,x.ico,x.parp,x.alarma];
+  return alertaLocal(s)}
+function alertaLocal(s){const a=alerta0(s),nv=nivImp(s.sys);
   if(nv==2){if(a[0]==2)return a;   // v1.33: nivel 2 = no perder presencia
     if(s.inf>0&&s.inf<10)return[2,"PRESENCIA EN PELIGRO",`${c1(s.inf)} % (por debajo del 10 %) · ◇ imprescindible`,"gr"];
     if(s.prev!=null&&s.prev-s.inf>=1.5)return[2,"BAJADA",`${c1(s.inf-s.prev)} desde ayer · ◇ imprescindible`,"gr"];
@@ -360,6 +367,7 @@ async function carga(){
       const M=new Map();let nv=1;for(const l of t.split("\n")){const x=l.trim();if(!x||x.startsWith("#"))continue;
         const m=x.match(/^\[\s*nivel\s*(\d+)\s*\]$/i);if(m){nv=+m[1];continue}M.set(x.toLowerCase(),nv)}
       IMP=M}catch(x){}
+    try{const r=await fetch(ALR_URL+"?"+Date.now());if(r.ok)ALR=await r.json()}catch(x){}   // v1.43
     try{const t=await fetch("miembros.txt?"+Date.now()).then(r=>r.ok?r.text():"");const M=new Map();
       for(const l of t.split("\n")){const n=l.trim();if(n&&!n.startsWith("#"))M.set(n.toLowerCase(),n)}
       if(M.size)MIEM=M}catch(x){}
