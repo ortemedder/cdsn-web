@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.42";
+const VERSION="v1.43";
 const NOVEDADES=[
+ ["v1.43","27/11/2026",["👤 Sistemas de CMDRs de CDSN: si el arquitecto es miembro, el sistema lleva 👤 junto al nombre y sus alertas en Hoy dicen «👤 arquitecto: X (CDSN) · avísale»","Nuevo orden en todo (Hoy, franjas, Radar): primero lo que se puede perder hoy (día decisivo, derrota, retirada, posible ataque, hueco); después, por grupos: ◆ imprescindibles nivel 1, ◇ nivel 2, 👤 sistemas de CMDRs de CDSN, 🏛 históricos y el resto; dentro de cada grupo, de más a menos grave","Cinta SIGINT con letra más gruesa"]],
  ["v1.42","27/11/2026",["🔍 Buscadores más visibles en todas las pestañas: borde naranja, más altos, lupa que late hasta que escribes y ✕ para borrar de un toque"]],
  ["v1.41","27/11/2026",["👀 Los ojos de las calaveras de la cabecera de La Crónica se encienden según el riesgo del parte del día: rojos y parpadeando rápido (alto), ámbar respirando (medio), verdes casi fijos (bajo) y apagados si no hay parte"]],
  ["v1.40","27/11/2026",["Cinta SIGINT más baja (menos de la mitad): sello mini con el logo a la izquierda, la línea principal limpia y debajo, en pequeño, N.º · RECIBIDO hora y modelo (Haiku) · foco · graves · tick · STOP"]],
@@ -104,8 +105,9 @@ function proxTick(s){let p=s.tick_prox;if(!p)return 0;while(p<now()-1800)p+=8640
 const IMP_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/imprescindibles.txt";
 let IMP=new Map();   // nombre en minusculas -> nivel (1 = el mas importante)
 const nivImp=n=>IMP.get((n||"").toLowerCase())||0,esImp=n=>nivImp(n)==1,esHist=n=>/^heredad/i.test(ARQ[(n||"").toLowerCase()]||"");
-const prImp=n=>{const v=nivImp(n);return v?v:esHist(n)?50:99};   // v1.36: dentro de cada gravedad: nivel 1, nivel 2..., historicos y el resto
-const MK=n=>{const v=nivImp(n);return(v==1?`<span class="mkI" title="Imprescindible (nivel 1)">◆</span>`:v?`<span class="mkI" title="Imprescindible (nivel ${v})">◇</span>`:"")+(esHist(n)?`<span class="mkH" title="Histórico (heredado, anterior a la colonización)">🏛</span>`:"")};
+const cmdrDe=n=>{const a=arqDe(n);return a&&esMiem(a)?MIEM.get(a.toLowerCase().trim()):""};   // v1.43: arquitecto miembro de CDSN (nunca cambia)
+const prImp=n=>{const v=nivImp(n);return v?v:cmdrDe(n)?20:esHist(n)?50:99};   // v1.43: grupos: nivel 1, nivel 2..., CMDRs de CDSN, historicos y el resto
+const MK=n=>{const v=nivImp(n),c=cmdrDe(n);return(c?`<span class="mkC" title="Arquitecto: ${esc(c)} (CDSN)">👤</span>`:"")+(v==1?`<span class="mkI" title="Imprescindible (nivel 1)">◆</span>`:v?`<span class="mkI" title="Imprescindible (nivel ${v})">◇</span>`:"")+(esHist(n)?`<span class="mkH" title="Histórico (heredado, anterior a la colonización)">🏛</span>`:"")};
 const CP=n=>MK(n)+`<button class="cp" data-cp="${esc(n)}" title="Copiar nombre" aria-label="Copiar ${esc(n)}">⧉</button>`;
 function copia(t){if(navigator.clipboard&&isSecureContext)return navigator.clipboard.writeText(t);
   return new Promise((ok,ko)=>{const a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();
@@ -481,7 +483,8 @@ function franjaExp(){   // la expansion es de toda la faccion: una sola franja; 
   f.innerHTML=`⬆ EXPANSIÓN PENDIENTE · toda la facción <span class="sub">· ${R_.verExp?"toca para ocultar":"toca para ver"} ${n} sistemas</span>`;f.classList.toggle("on",R_.verExp)}
 document.getElementById("rexp").onclick=()=>{R_.verExp=!R_.verExp;for(const o of R_.S)if(o.exp)o.niv=R_.verExp?o.al[0]:0;pintaAlertas()};
 function pintaAlertas(){franjaExp();
-  const A=R_.S.filter(o=>o.niv).sort((a,b)=>b.niv-a.niv||prImp(a.s.sys)-prImp(b.s.sys)||a.s.inf-b.s.inf);
+  const CR=/DECISIVO|DERROTA|RETIRADA INMINENTE|^RETIRADA$|POSIBLE ATAQUE|^HUECO/;
+  const A=R_.S.filter(o=>o.niv).sort((a,b)=>CR.test(b.al[1])-CR.test(a.al[1])||prImp(a.s.sys)-prImp(b.s.sys)||b.niv-a.niv||a.s.inf-b.s.inf);
   document.getElementById("ral").innerHTML=A.map(o=>`<button data-s="${esc(o.s.sys)}">${TAG(o.al)} ${esc(o.s.sys)}</button>`).join("");
   document.getElementById("rInfo").textContent=`${R_.S.length} sistemas · ${A.length} alertas`;
 }
@@ -577,7 +580,8 @@ function tareas(){
   for(const t of L){const a=alerta(t.s);
     if(a[0]==2&&t.k!="gr"&&!CONF.test(t.tag)){t.tag=a[1];t.k="gr";t.por=a[2];t.ico=a[4]||t.ico}   // la alerta del sistema (p. ej. un hueco en un imprescindible) manda
     t.sev=CRIT.test(t.tag)?4:CONF.test(t.tag)?2:t.k=="gr"?3:t.k=="fa"?0:1}
-  return L.sort((a,b)=>b.sev-a.sev||prImp(a.s.sys)-prImp(b.s.sys)||b.p-a.p||a.s.inf-b.s.inf);
+  for(const t of L){const c=cmdrDe(t.s.sys);if(c&&!String(t.por).includes("👤"))t.por+=` · 👤 arquitecto: ${c} (CDSN) · avísale`}
+  return L.sort((a,b)=>(b.sev==4)-(a.sev==4)||prImp(a.s.sys)-prImp(b.s.sys)||b.sev-a.sev||b.p-a.p||a.s.inf-b.s.inf);
 }
 function pintaHoy(){
   if(!D)return;const L0=tareas();
