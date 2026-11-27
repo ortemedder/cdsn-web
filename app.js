@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.40";
+const VERSION="v1.41";
 const NOVEDADES=[
+ ["v1.41","27/11/2026",["👀 Los ojos de las calaveras de la cabecera de La Crónica se encienden según el riesgo del parte del día: rojos y parpadeando rápido (alto), ámbar respirando (medio), verdes casi fijos (bajo) y apagados si no hay parte"]],
  ["v1.40","27/11/2026",["Cinta SIGINT más baja (menos de la mitad): sello mini con el logo a la izquierda, la línea principal limpia y debajo, en pequeño, N.º · RECIBIDO hora y modelo (Haiku) · foco · graves · tick · STOP"]],
  ["v1.39","27/11/2026",["La cinta SIGINT del Informe de inteligencia trae más datos, como un telegrama: ⌖ foco (el sistema más urgente del parte), ▲ alertas graves, ◷ próximo tick y hora del parte con STOP","Lleva estampado el sello del ESTADO MAYOR con el logo de Caballeros de Sion y el número del parte (cada día un poco distinto, como un tampón de verdad)"]],
  ["v1.38","27/11/2026",["📰 La Crónica se abre en modo lectura: sin franjas ni resumen arriba, cabecera de una línea y las pestañas recogidas en ☰. Si hay algo crítico sale ⚠ junto al ☰ (al tocarlo, la alerta). En el PC, columna más ancha y letra algo mayor. Al ir a otra pestaña todo vuelve como estaba"]],
@@ -1016,7 +1017,9 @@ function pintaCro(){
   // v1.29: cabecera con emblemas y banda HUD (AÑO · N.º · noticias de hoy), teletipo, ultima hora compacta, informe
   const hoyMad=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),diaMad=t=>new Date(t*1000).toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
   const nHoy=N.filter(n=>diaMad(n[0])==hoyMad).length,ed=edicion(),tk=D.tick_global?Math.max(0,Math.round((D.tick_global+86400-now())/3600)):null;
-  let h=`<div class="cro deco"><div class="cab"><img class="cabE i" src="icon-192.png" alt=""><img class="cabE d" src="icon-192.png" alt="">
+  const ph=parteHoy(),pp=ph&&ph.f==hoyMad?ph.sel:null,ojo=pp?(pp.roto||pp.perdido?"alto":(pp.riesgo||"medio")):"off";   // v1.41: ojos segun el riesgo del parte
+  const emb=l=>`<span class="cabE ${l} ojos o-${ojo}"><img src="icon-192.png" alt=""><i></i><i></i></span>`;
+  let h=`<div class="cro deco"><div class="cab">${emb("i")}${emb("d")}
     <div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
     <div class="hud"><b>◆ ${esc(fechaJuego(now()).toUpperCase())}</b>${ed?`<b>AÑO ${ed[0]} · N.º ${ed[1]}</b>`:""}<span>${nHoy} NOTICIA${nHoy==1?"":"S"} HOY</span><span>HORA GALÁCTICA ${hora(now())}</span>${tk!=null?`<span>TICK EN ~${tk} H</span>`:""}</div></div>`;
   const TT=N.slice(0,12).map(n=>sinMarcas(n[1]).split(" · ")[0]);
