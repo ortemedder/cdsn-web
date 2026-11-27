@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.35";
+const VERSION="v1.36";
 const NOVEDADES=[
+ ["v1.36","27/11/2026",["Orden de las alertas en Hoy, por gravedad: 1) lo que se puede perder ya (día decisivo, derrota, retirada, posible ataque, hueco), 2) lo grave (riesgo de retirada, ventaja baja…), 3) conflictos en marcha (disputado, pendientes), 4) avisos y 5) buenas noticias; y dentro de cada grupo, los imprescindibles de nivel 1, los de nivel 2, los históricos y el resto. Vale para Hoy, las franjas de arriba y la lista del Radar","Hoy: los imprescindibles con alerta grave (por ejemplo un hueco) suben a rojo también aquí","Hoy más limpio: los sistemas normales que solo tienen una expansión enemiga cerca van juntos en un botón al final"]],
  ["v1.35","27/11/2026",["Resumen nuevo en la cabecera, en una línea: 🛡 controlados/sistemas · 🔴 alertas graves · 👥 tráfico de hoy. Al tocarlo se despliegan las tarjetas: Territorio (con barra, imprescindibles e históricos), Alertas (graves en grande, avisos aparte y lo más urgente) y Tráfico (con el de ayer y la gráfica de los últimos días)"]],
  ["v1.34","27/11/2026",["Línea de estado más corta: ⏱ antigüedad de los datos · 🟢/🔴 EDDN y su último mensaje · ⏭ próximo tick (deja el dedo o el ratón encima para la explicación)"]],
  ["v1.33","27/11/2026",["◇ Imprescindibles de nivel 2 (sistemas donde lo importante es no perder presencia, como Hyades Sector DB-X d1-112 por el solape de painita): PRESENCIA EN PELIGRO en rojo si la influencia baja del 10 %, BAJADA en rojo desde 1,5 puntos en un día y EXPANSIÓN ENEMIGA en rojo"]],
@@ -97,6 +98,7 @@ function proxTick(s){let p=s.tick_prox;if(!p)return 0;while(p<now()-1800)p+=8640
 const IMP_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/imprescindibles.txt";
 let IMP=new Map();   // nombre en minusculas -> nivel (1 = el mas importante)
 const nivImp=n=>IMP.get((n||"").toLowerCase())||0,esImp=n=>nivImp(n)==1,esHist=n=>/^heredad/i.test(ARQ[(n||"").toLowerCase()]||"");
+const prImp=n=>{const v=nivImp(n);return v?v:esHist(n)?50:99};   // v1.36: dentro de cada gravedad: nivel 1, nivel 2..., historicos y el resto
 const MK=n=>{const v=nivImp(n);return(v==1?`<span class="mkI" title="Imprescindible (nivel 1)">◆</span>`:v?`<span class="mkI" title="Imprescindible (nivel ${v})">◇</span>`:"")+(esHist(n)?`<span class="mkH" title="Histórico (heredado, anterior a la colonización)">🏛</span>`:"")};
 const CP=n=>MK(n)+`<button class="cp" data-cp="${esc(n)}" title="Copiar nombre" aria-label="Copiar ${esc(n)}">⧉</button>`;
 function copia(t){if(navigator.clipboard&&isSecureContext)return navigator.clipboard.writeText(t);
@@ -472,7 +474,7 @@ function franjaExp(){   // la expansion es de toda la faccion: una sola franja; 
   f.innerHTML=`⬆ EXPANSIÓN PENDIENTE · toda la facción <span class="sub">· ${R_.verExp?"toca para ocultar":"toca para ver"} ${n} sistemas</span>`;f.classList.toggle("on",R_.verExp)}
 document.getElementById("rexp").onclick=()=>{R_.verExp=!R_.verExp;for(const o of R_.S)if(o.exp)o.niv=R_.verExp?o.al[0]:0;pintaAlertas()};
 function pintaAlertas(){franjaExp();
-  const A=R_.S.filter(o=>o.niv).sort((a,b)=>b.niv-a.niv||a.s.inf-b.s.inf);
+  const A=R_.S.filter(o=>o.niv).sort((a,b)=>b.niv-a.niv||prImp(a.s.sys)-prImp(b.s.sys)||a.s.inf-b.s.inf);
   document.getElementById("ral").innerHTML=A.map(o=>`<button data-s="${esc(o.s.sys)}">${TAG(o.al)} ${esc(o.s.sys)}</button>`).join("");
   document.getElementById("rInfo").textContent=`${R_.S.length} sistemas · ${A.length} alertas`;
 }
@@ -554,15 +556,23 @@ function tareas(){
     else if(s.ctrl&&s.inf>=70)add(30,"CERCA DE EXPANSIÓN","fa",`${c1(s.inf)} %, la expansión salta al 75 %`,SUB);
     else if(retAjena(s).length){const r=retAjena(s)[0];add(35,"OPORTUNIDAD","fa",`${r.n} está en retirada (${c1(r.inf)} %): si sale, queda un hueco`,"Trabajar para CDSN mientras dura: su influencia se reparte entre las demás")}
   }
-  return L.sort((a,b)=>b.p-a.p||a.s.inf-b.s.inf);
+  // v1.36: primero la gravedad (la de la alerta del sistema, que ya sube a los imprescindibles), luego el nivel y luego la urgencia
+  // gravedad por niveles: 4 se pierde ya · 3 grave · 2 conflicto en marcha · 1 aviso · 0 buenas noticias
+  const CRIT=/DECISIVO|DERROTA|RETIRADA INMINENTE|^RETIRADA$|POSIBLE ATAQUE|^HUECO/,CONF=/DISPUTADO|PEND\.|DEFENSA|UN DÍA DE GANAR|IGUALADO/;
+  for(const t of L){const a=alerta(t.s);
+    if(a[0]==2&&t.k!="gr"&&!CONF.test(t.tag)){t.tag=a[1];t.k="gr";t.por=a[2];t.ico=a[4]||t.ico}   // la alerta del sistema (p. ej. un hueco en un imprescindible) manda
+    t.sev=CRIT.test(t.tag)?4:CONF.test(t.tag)?2:t.k=="gr"?3:t.k=="fa"?0:1}
+  return L.sort((a,b)=>b.sev-a.sev||prImp(a.s.sys)-prImp(b.s.sys)||b.p-a.p||a.s.inf-b.s.inf);
 }
 function pintaHoy(){
-  if(!D)return;const L=tareas();
+  if(!D)return;const L0=tareas();
+  // v1.36: las «expansión enemiga» leves de sistemas normales van juntas en una linea al final (no saturan)
+  const EE=L0.filter(t=>t.tag=="EXPANSIÓN ENEMIGA"&&t.sev<3&&!nivImp(t.s.sys)),L=R_.hoyEE?L0:L0.filter(t=>!EE.includes(t));
   document.getElementById("vHoy").innerHTML=parteFranja()+(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
    L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}${t.parp?" parp":""}">${t.ico?t.ico+" ":""}${esc(t.tag)}</span>
-   <div class="sub">${esc(t.por)}${mover(t.s)?" · "+mover(t.s):""}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
+   <div class="sub">${esc(t.por)}${mover(t.s)?" · "+mover(t.s):""}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(EE.length?`<button id="hoyEE" class="favb" style="margin:0 0 8px">${R_.hoyEE?"Ocultar":"🛸 Ver"} ${EE.length} sistemas con solo expansión enemiga cerca</button>`:"")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
 }
-document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}if(e.target.closest(".pfr")){vista("cro");return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
+document.getElementById("vHoy").onclick=e=>{if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}if(e.target.id=="hoyEE"){R_.hoyEE=!R_.hoyEE;pintaHoy();return}if(e.target.closest(".pfr")){vista("cro");return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
 // expansiones y retiradas de otras facciones (escucha v11: D.vecinos)
 function alrededor(){
   const V=Object.entries(D.vecinos||{});
@@ -696,7 +706,7 @@ let ATK=[],atkI=0;
 function diaLocal(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function listaAtaques(){const R={"DÍA DECISIVO":3,"RETIRADA INMINENTE":2.5,"SISTEMA EN DERROTA":2,"POSIBLE ATAQUE":1};
   return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,al:alerta(s),a:ataque(s)})).filter(o=>o.al[6])
-  .sort((x,y)=>(R[y.al[1]]||0)-(R[x.al[1]]||0)||(y.a?y.a.v/Math.max(y.a.m,1):0)-(x.a?x.a.v/Math.max(x.a.m,1):0))}
+  .sort((x,y)=>prImp(x.s.sys)-prImp(y.s.sys)||(R[y.al[1]]||0)-(R[x.al[1]]||0)||(y.a?y.a.v/Math.max(y.a.m,1):0)-(x.a?x.a.v/Math.max(x.a.m,1):0))}
 function vistos(){try{return JSON.parse(localStorage.getItem("cdsn_atk")||"{}")}catch(e){return{}}}
 function marcaVistos(){const V={},h=diaLocal();for(const o of ATK)V[o.s.sys]={dia:h,v:o.a?o.a.v:0,baja:o.s.prev-o.s.inf,tit:o.al[1]+o.al[2]};try{localStorage.setItem("cdsn_atk",JSON.stringify(V))}catch(e){}}
 function revisaAtaques(){
@@ -746,7 +756,7 @@ addEventListener("keydown",e=>{if(e.key=="Escape")cierraAtaque(true)});
 function revisaInusual(){
   const b=document.getElementById("inusual");if(!b||!D)return;
   const L=Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null).map(s=>({s,a:ataque(s)})).filter(o=>o.a&&alerta(o.s)[1]=="ACTIVIDAD INUSUAL")
-    .sort((x,y)=>(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)));
+    .sort((x,y)=>prImp(x.s.sys)-prImp(y.s.sys)||(y.a.v/Math.max(y.a.m,1))-(x.a.v/Math.max(x.a.m,1)));
   if(!L.length){b.hidden=true;return}
   const o=L[0];
   b.innerHTML=`👁 <b>ACTIVIDAD INUSUAL</b> en ${esc(o.s.sys)} (${o.a.v} pilotos ${o.a.dia})${L.length>1?` y ${L.length-1} más`:""} · toca para ver`;
