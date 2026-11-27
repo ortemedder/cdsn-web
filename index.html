@@ -68,6 +68,16 @@ svg{background:#0f0a04;border:1px solid var(--l);border-radius:6px}footer{color:
 #ataque b{color:var(--r)}
 .cp{background:none;border:1px solid var(--l);color:var(--nm);border-radius:5px;font-size:12px;line-height:1;padding:2px 5px;margin-left:6px;cursor:pointer;vertical-align:middle}.cp:hover{color:#ff8c00;border-color:#ff8c00}
 #toast{position:fixed;left:50%;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;bottom:24px;transform:translateX(-50%);background:#ff8c00;color:#000;font-weight:700;padding:8px 14px;border-radius:8px;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
+/* v1.38: modo lectura de La Cronica */
+#barLect{display:none}
+body.lectura header,body.lectura #cards,body.lectura #ataque,body.lectura #princ,body.lectura #inusual,body.lectura #defensa,body.lectura #fijaBar{display:none!important}
+body.lectura #barLect{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;background:#0d0904ee;border-bottom:1px solid var(--l);padding:8px 14px}
+#barLect img{width:28px;height:28px;border-radius:50%}#barLect b{flex:1;color:#ffd228;letter-spacing:2px;font-size:14px}
+#barLect button{background:none;border:1px solid var(--l);border-radius:8px;color:var(--v);font-size:18px;padding:2px 10px;cursor:pointer}
+#blAtk{color:#ff4632!important;border-color:#ff4632!important;font-size:14px!important;font-weight:700;animation:late 1s ease-in-out infinite alternate}#blAtk[hidden]{display:none}
+body.lectura:not(.menuAb) .tabs{display:none}body.lectura.menuAb .tabs{padding-top:10px}
+body.lectura #vCro{padding-top:6px!important}
+@media (min-width:900px){body.lectura .cro{max-width:1100px;font-size:16px}}
 #princ{border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600;border:2px solid}#princ[hidden]{display:none}
 .prV{background:#0d2414;border-color:#2fae55!important}.prA{background:#1c1606;border-color:#ffd228!important}.prR{background:#1c1606;border-color:#ff4632!important}
 .prL{overflow:hidden;white-space:nowrap}.prT{display:inline-block}.prT.corre{padding-left:100%;animation:prM linear infinite}@keyframes prM{to{transform:translateX(-100%)}}
@@ -174,6 +184,7 @@ select{background:var(--p);border:1px solid var(--l);color:var(--b);padding:6px 
 <div style="color:#ff8c00;font-weight:700;letter-spacing:3px;font-size:20px">CABALLEROS DE SION</div>
 <div style="color:#c9a36a;font-size:16px;letter-spacing:1px">by Cmdr Ortem Ed Der</div><div id="verA" style="color:#6b4a1c;font-size:12px"></div></div>
 <header><img src="icon-192.png" alt="" style="width:34px;height:34px;align-self:center;border-radius:50%"><h1>CABALLEROS DE SION</h1><span id="est">cargando...</span><button id="instalar" style="display:none;margin-left:auto;background:#ff8c00;color:#000;border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer">Instalar app</button><a href="https://inara.cz/elite/minorfaction/36648/" target="_blank" style="color:#b06a10;margin-left:12px">Inara ↗</a></header>
+<div id="barLect"><img src="icon-192.png" alt=""><b>CABALLEROS DE SION</b><button id="blAtk" hidden></button><button id="blMenu" aria-label="Pestañas">☰</button></div>
 <div class="cards" id="cards"></div>
 <div id="sinred" hidden style="background:#4a1a0a;color:#ffb27a;padding:8px 16px;font-weight:600"></div>
 <div id="ataque" hidden></div>
