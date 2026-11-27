@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.31";
+const VERSION="v1.32";
 const NOVEDADES=[
+ ["v1.32","27/11/2026",["⚠ HUECO EN HISTÓRICO / IMPRESCINDIBLE: si otra facción entra en retirada en uno de nuestros sistemas históricos o imprescindibles, deja hueco para que entre una facción de fuera. Sale en rojo si hay expansiones enemigas que pueden llegar (dice cuántas y la más cercana) y en naranja si no","En La Crónica, esas retiradas pasan de Oportunidades a Conflictos, marcadas como urgentes"]],
  ["v1.31","27/11/2026",["◆ Sistemas IMPRESCINDIBLES: los elige el almirante en imprescindibles.txt (cdsn-datos), por niveles; los de nivel 1 llevan ◆ dorado junto al nombre en todas las listas y en la ficha (los de otros niveles, ◇)","🏛 Sistemas HISTÓRICOS: los heredados (anteriores a la colonización, de arquitectos.txt) llevan 🏛","En un imprescindible de nivel 1, BAJADA, ACTIVIDAD INUSUAL y PROBABLE POWERPLAY pasan de aviso a grave (rojo), salta VENTAJA BAJA con menos de 10 puntos (en vez de 5) y BAJADA desde 1,5 puntos (en vez de 3)","El parte de la IA los tiene en cuenta y los pone primero","La Crónica más limpia: el Vecindario en una sola noticia al día (toca «ver resumen» para ver cada facción); las retiradas de otras facciones en nuestros sistemas pasan a la nueva sección 🎯 Oportunidades (dejan hueco para crecer); los avisos «Expansión activo» de cada sistema se juntan en una sola noticia al día, y los «Elecciones/Guerra activo» repetidos ya no salen si está la noticia del conflicto"]],
  ["v1.30","27/11/2026",["🛰 Nuevo sello del Informe de inteligencia: tira de papel descifrada «SIGINT // CDSN // CRÍTICO, VIGILANCIA o NOMINAL // fecha», en rojo, ámbar o verde según el riesgo del parte, con letra de máquina de escribir gastada (sustituye a «ACCESO: ALMIRANTAZGO»)","📌 La noticia fija del almirante ya no sale en la franja amarilla de arriba (se cortaba y no se leía): ahora va entera en La Crónica, justo debajo del Informe de inteligencia, como COMUNICADO DEL ALMIRANTE"]],
  ["v1.29","27/11/2026",["La Crónica de Sion renovada: emblemas, estrellas, banda HUD con AÑO y N.º de edición (fecha galáctica) y las noticias de hoy, teletipo con los titulares, colores por sección y sellos de URGENTE","La web abre ahora en La Crónica","ÚLTIMA HORA en una franja roja compacta (solo si hay algo urgente en 24 h); la portada es el Informe de inteligencia","El parte de la IA como INFORME DE INTELIGENCIA, con semáforo de riesgo y la cinta de telegrama «puede tener errores de desencriptado»","🔊 Escuchar parte: lo lee en voz alta con la voz del móvil u ordenador","Si el parte llega roto: ⚠ TRANSMISIÓN INTERCEPTADA POR FUERZAS HOSTILES","La noticia fija pasa al final, como reportaje"]],
@@ -165,6 +166,15 @@ function origenExp(){return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.
 const inaraSis=n=>`https://inara.cz/elite/starsystem/?search=${encodeURIComponent(n)}`;
 const retAjena=s=>(s.todas||[]).filter(x=>x.n!=FAC&&[...(x.act||[]),...(x.pend||[])].includes("Retreat"));
 const sinConf=s=>!(s.conflictos||[]).some(c=>c.estado=="active"||c.estado=="pending");
+// v1.32: hueco en un historico o imprescindible: otra faccion en retirada -> puede entrar una de fuera
+function hueco(s){if(!esHist(s.sys)&&!nivImp(s.sys))return null;
+  const V=(s.todas||[]).filter(x=>x.n!=FAC&&[...(x.act||[]),...(x.pend||[])].includes("Retreat"));   // solo retirada de verdad: las nativas al 1 % no se van de su sistema
+ if(!V.length)return null;
+  const E=(AMZ[s.sys]||[]).slice().sort((a,b)=>a.ly-b.ly).filter((e,i,A)=>A.findIndex(x=>x.n==e.n)==i),   // una vez por faccion (la mas cercana)
+   tipo=nivImp(s.sys)?"IMPRESCINDIBLE":"HISTÓRICO";
+  const txt=V.map(x=>`${x.n} se retira (${c1(x.inf)} %)`).join(", ")+
+    " · "+(E.length?`${E.length} facci${E.length==1?"ón en expansión puede":"ones en expansión pueden"} llegar, la más cercana ${E[0].n} a ${c1(E[0].ly)} al`:"ninguna expansión enemiga cerca, por ahora");
+  return{tit:"HUECO EN "+tipo,txt,grave:E.length>0,V,E}}
 // alertas: mismas reglas que el radar -> [nivel, titulo, texto, tono, icono, parpadea, alarma]
 function alerta(s){const a=alerta0(s);if(!esImp(s.sys))return a;   // v1.31: un imprescindible se vigila con mas cuidado
   if(a[0]==1&&["BAJADA","ACTIVIDAD INUSUAL","PROBABLE POWERPLAY"].includes(a[1]))return[2,a[1],a[2]+" · ◆ imprescindible","gr",a[4],a[5],a[6]];
@@ -186,6 +196,7 @@ function alerta0(s){
     if(pw)return[1,"PROBABLE POWERPLAY",`${at.txt} · ${pw} · resistencia ${r.niv}`,"av","⚡"];
     if(r.niv=="alta"&&s.prev-s.inf<3)return[1,"ACTIVIDAD INUSUAL",`${at.txt} · resistencia alta: poco preocupante`,"av"];
     return[2,"POSIBLE ATAQUE",`${at.txt} · resistencia ${r.niv}`,"gr","",false,true]}
+  const hu=hueco(s);if(hu)return[hu.grave?2:1,hu.tit,hu.txt,hu.grave?"gr":"av","⚠"];
   if(s.prev!=null&&s.prev-s.inf>=3)return[1,"BAJADA",`${c1(s.inf-s.prev)} desde ayer`,"av"];
   if(at&&!at.sube)return[1,"ACTIVIDAD INUSUAL",at.txt,"av"];
   if(at)return[1,"ACTIVIDAD A FAVOR",at.txt+" (gente propia o ayuda externa)","fa"];
@@ -909,7 +920,9 @@ function agrupaNot(L){const dia=t=>new Date(t*1000).toLocaleDateString("sv-SE",{
   const conf=L.filter(n=>n[2]=="conflictos"&&/^(✉️|⚔️?)/.test(String(n[1])));
   const V={};
   for(let n of L){const t=String(n[1]).replace(/\*\*/g,"");
-    if(t.startsWith("🏃"))n=[n[0],n[1],"oportunidad",n[3],n[4],n[5]];   // retirada de otra faccion en un sistema nuestro: hueco para crecer
+    if(t.startsWith("🏃")){const sy=n[4]||(t.match(/^🏃 (.+?):/)||[])[1]||"",hs=D&&(D.sistemas||{})[sy],hu=hs&&hueco(hs);   // v1.32
+      n=hu?[n[0],n[1]+` · ⚠ **hueco en ${hu.tit.slice(9).toLowerCase()}**: ${hu.E.length?`${hu.E.length} facciones en expansión pueden llegar (la más cercana ${hu.E[0].n}, a ${c1(hu.E[0].ly)} al)`:"ninguna expansión enemiga cerca, por ahora"}`,"conflictos",hu.grave?1:0,sy,n[5]]
+        :[n[0],n[1],"oportunidad",n[3],n[4],n[5]]}   // retirada de otra faccion en un sistema nuestro: hueco para crecer
     if(n[2]=="vecindario"){const d=dia(n[0]);if(!V[d]){V[d]={n:[n[0],"","vecindario",0,"",""],s:[]};out.push(V[d].n)}V[d].s.push(t);V[d].n[0]=Math.max(V[d].n[0],n[0]);continue}
     let m=t.match(/^📣 (.+?): Expansión activo$/);
     if(m){const d=dia(n[0]);if(!G[d]){G[d]={n:[n[0],"","expansion",0,"",""],s:[]};out.push(G[d].n)}G[d].s.push(m[1]);G[d].n[0]=Math.max(G[d].n[0],n[0]);continue}
