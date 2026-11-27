@@ -1,6 +1,7 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.37";
+const VERSION="v1.38";
 const NOVEDADES=[
+ ["v1.38","27/11/2026",["📰 La Crónica se abre en modo lectura: sin franjas ni resumen arriba, cabecera de una línea y las pestañas recogidas en ☰. Si hay algo crítico sale ⚠ junto al ☰ (al tocarlo, la alerta). En el PC, columna más ancha y letra algo mayor. Al ir a otra pestaña todo vuelve como estaba"]],
  ["v1.37","27/11/2026",["◆ Franja fija de SISTEMAS PRINCIPALES (imprescindibles de nivel 1 y 2): en verde «sin novedad» si todo va bien; si no, los que tienen algo, de más a menos grave. Si no cabe en una línea, corre como un teletipo. Al tocarla se para y salen los sistemas para abrir su ficha","La franja naranja de actividad inusual ya no repite los sistemas principales"]],
  ["v1.36","27/11/2026",["Orden de las alertas en Hoy, por gravedad: 1) lo que se puede perder ya (día decisivo, derrota, retirada, posible ataque, hueco), 2) lo grave (riesgo de retirada, ventaja baja…), 3) conflictos en marcha (disputado, pendientes), 4) avisos y 5) buenas noticias; y dentro de cada grupo, los imprescindibles de nivel 1, los de nivel 2, los históricos y el resto. Vale para Hoy, las franjas de arriba y la lista del Radar","Hoy: los imprescindibles con alerta grave (por ejemplo un hueco) suben a rojo también aquí","Hoy más limpio: los sistemas normales que solo tienen una expansión enemiga cerca van juntos en un botón al final"]],
  ["v1.35","27/11/2026",["Resumen nuevo en la cabecera, en una línea: 🛡 controlados/sistemas · 🔴 alertas graves · 👥 tráfico de hoy. Al tocarlo se despliegan las tarjetas: Territorio (con barra, imprescindibles e históricos), Alertas (graves en grande, avisos aparte y lo más urgente) y Tráfico (con el de ayer y la gráfica de los últimos días)"]],
@@ -361,7 +362,7 @@ async function carga(){
     document.getElementById("est").innerHTML=`<span style="color:${viejo?"#ff4632":"#ff6ec8"}" title="${viejo?"El escucha no ha subido datos en más de 1 h":"Antigüedad de los datos"}">⏱ ${sub}${viejo?" ⚠":""}</span>`+
       (e?` · <span style="color:${e.ok&&e.ultimo&&(D.t||now())-e.ultimo<900?"#5adc78":"#ff4632"}" title="EDDN ${e.ok?"conectado":"DESCONECTADO"}${e.ultimo?" · último mensaje hace "+hace(e.ultimo):""}">${e.ok?"🟢":"🔴"} EDDN${e.ok?"":" caído"}${e.ultimo?" "+hace(e.ultimo):""}</span>`:"")+`<span id="tickmini" style="color:#ffb43c"></span>`;
     document.getElementById("pie").textContent=`Escucha EDDN de CDSN · ${Object.keys(D.sistemas||{}).length} sistemas · página actualizada ${new Date().toLocaleTimeString("es-ES")} (se refresca sola cada 5 min)`;
-    pinta();sinRed();revisaAtaques();revisaPrincipales();revisaInusual();revisaDefensa();
+    pinta();sinRed();revisaAtaques();revisaPrincipales();revisaInusual();barLectura();revisaDefensa();
   }catch(x){if(D){sinRed(true)}else document.getElementById("est").textContent="no se pudieron leer los datos: "+x}
 }
 document.getElementById("cab").onclick=e=>{const k=e.target.dataset.k;if(!k)return;if(k==orden)asc=!asc;else{orden=k;asc=k=="sys"}pinta()};
@@ -509,10 +510,18 @@ const CONTADOR="https://cdsngoatcountercom.goatcounter.com/count",CONTADAS=new S
 function contarVisita(v){if(CONTADAS.has(v)||!/github\.io$/.test(location.hostname))return;CONTADAS.add(v);
   try{const q=new URLSearchParams({p:"/"+(v=="tabla"?"":v),t:"CDSN · "+v,r:CONTADAS.size==1?document.referrer:"",s:screen.width,rnd:Math.random().toString(36).slice(2)});
     new Image().src=CONTADOR+"?"+q}catch(e){}}
+// v1.38: cabecera de una linea en modo lectura; ☰ despliega las pestanas; ⚠ si hay algo critico
+function barLectura(){const b=document.getElementById("barLect");if(!b)return;
+  const n=(typeof ATK!="undefined"&&ATK)?ATK.length:0,w=document.getElementById("blAtk");
+  w.hidden=!n;w.textContent="⚠ "+n;w.title=n?`${n} alerta${n==1?"":"s"} crítica${n==1?"":"s"}: toca para verla${n==1?"":"s"}`:""}
+document.getElementById("blMenu").onclick=()=>document.body.classList.toggle("menuAb");
+document.getElementById("blAtk").onclick=()=>{const b=document.getElementById("ataque");if(b&&b.onclick)b.onclick();else if(typeof abreAtaque=="function")abreAtaque()};
+document.querySelector(".tabs").addEventListener("click",()=>document.body.classList.remove("menuAb"));
 function vista(v){
   if(!VISTAS[v])v="tabla";contarVisita(v);try{localStorage.setItem("cdsn_vista",v)}catch(e){}
   for(const[k,id]of Object.entries(VISTAS))document.getElementById(id).hidden=k!=v;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
+  document.body.classList.toggle("lectura",v=="cro");document.body.classList.remove("menuAb");barLectura();   // v1.38: modo lectura en La Cronica
   if(v=="radar"&&!R_.on){R_.on=true;R_.t0=0;requestAnimationFrame(dibuja)}if(v!="radar")R_.on=false;
   if(v=="hoy")pintaHoy();if(v=="pp")pintaPP();if(v=="vis")pintaVis();if(v=="evo")pintaEvo();if(v=="gra")pintaGra();if(v=="cro")pintaCro();if(v=="con")pintaCon();if(v=="arq")pintaArq();if(v=="mie")pintaMie();if(v=="anq")pintaAnq();
 }
