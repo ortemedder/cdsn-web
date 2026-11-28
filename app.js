@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.52";
+const VERSION="v1.53";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.53","28/11/2026",["📣 A AVISAR HOY sube arriba del todo en Hoy (debajo del parte), para verlo sin bajar"]],
  ["v1.52","28/11/2026",["🔵 La cabecera de La Crónica lleva el logo azul de Caballeros de Sion (redondo, y el de la derecha ya no sale en espejo); los ojos siguen encendiéndose según el riesgo"]],
  ["v1.51","28/11/2026",["Nombres de CMDR de CDSN más discretos: en La Crónica y el parte, en dorado y negrita (sin caja ni destello, para leer de corrido); en Hoy, insignia pequeña solo con el nombre («👤 Nombre · avísale»)","La cinta del parte dice «puede contener errores de desencriptado»"]],
  ["v1.50","28/11/2026",["📣 En Hoy, al final de «qué hacer hoy», la lista A AVISAR HOY: los CMDR de CDSN arquitectos de un sistema con alerta grave, conflicto o bajada (máximo 3 sistemas por CMDR), con su sistema y qué pasa, y un botón para copiarla y pegarla en Discord. Si no hay nadie a quien avisar, no sale"]],
@@ -633,9 +634,9 @@ function pintaHoy(){
   if(!D)return;const L0=tareas();
   // v1.36: las «expansión enemiga» leves de sistemas normales van juntas en una linea al final (no saturan)
   const EE=L0.filter(t=>t.tag=="EXPANSIÓN ENEMIGA"&&t.sev<3&&!nivImp(t.s.sys)),L=R_.hoyEE?L0:L0.filter(t=>!EE.includes(t));
-  document.getElementById("vHoy").innerHTML=parteFranja()+(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
+  document.getElementById("vHoy").innerHTML=parteFranja()+avisarHoy(L0)+(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
    L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}${t.parp?" parp":""}">${t.ico?t.ico+" ":""}${esc(t.tag)}</span>
-   <div class="sub">${esc(t.por)}${mover(t.s)?" · "+mover(t.s):""}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(EE.length?`<button id="hoyEE" class="favb" style="margin:0 0 8px">${R_.hoyEE?"Ocultar":"🛸 Ver"} ${EE.length} sistemas con solo expansión enemiga cerca</button>`:"")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+avisarHoy(L0)+alrededor();
+   <div class="sub">${esc(t.por)}${mover(t.s)?" · "+mover(t.s):""}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(EE.length?`<button id="hoyEE" class="favb" style="margin:0 0 8px">${R_.hoyEE?"Ocultar":"🛸 Ver"} ${EE.length} sistemas con solo expansión enemiga cerca</button>`:"")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
 }
 document.getElementById("vHoy").onclick=e=>{if(e.target.id=="avCopia"){Promise.resolve(copia(AVISO_TXT)).then(()=>{e.target.textContent="✓ Copiado";setTimeout(()=>e.target.textContent="📋 Copiar para Discord",2000)}).catch(()=>{});return}const av=e.target.closest(".avs");if(av){abreFicha(av.dataset.s);return}if(e.target.id=="hoyTodo"){R_.hoyTodo=true;pintaHoy();return}if(e.target.id=="hoyEE"){R_.hoyEE=!R_.hoyEE;pintaHoy();return}if(e.target.closest(".pfr")){vista("cro");return}const d=e.target.closest(".hoy");if(d)abreFicha(d.dataset.s)};
 // expansiones y retiradas de otras facciones (escucha v11: D.vecinos)
