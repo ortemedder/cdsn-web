@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.48";
+const VERSION="v1.49";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.49","28/11/2026",["🛡 Los CMDR de Caballeros de Sion salen con insignia dorada y un destello cada 5 segundos cuando se les nombra (alertas, Hoy, La Crónica, el parte y las fichas); los arquitectos de otros escuadrones no la llevan. La web los reconoce sola, el parte de la IA no gasta más"]],
  ["v1.48","28/11/2026",["🌌 Fondo de la web con una foto del almirante Ortem Ed Der (planeta, estación y SRV); las tarjetas son algo transparentes para que se vea"]],
  ["v1.47","27/11/2026",["🖼 Pantalla de arranque con foto de fondo (captura del almirante Ortem Ed Der) y la versión abajo"]],
  ["v1.46","27/11/2026",["Informe de inteligencia más compacto: la cabecera dice SITREP AM // PARTE MATUTINO o SITREP PM // PARTE VESPERTINO, sin línea aparte, y la cinta lleva el estado y la fecha arriba y el PARTE N.º solo en el pie"]],
@@ -117,6 +118,24 @@ const nivImp=n=>IMP.get((n||"").toLowerCase())||0,esImp=n=>nivImp(n)==1,esHist=n
 const cmdrDe=n=>{const a=arqDe(n);return a&&esMiem(a)?MIEM.get(a.toLowerCase().trim()):""};   // v1.43: arquitecto miembro de CDSN (nunca cambia)
 const prImp=n=>{const v=nivImp(n);return v?v:cmdrDe(n)?20:esHist(n)?50:99};   // v1.43: grupos: nivel 1, nivel 2..., CMDRs de CDSN, historicos y el resto
 const MK=n=>{const v=nivImp(n),c=cmdrDe(n);return(c?`<span class="mkC" title="Arquitecto: ${esc(c)} (CDSN)">👤</span>`:"")+(v==1?`<span class="mkI" title="Imprescindible (nivel 1)">◆</span>`:v?`<span class="mkI" title="Imprescindible (nivel ${v})">◇</span>`:"")+(esHist(n)?`<span class="mkH" title="Histórico (heredado, anterior a la colonización)">🏛</span>`:"")};
+
+// v1.49: insignia dorada con destello para los CMDR de CDSN. La web los reconoce sola en el texto (no gasta tokens del parte).
+// Los arquitectos miembros se reconocen escriban como escriban; el resto de miembros, solo tal cual salen en miembros.txt (evita palabras comunes como PIEDRA).
+let RXC=null,RXK="";const CM_ARQ=new Set(),CM_NOM=new Map();
+function rxCmdr(){const k=MIEM.size+"/"+Object.keys(ARQ).length;if(k===RXK)return;RXK=k;RXC=null;CM_ARQ.clear();CM_NOM.clear();if(!MIEM.size)return;
+  for(const[l,n]of MIEM)CM_NOM.set(l,n);
+  for(const a of Object.values(ARQ)){const l=String(a).toLowerCase().trim();if(MIEM.has(l)){CM_ARQ.add(l);CM_NOM.set(l,String(a).trim())}}
+  const N=[...CM_NOM.keys()].filter(n=>n.length>=3).sort((a,b)=>b.length-a.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+"));
+  RXC=new RegExp("(?<![\\p{L}\\p{N}_])(CMDR\\s+)?("+N.join("|")+")(?![\\p{L}\\p{N}_])","giu")}
+const NOINS=/^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|TITLE)$/;
+function insignias(root){rxCmdr();if(!RXC)return;
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||NOINS.test(p.tagName)||p.closest(".cmdr,#vMie,#vArq,svg"))return 3;RXC.lastIndex=0;return RXC.test(n.data)?1:3}});
+  const L=[];while(w.nextNode())L.push(w.currentNode);
+  for(const n of L){const s=n.data,f=document.createDocumentFragment();let i=0,m,c=0;RXC.lastIndex=0;
+    while((m=RXC.exec(s))){const k=m[2].toLowerCase().replace(/\s+/g," ");if(!(CM_ARQ.has(k)||m[2]===MIEM.get(k)))continue;
+      f.append(s.slice(i,m.index));const e=document.createElement("span");e.className="cmdr";e.title="Miembro de Caballeros de Sion";e.textContent="🛡 CMDR "+CM_NOM.get(k);f.append(e);i=m.index+m[0].length;c++}
+    if(c){f.append(s.slice(i));n.replaceWith(f)}}}
+let INSP=0;new MutationObserver(()=>{if(!INSP)INSP=requestAnimationFrame(()=>{INSP=0;insignias(document.body)})}).observe(document.body,{childList:true,subtree:true,characterData:true});
 const CP=n=>MK(n)+`<button class="cp" data-cp="${esc(n)}" title="Copiar nombre" aria-label="Copiar ${esc(n)}">⧉</button>`;
 function copia(t){if(navigator.clipboard&&isSecureContext)return navigator.clipboard.writeText(t);
   return new Promise((ok,ko)=>{const a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();
@@ -598,7 +617,7 @@ function tareas(){
   for(const t of L){const a=alerta(t.s);
     if(a[0]==2&&t.k!="gr"&&!CONF.test(t.tag)){t.tag=a[1];t.k="gr";t.por=a[2];t.ico=a[4]||t.ico}   // la alerta del sistema (p. ej. un hueco en un imprescindible) manda
     t.sev=CRIT.test(t.tag)?4:CONF.test(t.tag)?2:t.k=="gr"?3:t.k=="fa"?0:1}
-  for(const t of L){const c=cmdrDe(t.s.sys);if(c&&!String(t.por).includes("👤"))t.por+=` · 👤 arquitecto: ${c} (CDSN) · avísale`}
+  for(const t of L){const c=cmdrDe(t.s.sys);if(c&&!String(t.por).includes("👤"))t.por+=` · 👤 arquitecto: ${c} · avísale`}
   return L.sort((a,b)=>(b.sev==4)-(a.sev==4)||prImp(a.s.sys)-prImp(b.s.sys)||b.sev-a.sev||b.p-a.p||a.s.inf-b.s.inf);
 }
 function pintaHoy(){
