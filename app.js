@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.51";
+const VERSION="v1.52";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.52","28/11/2026",["🔵 La cabecera de La Crónica lleva el logo azul de Caballeros de Sion (redondo, y el de la derecha ya no sale en espejo); los ojos siguen encendiéndose según el riesgo"]],
  ["v1.51","28/11/2026",["Nombres de CMDR de CDSN más discretos: en La Crónica y el parte, en dorado y negrita (sin caja ni destello, para leer de corrido); en Hoy, insignia pequeña solo con el nombre («👤 Nombre · avísale»)","La cinta del parte dice «puede contener errores de desencriptado»"]],
  ["v1.50","28/11/2026",["📣 En Hoy, al final de «qué hacer hoy», la lista A AVISAR HOY: los CMDR de CDSN arquitectos de un sistema con alerta grave, conflicto o bajada (máximo 3 sistemas por CMDR), con su sistema y qué pasa, y un botón para copiarla y pegarla en Discord. Si no hay nadie a quien avisar, no sale"]],
  ["v1.49","28/11/2026",["🛡 Los CMDR de Caballeros de Sion salen con insignia dorada y un destello cada 5 segundos cuando se les nombra (alertas, Hoy, La Crónica, el parte y las fichas); los arquitectos de otros escuadrones no la llevan. La web los reconoce sola, el parte de la IA no gasta más"]],
@@ -1068,7 +1069,7 @@ function pintaCro(){
   const hoyMad=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),diaMad=t=>new Date(t*1000).toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
   const nHoy=N.filter(n=>diaMad(n[0])==hoyMad).length,ed=edicion(),tk=D.tick_global?Math.max(0,Math.round((D.tick_global+86400-now())/3600)):null;
   const ph=parteHoy(),pp=ph&&ph.f==hoyMad?ph.sel:null,ojo=pp?(pp.roto||pp.perdido?"alto":(pp.riesgo||"medio")):"off";   // v1.41: ojos segun el riesgo del parte
-  const emb=l=>`<span class="cabE ${l} ojos o-${ojo}"><img src="icon-192.png" alt=""><i></i><i></i></span>`;
+  const emb=l=>`<span class="cabE ${l} ojos o-${ojo}"><img src="logo-azul.png" alt=""><i></i><i></i></span>`;
   let h=`<div class="cro deco"><div class="cab">${emb("i")}${emb("d")}
     <div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
     <div class="hud"><b>◆ ${esc(fechaJuego(now()).toUpperCase())}</b>${ed?`<b>AÑO ${ed[0]} · EDICIÓN ${ed[1]}</b>`:""}<span>${nHoy} NOTICIA${nHoy==1?"":"S"} HOY</span><span>HORA GALÁCTICA ${hora(now())}</span>${tk!=null?`<span>TICK EN ~${tk} H</span>`:""}</div></div>`;
