@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.53";
+const VERSION="v1.54";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.54","28/11/2026",["🚨 FLASH: si hay algo muy grave en un sistema imprescindible (nivel 1 o 2) con dato reciente, sale un cartel rojo arriba en La Crónica y en Hoy, al momento y sin gastar tokens. Si sigue activo 1 h y hace 10 h o más del último parte, llega un SITREP FLASH de la IA (parte extraordinario)","🛡 Operaciones propias: lo que escribe el almirante en operaciones.txt (p. ej. apoyar a Beasts en Burr) sale como OPERACIÓN PROPIA en vez de bajada o posible ataque, no hace saltar el FLASH y la IA lo explica","Secciones de La Crónica sin noticias: sello «SIN NOVEDAD» con una frase (verde en Conflictos y Thargoides, porque ahí es buena noticia)","Anarquías: el botón «Anárquicos» ya no sale cortado"]],
  ["v1.53","28/11/2026",["📣 A AVISAR HOY sube arriba del todo en Hoy (debajo del parte), para verlo sin bajar"]],
  ["v1.52","28/11/2026",["🔵 La cabecera de La Crónica lleva el logo azul de Caballeros de Sion (redondo, y el de la derecha ya no sale en espejo); los ojos siguen encendiéndose según el riesgo"]],
  ["v1.51","28/11/2026",["Nombres de CMDR de CDSN más discretos: en La Crónica y el parte, en dorado y negrita (sin caja ni destello, para leer de corrido); en Hoy, insignia pequeña solo con el nombre («👤 Nombre · avísale»)","La cinta del parte dice «puede contener errores de desencriptado»"]],
@@ -227,7 +228,26 @@ const ALR_URL="https://raw.githubusercontent.com/ortemedder/cdsn-datos/main/aler
 let ALR=null;
 function alerta(s){const x=ALR&&D&&ALR.dato_t==D.t&&(ALR.sistemas||{})[s.sys];
   if(x)return[x.niv,x.tit,x.txt,x.tono,x.ico,x.parp,x.alarma];
-  return alertaLocal(s)}
+  return opPropia(s,alertaLocal(s))}
+// v1.54: operaciones propias (operaciones.txt del almirante, vienen en alertas.json): no son un ataque
+const OVR=/^(POSIBLE ATAQUE|BAJADA|ACTIVIDAD INUSUAL|VENTAJA BAJA|PRESENCIA EN PELIGRO|PROBABLE POWERPLAY|EXPANSIÓN ENEMIGA|HUECO|POSIBLE HUECO)/;
+function opDe(n){const o=((ALR||{}).ops||[]).find(o=>(o.sys||"").toLowerCase()==(n||"").toLowerCase());return o&&(!o.hasta||o.hasta>now())?o:null}
+function opPropia(s,a){const o=opDe(s.sys);if(!o||!(a[0]==0||OVR.test(a[1]||"")))return a;
+  return[1,"OPERACIÓN PROPIA",o.txt+(a[1]?` · (${a[1].toLowerCase()})`:""),"av","🛡",0,0]}
+// v1.54: FLASH sin IA: alerta crítica en un imprescindible (nivel 1 o 2) con dato de menos de 6 h y sin operación propia
+const CRITF=/DECISIVO|DERROTA|RETIRADA INMINENTE|^RETIRADA$|POSIBLE ATAQUE|^HUECO/;
+function flashes(){if(!D)return[];return Object.values(D.sistemas||{}).filter(s=>!s.fuera&&s.inf!=null&&nivImp(s.sys)&&now()-(s.t||0)<6*3600&&!opDe(s.sys))
+  .map(s=>[s,alerta(s)]).filter(([s,a])=>a[0]==2&&CRITF.test(a[1]||"")).sort((x,y)=>nivImp(x[0].sys)-nivImp(y[0].sys))}
+// v1.54: sello SIN NOVEDAD en las secciones vacías de La Crónica (verde donde no tener noticias es buena noticia)
+const SINNOV={"":["SIN NOVEDAD","Nada que contar por ahora. Buena señal."],cronica:["SIN COMUNICADOS","El almirante guarda silencio."],
+  conflictos:["SIN NOVEDAD EN EL FRENTE","Ni un disparo. Las armas, enfundadas.",1],expansion:["SIN MOVIMIENTOS","Nadie hace las maletas hoy."],
+  vecindario:["CIELO DESPEJADO","Los vecinos duermen."],oportunidad:["SIN HUECOS","Ninguna puerta abierta. Paciencia, caballero."],
+  obras:["OBRAS PARADAS","Las grúas descansan."],estaciones:["TODO EN PIE","Estaciones intactas y con las luces encendidas."],
+  poblacion:["CENSO ESTABLE","Nadie llega, nadie se va."],actividad:["TRÁFICO NORMAL","Rutina en nuestros sistemas."],
+  thargoides:["ZONA LIMPIA","Ni rastro de los bichos. Que siga así.",1],resumen:["PENDIENTE","El resumen llegará con el próximo tick."]};
+function sinNovedad(k){const x=SINNOV[k]||SINNOV[""];return`<div class="sinnov"><div class="snS${x[2]?" ok":""}">${esc(x[0])}</div><div class="snF">${esc(x[1])}</div></div>`}
+function flashHTML(){const F=flashes();if(!F.length)return"";
+  return`<div class="flash"><div class="flT">🚨 FLASH · ${F.length==1?"SITUACIÓN GRAVE EN UN IMPRESCINDIBLE":F.length+" IMPRESCINDIBLES EN PELIGRO"}</div>`+F.map(([s,a])=>`<div class="flL" data-s="${esc(s.sys)}"><b>${esc(s.sys)}</b> ${nivImp(s.sys)==1?"◆":"◇"} · <b>${esc(a[1])}</b> · ${esc(a[2])}</div>`).join("")+`<div class="flP">Toca un sistema para ver su ficha y qué hacer.</div></div>`}
 function alertaLocal(s){const a=alerta0(s),nv=nivImp(s.sys);
   if(nv==2){if(a[0]==2)return a;   // v1.33: nivel 2 = no perder presencia
     if(s.inf>0&&s.inf<10)return[2,"PRESENCIA EN PELIGRO",`${c1(s.inf)} % (por debajo del 10 %) · ◇ imprescindible`,"gr"];
@@ -634,7 +654,7 @@ function pintaHoy(){
   if(!D)return;const L0=tareas();
   // v1.36: las «expansión enemiga» leves de sistemas normales van juntas en una linea al final (no saturan)
   const EE=L0.filter(t=>t.tag=="EXPANSIÓN ENEMIGA"&&t.sev<3&&!nivImp(t.s.sys)),L=R_.hoyEE?L0:L0.filter(t=>!EE.includes(t));
-  document.getElementById("vHoy").innerHTML=parteFranja()+avisarHoy(L0)+(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
+  document.getElementById("vHoy").innerHTML=flashHTML()+parteFranja()+avisarHoy(L0)+(L.length?`<div class="sub" style="margin-bottom:8px">${L.length} sistemas, de más a menos urgente. Toca uno para ver su ficha.</div>`:"<p>Todo tranquilo: ningún sistema necesita ayuda ahora mismo.</p>")+
    L.slice(0,R_.hoyTodo?999:15).map(t=>`<div class="hoy" data-s="${esc(t.s.sys)}"><b style="color:${t.s.ctrl?"#fff":"#ff8c00"}">${FAV.has(t.s.sys)?"⭐ ":""}${esc(t.s.sys)}</b>${CP(t.s.sys)} <span class="tag k-${t.k}${t.parp?" parp":""}">${t.ico?t.ico+" ":""}${esc(t.tag)}</span>
    <div class="sub">${esc(t.por)}${mover(t.s)?" · "+mover(t.s):""}</div><div class="acc">➜ ${esc(t.acc)}</div></div>`).join("")+(EE.length?`<button id="hoyEE" class="favb" style="margin:0 0 8px">${R_.hoyEE?"Ocultar":"🛸 Ver"} ${EE.length} sistemas con solo expansión enemiga cerca</button>`:"")+(L.length>15&&!R_.hoyTodo?`<button id="hoyTodo" class="favb" style="margin:0">Ver los ${L.length-15} restantes</button>`:"")+alrededor();
 }
@@ -1080,10 +1100,10 @@ function pintaCro(){
   if(!CS){const U=N.filter(n=>n[3]&&n[2]!="vecindario"&&now()-n[0]<86400).slice(0,2);   // ÚLTIMA HORA: solo urgentes de 24 h, compacta
     for(const P of U){const tit=sinMarcas(P[1]).split(" · ")[0];
       h+=`<div class="ult"${P[4]?` data-s="${esc(P[4])}"`:""}><b>🚨 ÚLTIMA HORA</b> <span class="ultH">${hora(P[0])}</span> ${esc(tit)}${P[4]?` <span class="ultS">· ${esc(P[4])}</span>`:""}</div>`}
-    h+=parteHTML()+fijas()}   // v1.30: el comunicado del almirante, justo debajo del informe
+    h+=flashHTML()+parteHTML()+fijas()}   // v1.30: el comunicado del almirante, justo debajo del informe
   h+=`<div class="vper csec">${SECS.map(([k,n])=>`<button data-c="${k}" class="${k==CS?"on":""}">${n}</button>`).join("")}</div>`;
   const L=N.filter(n=>CS?n[2]==CS:n[2]!="vecindario");   // v1.20: «Todas» = lo nuestro; lo de otras facciones en Vecindario
-  if(!L.length)h+=`<p class="sub" style="text-align:center;margin:16px">Sin noticias en esta sección.</p>`;
+  if(!L.length)h+=sinNovedad(CS);
   else{h+=`<div class="crol">`;let dia="";
     for(const n of L){const d=diaTit(n[0]);if(d!=dia){dia=d;h+=`<div class="crod"><img src="icon-192.png" alt="">${esc(d.charAt(0).toUpperCase()+d.slice(1))}</div>`}
       const k_=tipoNot(n),gr=["guerra","elecciones","retirada","llega","vecindario"].includes(k_),di=gr?datosImg(n,260):"",ac=gr||k_=="resumen"?accion(n):"";
@@ -1315,7 +1335,7 @@ ${ab&&l.length?`<div class="tw" style="padding:0;margin-top:6px"><table>${cab}<t
 <p>Sistemas <b>anárquicos</b> a <b>${R} ly o menos</b> de cada sistema que <b>controla CDSN</b>. Son el sitio de donde suelen venir piratas y facciones que se expanden hacia nosotros. Toca ⧉ para copiar el nombre y pegarlo en el mapa de la galaxia.</p>
 <p><b>${nAnq}</b> anárquicos cerca de <b>${conAnq}</b> de nuestros ${Object.keys(N).length} sistemas${nNue?` · <b style="color:#ffd60a">${nNue} nuevo${nNue>1?"s":""} 🆕</b>`:""}${nCri?` · <b style="color:#d070ff">${nCri} criminales</b>`:""} · <span class="sub">actualizado hace ${hace(ANQ.t)} (${esc(ANQ.fuente||"EDSM")}, una vez al día)</span>${(ANQ.errores||[]).length?` <span class="sub">· sin datos hoy: ${ANQ.errores.length}</span>`:""}</p>
 <div class="ctl" style="padding:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><input type="search" id="anqQ" placeholder="Buscar sistema o facción..." value="${esc(ANQ_Q)}" style="flex:1 1 200px">
-<span class="tabs" style="padding:0;flex:0 1 auto"><button data-m="nuestro" class="${ANQ_MODO=="nuestro"?"on":""}">Nuestros</button><button data-m="anq" class="${ANQ_MODO=="anq"?"on":""}">Anárquicos</button></span>
+<span class="tabs anqM" style="padding:0;flex:0 1 auto"><button data-m="nuestro" class="${ANQ_MODO=="nuestro"?"on":""}">Nuestros</button><button data-m="anq" class="${ANQ_MODO=="anq"?"on":""}">Anárquicos</button></span>
 <label><input type="checkbox" id="anqL"${ANQ_L?" checked":""}> solo puerto L</label></div>
 ${cuerpo}
 <p class="sub" style="margin-top:10px">Distancias en años luz (ly) en línea recta. Puerto: <b>L</b> = hay estación con plataforma grande, M = solo puestos avanzados, — = sin estaciones. 🆕 = apareció en los últimos ${ANQ.dias_nuevo||7} días. Datos de EDSM: pueden ir algo retrasados si nadie ha pasado por el sistema.</p></div>`;
@@ -1369,10 +1389,12 @@ function partesVisibles(){return((PARTE||{}).partes||[]).filter(p=>(p.publicar_t
 function parteHoy(){const P=partesVisibles();if(!P.length)return null;
   const f=P.map(p=>p.fecha).sort().pop(),T=P.filter(p=>p.fecha==f);
   // v1.43: SITREP AM y PM: se enseña el más nuevo (PM antes que AM); el AM del mismo día va plegado debajo
-  const ed=T.some(p=>p.edicion=="PM")?"PM":T.some(p=>p.edicion=="AM")?"AM":"",L=T.filter(p=>(p.edicion||"")==ed);
+  // v1.54: arriba el más nuevo (PM, AM o FLASH); los demás del mismo día van plegados debajo, del más nuevo al más viejo
+  const ord=T.slice().sort((a,b)=>(b.t||0)-(a.t||0)),ed=ord[0].edicion||"",L=T.filter(p=>(p.edicion||"")==ed);
   const sel=L.find(p=>p.modelo==PARTE_M)||L.find(p=>p.modelo==(PARTE||{}).modelo)||L[0];
-  const am=ed=="PM"?T.filter(p=>p.edicion=="AM").sort((a,b)=>(b.t||0)-(a.t||0))[0]:null;return{f,L,sel,am}}
-const SITREP={AM:"SITREP AM (Situation Report) // Parte Matutino",PM:"SITREP PM (Situation Report) // Parte Vespertino"},SITREP_C={AM:"SITREP AM // PARTE MATUTINO",PM:"SITREP PM // PARTE VESPERTINO"};
+  const vistos=new Set([ed]),otros=[];for(const p of ord)if(p.edicion&&!vistos.has(p.edicion)){vistos.add(p.edicion);otros.push(p)}
+  return{f,L,sel,otros}}
+const SITREP={AM:"SITREP AM (Situation Report) // Parte Matutino",PM:"SITREP PM (Situation Report) // Parte Vespertino",FLASH:"🚨 SITREP FLASH // Parte Extraordinario"},SITREP_C={AM:"SITREP AM // PARTE MATUTINO",PM:"SITREP PM // PARTE VESPERTINO",FLASH:"SITREP FLASH // PARTE EXTRAORDINARIO"};
 function marcaSis(t,dud){return esc(t||"").replace(/\[\[(.+?)\]\]/g,(m,n)=>{const raw=n.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"');
   return(D&&(D.sistemas||{})[raw])?`<span data-s="${n}" style="color:#ff8c00;cursor:pointer;text-decoration:underline">${n}</span>`:`<b>${n}</b>${(dud||[]).includes(raw)?' <span title="La IA cita un sistema que no está en nuestros datos">⚠</span>':""}`})}
 const CINTA=`<div class="cinta">Esta transcripción puede contener errores de desencriptado · STOP</div>`;
@@ -1395,13 +1417,13 @@ function parteHTML(){if(!PARTE)return"";const H=parteHoy();if(!H)return"";
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),pub=H.sel.publicar_t||0;
   const tarde=H.f<hoy&&now()>pub+86400;   // ya deberia haber salido el de hoy
   const nu=H.sel.numero?` · PARTE N.º ${H.sel.numero}${H.sel.edicion?" · "+H.sel.edicion:""}`:"";
-  let h=`<div class="fija intel"><div class="intelK"><span>🛰 ${H.sel.edicion?SITREP_C[H.sel.edicion]:"INFORME DE INTELIGENCIA"} · ${esc(diaTit(pub).toUpperCase())}${H.sel.edicion?"":nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${sello(H.sel,pub)}
+  let h=`<div class="fija intel${H.sel.edicion=="FLASH"?" intelF":""}"><div class="intelK"><span>${H.sel.edicion=="FLASH"?"🚨":"🛰"} ${H.sel.edicion?SITREP_C[H.sel.edicion]||H.sel.edicion:"INFORME DE INTELIGENCIA"} · ${esc(diaTit(pub).toUpperCase())}${H.sel.edicion?"":nu}${tarde?' · <span style="color:#ffd228">EL DE HOY LLEGA CON RETRASO</span>':""}</span></div>${sello(H.sel,pub)}
   ${!parteRoto(H.sel)&&!H.sel.perdido&&("speechSynthesis" in window)?`<div class="vozb"><button data-voz="leer" class="favb">🔊 Escuchar parte</button><button data-voz="pausa" class="favb">Pausa</button><button data-voz="parar" class="favb">Parar</button></div>`:""}`;
   if(H.L.length>1)h+=`<div class="vper" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:4px">${H.L.map(p=>`<button data-pm="${esc(p.modelo)}" class="${p===H.sel?"on":""}">${esc(PARTE_NOM[p.modelo]||p.modelo)}</button>`).join("")}</div><div class="sub" style="margin-bottom:4px">Prueba: el mismo parte escrito por ${H.L.length} modelos, para elegir.</div>`;
   PARTE_VOZ=H.sel;
   h+=parteCuerpo(H.sel);
-  if(H.am){const r=H.am.roto||H.am.perdido?"interceptado":"riesgo "+(H.am.riesgo||"medio"),ha=new Date((H.am.t||H.am.publicar_t)*1000);
-    h+=`<details class="sitam"><summary>▸ ${SITREP.AM} · ${String(ha.getHours()).padStart(2,"0")}:${String(ha.getMinutes()).padStart(2,"0")} · ${esc(r)}</summary>${parteCuerpo(H.am)}</details>`}
+  for(const q of H.otros){const r=q.roto||q.perdido?"interceptado":"riesgo "+(q.riesgo||"medio"),ha=new Date((q.t||q.publicar_t)*1000);
+    h+=`<details class="sitam"><summary>▸ ${SITREP[q.edicion]||q.edicion} · ${String(ha.getHours()).padStart(2,"0")}:${String(ha.getMinutes()).padStart(2,"0")} · ${esc(r)}</summary>${parteCuerpo(q)}</details>`}
   const ant=[...new Set(partesVisibles().map(p=>p.fecha))].sort().reverse().filter(f=>f!=H.f).slice(0,14);
   if(ant.length)h+=`<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Partes anteriores (${ant.length})</summary>${ant.map(f=>{const L=partesVisibles().filter(p=>p.fecha==f),p=L.find(x=>x.modelo==(PARTE||{}).modelo)||L[0];
     return`<div style="margin:6px 0"><span data-pa="${f}" style="cursor:pointer"><b>${esc(f.split("-").reverse().join("/"))}</b> · ${marcaSis(p.titular,p.dudosos)} ${PARTE_ANT==f?"▾":"▸"}</span>${PARTE_ANT==f?`<div style="margin:6px 0 0 8px">${parteCuerpo(p)}</div>`:""}</div>`}).join("")}</details>`;
