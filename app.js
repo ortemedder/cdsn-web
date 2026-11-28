@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.60";
+const VERSION="v1.61";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.61","28/11/2026",["📌 Los comunicados del almirante, como un bando clavado: papel usado y rasgado, chincheta roja y el sello del almirante Ortem Ed Der (escudo de su familia) abajo a la derecha"]],
  ["v1.60","28/11/2026",["📜 El informe de inteligencia de la IA, en papel de pergamino claro (texto oscuro, sistemas en granate): se lee mejor que sobre el fondo oscuro"]],
  ["v1.59","28/11/2026",["Nuevo fondo de la web: los tres emblemas Elite, muy oscurecidos para no molestar la lectura (en el PC, centrado y sin estirar)"]],
  ["v1.58","28/11/2026",["Comunicados del almirante: el último, arriba y recortado a dos líneas («▸ leer completo»); los demás en «📌 Más comunicados» con enlace a la Hemeroteca","Portada un par de segundos más (mientras cargan los datos) y con el correo ortemedder@gmail.com abajo","Los ojos del logo usan el último parte si tiene menos de 24 h (antes se apagaban a medianoche hasta el parte siguiente)"]],
@@ -1470,9 +1471,10 @@ function edicion(){const ini=(PARTE||{}).inicio;if(!ini)return null;   // AÑO (
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
   return[Number(hoy.slice(0,4))+1286-3311,Math.round((Date.parse(hoy)-Date.parse(ini))/864e5)+1]}
 function fijas(){if(!FIJA.length)return"";const F=FIJA.slice().reverse();   // v1.58: el último escrito, arriba; recortado; los demás plegados
-  const uno=([t,x],corta)=>`<div class="fija"><div class="porK">📌 COMUNICADO DEL ALMIRANTE</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE${corta?" fijC":""}">${negritas(x).replace(/\n/g,"<br>")}</div>${corta?'<span class="fijL">▸ leer completo</span>':""}`:""}</div>`;
-  let h=uno(F[0],F[0][1]&&(F[0][1].length>220||F[0][1].split("\n").length>2));
-  h+=`<div class="fijM">${F.length>1?`<details><summary>📌 Más comunicados (${F.length-1})</summary>${F.slice(1).map(f=>uno(f,false)).join("")}</details>`:""}<a href="#" class="fijH">📜 Hemeroteca</a></div>`;
+  // v1.61: bando clavado (papel usado y rasgado, chincheta y sello del almirante)
+  const ROT=[-1.2,.9,-.6,1.3,-1],uno=([t,x],corta,i,pq)=>`<div class="bandoW${pq?" pq":""}" style="transform:rotate(${ROT[i%ROT.length]}deg)"><i class="chin"></i><div class="fija bando"><div class="porK">📌 COMUNICADO DEL ALMIRANTE · OFICIAL</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE${corta?" fijC":""}">${negritas(x).replace(/\n/g,"<br>")}</div>${corta?'<span class="fijL">▸ leer completo</span>':""}`:""}<img class="selloA" src="sello-almirante.png" alt="Sello del almirante Ortem Ed Der" title="Almirante Ortem Ed Der"></div></div>`;
+  let h=uno(F[0],F[0][1]&&(F[0][1].length>220||F[0][1].split("\n").length>2),0,false);
+  h+=`<div class="fijM">${F.length>1?`<details><summary>📌 Más comunicados (${F.length-1})</summary>${F.slice(1).map((f,i)=>uno(f,false,i+1,true)).join("")}</details>`:""}<a href="#" class="fijH">📜 Hemeroteca</a></div>`;
   return h}
 document.addEventListener("click",e=>{const l=e.target.closest(".fijL");if(l){const c=l.previousElementSibling;const ab=c.classList.toggle("abierto");l.textContent=ab?"▴ recoger":"▸ leer completo";return}
   const hm=e.target.closest(".fijH");if(hm){e.preventDefault();const x=document.querySelector(".heme");if(x)x.scrollIntoView({behavior:"smooth",block:"start"})}});
