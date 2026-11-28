@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.57";
+const VERSION="v1.58";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.58","28/11/2026",["Comunicados del almirante: el último, arriba y recortado a dos líneas («▸ leer completo»); los demás en «📌 Más comunicados» con enlace a la Hemeroteca","Portada un par de segundos más (mientras cargan los datos) y con el correo ortemedder@gmail.com abajo","Los ojos del logo usan el último parte si tiene menos de 24 h (antes se apagaban a medianoche hasta el parte siguiente)"]],
  ["v1.57","28/11/2026",["Almirantazgo más recogido: centrado y con un ancho máximo, para ver Sistema, Qué hacemos y Hasta de un vistazo"]],
  ["v1.56","28/11/2026",["🔑 ACCESO: ALMIRANTAZGO (…/cdsn-web/#almirantazgo): el almirante edita desde la web operaciones, noticia fija, imprescindibles, arquitectos y miembros, con autocompletado de sistemas, comprobación de errores y vista de los cambios antes de subirlos a GitHub. Solo guarda con su token"]],
  ["v1.55","28/11/2026",["📜 LLAMADA A FILAS: cartel en La Crónica, debajo del parte, con los CMDR de CDSN a avisar, su sistema, qué pasa y qué hacer (solo cuando hay alguien a quien avisar)"]],
@@ -137,7 +138,7 @@ function rxCmdr(){const k=MIEM.size+"/"+Object.keys(ARQ).length;if(k===RXK)retur
   RXC=new RegExp("(?<![\\p{L}\\p{N}_])(CMDR\\s+)?("+N.join("|")+")(?![\\p{L}\\p{N}_])","giu")}
 const NOINS=/^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|TITLE)$/;
 function insignias(root){rxCmdr();if(!RXC)return;
-  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||NOINS.test(p.tagName)||p.closest(".cmdr,.cart,#vMie,#vArq,svg"))return 3;RXC.lastIndex=0;return RXC.test(n.data)?1:3}});
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||NOINS.test(p.tagName)||p.closest(".cmdr,.cart,#arranque,#vMie,#vArq,svg"))return 3;RXC.lastIndex=0;return RXC.test(n.data)?1:3}});
   const L=[];while(w.nextNode())L.push(w.currentNode);
   for(const n of L){const s=n.data,f=document.createDocumentFragment();let i=0,m,c=0;RXC.lastIndex=0;
     while((m=RXC.exec(s))){const k=m[2].toLowerCase().replace(/\s+/g," ");if(!(CM_ARQ.has(k)||m[2]===MIEM.get(k)))continue;
@@ -440,8 +441,8 @@ document.getElementById("cab").onclick=e=>{const k=e.target.dataset.k;if(!k)retu
 document.getElementById("tb").onclick=e=>{if(e.target.dataset.fav!=null){cambiaFav(e.target.dataset.fav);return}const tr=e.target.closest("tr.s");if(!tr)return;const n=tr.dataset.s;abiertos.has(n)?abiertos.delete(n):abiertos.add(n);pinta()};
 for(const id of["q","fc","fa","ff"])document.getElementById(id).oninput=pinta;
 const t0=Date.now();
-function quitaArranque(){const a=document.getElementById("arranque");if(!a)return;setTimeout(()=>{a.style.opacity=0;setTimeout(()=>a.remove(),700)},Math.max(0,1500-(Date.now()-t0)))}
-carga().finally(quitaArranque);setTimeout(quitaArranque,6000);setInterval(carga,300000);
+function quitaArranque(){const a=document.getElementById("arranque");if(!a)return;setTimeout(()=>{a.style.opacity=0;setTimeout(()=>a.remove(),700)},Math.max(0,3500-(Date.now()-t0)))}
+carga().finally(quitaArranque);setTimeout(quitaArranque,8000);setInterval(carga,300000);
 
 // ---------- RADAR (igual que el de la pantalla del ESP32) ----------
 // leyenda del radar: abierta la primera vez, luego recuerda si la cerraste
@@ -1106,7 +1107,7 @@ function pintaCro(){
   // v1.29: cabecera con emblemas y banda HUD (AÑO · N.º · noticias de hoy), teletipo, ultima hora compacta, informe
   const hoyMad=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"}),diaMad=t=>new Date(t*1000).toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
   const nHoy=N.filter(n=>diaMad(n[0])==hoyMad).length,ed=edicion(),tk=D.tick_global?Math.max(0,Math.round((D.tick_global+86400-now())/3600)):null;
-  const ph=parteHoy(),pp=ph&&ph.f==hoyMad?ph.sel:null,ojo=pp?(pp.roto||pp.perdido?"alto":(pp.riesgo||"medio")):"off";   // v1.41: ojos segun el riesgo del parte
+  const ph=parteHoy(),pp=ph&&now()-(ph.sel.t||ph.sel.publicar_t||0)<86400?ph.sel:null,ojo=pp?(pp.roto||pp.perdido?"alto":(pp.riesgo||"medio")):"off";   // v1.41: ojos segun el riesgo del parte
   const emb=l=>`<span class="cabE ${l} ojos o-${ojo}"><img src="logo-azul.png" alt=""><i></i><i></i></span>`;
   let h=`<div class="cro deco"><div class="cab">${emb("i")}${emb("d")}
     <div class="cab1">LA CRÓNICA DE SION</div><div class="cab2">Diario del BGS de Caballeros de Sion</div>
@@ -1209,7 +1210,7 @@ function hemeroteca(){
   const f=t=>new Date(t*1000).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"2-digit"}),H=D.hemeroteca||[];
   let h=`<div class="heme"><div class="hemeT">HEMEROTECA · Comunicados del Almirante</div>`;
   const desde=(D.fija||{}).desde;
-  for(const[t]of FIJA)h+=`<div class="hemeI"><span class="hemeF">📌 AHORA${desde?"<br>desde "+f(desde):""}</span><span><b>${negritas(t)}</b></span></div>`;
+  for(const[t]of FIJA.slice().reverse())h+=`<div class="hemeI"><span class="hemeF">📌 AHORA${desde?"<br>desde "+f(desde):""}</span><span><b>${negritas(t)}</b></span></div>`;
   for(const x of H)h+=`<div class="hemeI"><span class="hemeF">${f(x.desde)}<br>– ${f(x.hasta)}</span><details><summary><b>${negritas(x.tit)}</b> <span class="sub">▸ leer</span></summary><div class="porE" style="margin-top:4px">${negritas(x.txt||"").replace(/\n/g,"<br>")||"<i>(sin texto)</i>"}</div></details></div>`;
   if(!FIJA.length&&!H.length)h+=`<p class="sub">Aún no hay comunicados guardados${D.hemeroteca?"":" (la hemeroteca la guarda el escucha v11.7)"}.</p>`;
   return h+`</div>`}
@@ -1466,7 +1467,13 @@ var PARTE_VOZ=null;
 function edicion(){const ini=(PARTE||{}).inicio;if(!ini)return null;   // AÑO (año galáctico - 3311) y N.º continuo desde el primer parte
   const hoy=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Madrid"});
   return[Number(hoy.slice(0,4))+1286-3311,Math.round((Date.parse(hoy)-Date.parse(ini))/864e5)+1]}
-function fijas(){let h="";for(const[t,x]of FIJA)h+=`<div class="fija"><div class="porK">📌 COMUNICADO DEL ALMIRANTE</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE">${negritas(x).replace(/\n/g,"<br>")}</div>`:""}</div>`;return h}
+function fijas(){if(!FIJA.length)return"";const F=FIJA.slice().reverse();   // v1.58: el último escrito, arriba; recortado; los demás plegados
+  const uno=([t,x],corta)=>`<div class="fija"><div class="porK">📌 COMUNICADO DEL ALMIRANTE</div><div class="porT">${negritas(t)}</div>${x?`<div class="porE${corta?" fijC":""}">${negritas(x).replace(/\n/g,"<br>")}</div>${corta?'<span class="fijL">▸ leer completo</span>':""}`:""}</div>`;
+  let h=uno(F[0],F[0][1]&&(F[0][1].length>220||F[0][1].split("\n").length>2));
+  h+=`<div class="fijM">${F.length>1?`<details><summary>📌 Más comunicados (${F.length-1})</summary>${F.slice(1).map(f=>uno(f,false)).join("")}</details>`:""}<a href="#" class="fijH">📜 Hemeroteca</a></div>`;
+  return h}
+document.addEventListener("click",e=>{const l=e.target.closest(".fijL");if(l){const c=l.previousElementSibling;const ab=c.classList.toggle("abierto");l.textContent=ab?"▴ recoger":"▸ leer completo";return}
+  const hm=e.target.closest(".fijH");if(hm){e.preventDefault();const x=document.querySelector(".heme");if(x)x.scrollIntoView({behavior:"smooth",block:"start"})}});
 function pieCro(){return`<div class="pie"><img src="icon-192.png" alt="">REDACCIÓN: ESCUCHAS DE SION · IMPRESO EN MELVIN CITY · NDABANGLUYA<img src="icon-192.png" alt=""></div>`}
 function vozTexto(p){const s=t=>String(t||"").replace(/\[\[(.+?)\]\]/g,"$1").replace(/[*_#@]/g,"").trim();
   const L=[`Informe de inteligencia de Caballeros de Sion.`,s(p.titular)+".",s(p.entradilla)];
