@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.50";
+const VERSION="v1.51";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.51","28/11/2026",["Nombres de CMDR de CDSN más discretos: en La Crónica y el parte, en dorado y negrita (sin caja ni destello, para leer de corrido); en Hoy, insignia pequeña solo con el nombre («👤 Nombre · avísale»)","La cinta del parte dice «puede contener errores de desencriptado»"]],
  ["v1.50","28/11/2026",["📣 En Hoy, al final de «qué hacer hoy», la lista A AVISAR HOY: los CMDR de CDSN arquitectos de un sistema con alerta grave, conflicto o bajada (máximo 3 sistemas por CMDR), con su sistema y qué pasa, y un botón para copiarla y pegarla en Discord. Si no hay nadie a quien avisar, no sale"]],
  ["v1.49","28/11/2026",["🛡 Los CMDR de Caballeros de Sion salen con insignia dorada y un destello cada 5 segundos cuando se les nombra (alertas, Hoy, La Crónica, el parte y las fichas); los arquitectos de otros escuadrones no la llevan. La web los reconoce sola, el parte de la IA no gasta más"]],
  ["v1.48","28/11/2026",["🌌 Fondo de la web con una foto del almirante Ortem Ed Der (planeta, estación y SRV); las tarjetas son algo transparentes para que se vea"]],
@@ -134,7 +135,7 @@ function insignias(root){rxCmdr();if(!RXC)return;
   const L=[];while(w.nextNode())L.push(w.currentNode);
   for(const n of L){const s=n.data,f=document.createDocumentFragment();let i=0,m,c=0;RXC.lastIndex=0;
     while((m=RXC.exec(s))){const k=m[2].toLowerCase().replace(/\s+/g," ");if(!(CM_ARQ.has(k)||m[2]===MIEM.get(k)))continue;
-      f.append(s.slice(i,m.index));const e=document.createElement("span");e.className="cmdr";e.title="Miembro de Caballeros de Sion";e.textContent="🛡 CMDR "+CM_NOM.get(k);f.append(e);i=m.index+m[0].length;c++}
+      f.append(s.slice(i,m.index));const e=document.createElement("span");e.className=n.parentElement.closest("#vCro")?"cmdr cmdrT":"cmdr";e.title="CMDR de Caballeros de Sion";e.textContent=CM_NOM.get(k);f.append(e);i=m.index+m[0].length;c++}
     if(c){f.append(s.slice(i));n.replaceWith(f)}}}
 let INSP=0;new MutationObserver(()=>{if(!INSP)INSP=requestAnimationFrame(()=>{INSP=0;insignias(document.body)})}).observe(document.body,{childList:true,subtree:true,characterData:true});
 const CP=n=>MK(n)+`<button class="cp" data-cp="${esc(n)}" title="Copiar nombre" aria-label="Copiar ${esc(n)}">⧉</button>`;
@@ -618,7 +619,7 @@ function tareas(){
   for(const t of L){const a=alerta(t.s);
     if(a[0]==2&&t.k!="gr"&&!CONF.test(t.tag)){t.tag=a[1];t.k="gr";t.por=a[2];t.ico=a[4]||t.ico}   // la alerta del sistema (p. ej. un hueco en un imprescindible) manda
     t.sev=CRIT.test(t.tag)?4:CONF.test(t.tag)?2:t.k=="gr"?3:t.k=="fa"?0:1}
-  for(const t of L){const c=cmdrDe(t.s.sys);if(c&&!String(t.por).includes("👤"))t.por+=` · 👤 arquitecto: ${c} · avísale`}
+  for(const t of L){const c=cmdrDe(t.s.sys);if(c&&!String(t.por).includes("👤"))t.por+=` · 👤 ${c} · avísale`}
   return L.sort((a,b)=>(b.sev==4)-(a.sev==4)||prImp(a.s.sys)-prImp(b.s.sys)||b.sev-a.sev||b.p-a.p||a.s.inf-b.s.inf);
 }
 // v1.50: a quién avisar hoy (CMDRs de CDSN arquitectos de un sistema con alerta). Sale de las tareas, sin tokens.
@@ -1372,7 +1373,7 @@ function parteHoy(){const P=partesVisibles();if(!P.length)return null;
 const SITREP={AM:"SITREP AM (Situation Report) // Parte Matutino",PM:"SITREP PM (Situation Report) // Parte Vespertino"},SITREP_C={AM:"SITREP AM // PARTE MATUTINO",PM:"SITREP PM // PARTE VESPERTINO"};
 function marcaSis(t,dud){return esc(t||"").replace(/\[\[(.+?)\]\]/g,(m,n)=>{const raw=n.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"');
   return(D&&(D.sistemas||{})[raw])?`<span data-s="${n}" style="color:#ff8c00;cursor:pointer;text-decoration:underline">${n}</span>`:`<b>${n}</b>${(dud||[]).includes(raw)?' <span title="La IA cita un sistema que no está en nuestros datos">⚠</span>':""}`})}
-const CINTA=`<div class="cinta">Esta transcripción puede tener errores de desencriptado · STOP</div>`;
+const CINTA=`<div class="cinta">Esta transcripción puede contener errores de desencriptado · STOP</div>`;
 function parteRoto(p){return!!(p.roto||(!p.perdido&&(/^\s*\{/.test(p.entradilla||"")||(!(p.puntos||[]).length&&!(p.hacer||[]).length))))}
 function ruido(t){return String(t).replace(/[aeiosrnt]/g,c=>Math.random()<.1?"▓▒░#%"[Math.floor(Math.random()*5)]:c)}
 function parteCuerpo(p){const d=p.dudosos,r=p.riesgo;
