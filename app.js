@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.59";
+const VERSION="v1.60";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.60","28/11/2026",["📜 El informe de inteligencia de la IA, en papel de pergamino claro (texto oscuro, sistemas en granate): se lee mejor que sobre el fondo oscuro"]],
  ["v1.59","28/11/2026",["Nuevo fondo de la web: los tres emblemas Elite, muy oscurecidos para no molestar la lectura (en el PC, centrado y sin estirar)"]],
  ["v1.58","28/11/2026",["Comunicados del almirante: el último, arriba y recortado a dos líneas («▸ leer completo»); los demás en «📌 Más comunicados» con enlace a la Hemeroteca","Portada un par de segundos más (mientras cargan los datos) y con el correo ortemedder@gmail.com abajo","Los ojos del logo usan el último parte si tiene menos de 24 h (antes se apagaban a medianoche hasta el parte siguiente)"]],
  ["v1.57","28/11/2026",["Almirantazgo más recogido: centrado y con un ancho máximo, para ver Sistema, Qué hacemos y Hasta de un vistazo"]],
