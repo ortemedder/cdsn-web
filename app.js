@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.54";
+const VERSION="v1.55";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.55","28/11/2026",["📜 LLAMADA A FILAS: cartel en La Crónica, debajo del parte, con los CMDR de CDSN a avisar, su sistema, qué pasa y qué hacer (solo cuando hay alguien a quien avisar)"]],
  ["v1.54","28/11/2026",["🚨 FLASH: si hay algo muy grave en un sistema imprescindible (nivel 1 o 2) con dato reciente, sale un cartel rojo arriba en La Crónica y en Hoy, al momento y sin gastar tokens. Si sigue activo 1 h y hace 10 h o más del último parte, llega un SITREP FLASH de la IA (parte extraordinario)","🛡 Operaciones propias: lo que escribe el almirante en operaciones.txt (p. ej. apoyar a Beasts en Burr) sale como OPERACIÓN PROPIA en vez de bajada o posible ataque, no hace saltar el FLASH y la IA lo explica","Secciones de La Crónica sin noticias: sello «SIN NOVEDAD» con una frase (verde en Conflictos y Thargoides, porque ahí es buena noticia)","Anarquías: el botón «Anárquicos» ya no sale cortado"]],
  ["v1.53","28/11/2026",["📣 A AVISAR HOY sube arriba del todo en Hoy (debajo del parte), para verlo sin bajar"]],
  ["v1.52","28/11/2026",["🔵 La cabecera de La Crónica lleva el logo azul de Caballeros de Sion (redondo, y el de la derecha ya no sale en espejo); los ojos siguen encendiéndose según el riesgo"]],
@@ -134,7 +135,7 @@ function rxCmdr(){const k=MIEM.size+"/"+Object.keys(ARQ).length;if(k===RXK)retur
   RXC=new RegExp("(?<![\\p{L}\\p{N}_])(CMDR\\s+)?("+N.join("|")+")(?![\\p{L}\\p{N}_])","giu")}
 const NOINS=/^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|TITLE)$/;
 function insignias(root){rxCmdr();if(!RXC)return;
-  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||NOINS.test(p.tagName)||p.closest(".cmdr,#vMie,#vArq,svg"))return 3;RXC.lastIndex=0;return RXC.test(n.data)?1:3}});
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||NOINS.test(p.tagName)||p.closest(".cmdr,.cart,#vMie,#vArq,svg"))return 3;RXC.lastIndex=0;return RXC.test(n.data)?1:3}});
   const L=[];while(w.nextNode())L.push(w.currentNode);
   for(const n of L){const s=n.data,f=document.createDocumentFragment();let i=0,m,c=0;RXC.lastIndex=0;
     while((m=RXC.exec(s))){const k=m[2].toLowerCase().replace(/\s+/g," ");if(!(CM_ARQ.has(k)||m[2]===MIEM.get(k)))continue;
@@ -645,11 +646,25 @@ function tareas(){
   return L.sort((a,b)=>(b.sev==4)-(a.sev==4)||prImp(a.s.sys)-prImp(b.s.sys)||b.sev-a.sev||b.p-a.p||a.s.inf-b.s.inf);
 }
 // v1.50: a quién avisar hoy (CMDRs de CDSN arquitectos de un sistema con alerta). Sale de las tareas, sin tokens.
-function avisarHoy(L0){const M=new Map();
+function avisarMapa(L0){const M=new Map();
   for(const t of L0){if(t.sev<2&&t.tag!="BAJADA")continue;const c=arqDe(t.s.sys);if(!cmdrDe(t.s.sys))continue;if(!c)continue;if(!M.has(c))M.set(c,[]);M.get(c).push(t)}
+  return M}
+function avisarHoy(L0){const M=avisarMapa(L0);
   if(!M.size)return"";AVISO_TXT="📣 **A avisar hoy (CDSN)**\n"+[...M].map(([c,T])=>"- CMDR "+c+": "+T.slice(0,3).map(t=>t.s.sys+" — "+t.tag.toLowerCase()).join("; ")+(T.length>3?"; +"+(T.length-3)+" más":"")).join("\n");
   return`<div class="avisar"><div class="avt">📣 A AVISAR HOY</div>`+[...M].map(([c,T])=>`<div class="avl">${esc(c)}<div class="sub">${T.slice(0,3).map(t=>`<span data-s="${esc(t.s.sys)}" class="avs">${esc(t.s.sys)}</span> · ${t.ico?t.ico+" ":""}${esc(t.tag.toLowerCase())}`).join(" · ")}${T.length>3?` · +${T.length-3} más`:""}</div></div>`).join("")+`<button id="avCopia" class="favb" style="margin:6px 0 0">📋 Copiar para Discord</button></div>`}
 let AVISO_TXT="";
+// v1.54: cartel LLAMADA A FILAS en La Crónica (mismos CMDR que «A avisar hoy»)
+function queHacer(T){const C=T.flatMap(t=>t.s.conflictos||[]).map(c=>(c.tipo||"").toLowerCase());
+  if(C.includes("election"))return"misiones y comercio, sin violencia";
+  if(C.some(x=>x=="war"||x=="civilwar"))return"zonas de conflicto y misiones de combate";
+  return"misiones para CDSN, comercio con beneficio y datos de exploración"}
+function llamadaFilas(){if(!D)return"";const M=avisarMapa(tareas());if(!M.size)return"";
+  const tk=D.tick_global?Math.max(0,Math.round((D.tick_global+86400-now())/3600)):null,ed=edicion(),d=new Date();
+  const f=`${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()+1286}`;
+  return`<div class="cart"><div class="cH">LLAMADA A FILAS</div><div class="cS">SE CONVOCA A LOS SIGUIENTES COMANDANTES</div><img src="llamada.jpg" alt="">
+<div class="cI">Sus sistemas necesitan presencia${tk!=null?` antes del próximo tick (~${tk} h)`:""}:</div>`+
+  [...M].map(([c,T])=>{const S=T.slice(0,3);return`<div class="cL"><b>CMDR ${esc(c)}</b> — ${S.map(t=>`<span class="s" data-s="${esc(t.s.sys)}">${esc(t.s.sys)}</span>`).join(" · ")}${T.length>3?` · +${T.length-3}`:""}<i>${esc((x=>x.charAt(0).toUpperCase()+x.slice(1))([...new Set(S.map(t=>t.tag.toLowerCase()))].join(" y ")))} · ${esc(queHacer(S))}</i></div>`}).join("")+
+  `<div class="cA">✦ ACUDID A VUESTROS SISTEMAS ✦</div><div class="cP">LA CRÓNICA DE SION${ed?` · AÑO ${ed[0]} · EDICIÓN ${ed[1]}`:""} · ${f}</div></div>`}
 function pintaHoy(){
   if(!D)return;const L0=tareas();
   // v1.36: las «expansión enemiga» leves de sistemas normales van juntas en una linea al final (no saturan)
@@ -1100,7 +1115,7 @@ function pintaCro(){
   if(!CS){const U=N.filter(n=>n[3]&&n[2]!="vecindario"&&now()-n[0]<86400).slice(0,2);   // ÚLTIMA HORA: solo urgentes de 24 h, compacta
     for(const P of U){const tit=sinMarcas(P[1]).split(" · ")[0];
       h+=`<div class="ult"${P[4]?` data-s="${esc(P[4])}"`:""}><b>🚨 ÚLTIMA HORA</b> <span class="ultH">${hora(P[0])}</span> ${esc(tit)}${P[4]?` <span class="ultS">· ${esc(P[4])}</span>`:""}</div>`}
-    h+=flashHTML()+parteHTML()+fijas()}   // v1.30: el comunicado del almirante, justo debajo del informe
+    h+=flashHTML()+parteHTML()+llamadaFilas()+fijas()}   // v1.30: el comunicado del almirante, justo debajo del informe
   h+=`<div class="vper csec">${SECS.map(([k,n])=>`<button data-c="${k}" class="${k==CS?"on":""}">${n}</button>`).join("")}</div>`;
   const L=N.filter(n=>CS?n[2]==CS:n[2]!="vecindario");   // v1.20: «Todas» = lo nuestro; lo de otras facciones en Vecindario
   if(!L.length)h+=sinNovedad(CS);
