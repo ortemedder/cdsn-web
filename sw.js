@@ -2,7 +2,7 @@
 // La pagina se guarda en el movil; los datos (faccion.json) se piden siempre nuevos y,
 // si no hay red, se usa la ultima copia guardada.
 const CACHE = "cdsn-v67";
-const BASE = ["./", "index.html", "app.js", "manifest.json", "icon-192.png", "icon-512.png", "favicon.png", "special-elite.woff2", "sello-cdsn.png", "arranque.jpg", "fondo.jpg", "logo-azul.png"];
+const BASE = ["./", "index.html", "app.js", "manifest.json", "icon-192.png", "icon-512.png", "favicon.png", "special-elite.woff2", "sello-cdsn.png", "arranque.jpg", "fondo.jpg", "logo-azul.png", "llamada.jpg"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(BASE)).then(() => self.skipWaiting()));
