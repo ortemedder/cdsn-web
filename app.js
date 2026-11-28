@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.56";
+const VERSION="v1.57";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.57","28/11/2026",["Almirantazgo más recogido: centrado y con un ancho máximo, para ver Sistema, Qué hacemos y Hasta de un vistazo"]],
  ["v1.56","28/11/2026",["🔑 ACCESO: ALMIRANTAZGO (…/cdsn-web/#almirantazgo): el almirante edita desde la web operaciones, noticia fija, imprescindibles, arquitectos y miembros, con autocompletado de sistemas, comprobación de errores y vista de los cambios antes de subirlos a GitHub. Solo guarda con su token"]],
  ["v1.55","28/11/2026",["📜 LLAMADA A FILAS: cartel en La Crónica, debajo del parte, con los CMDR de CDSN a avisar, su sistema, qué pasa y qué hacer (solo cuando hay alguien a quien avisar)"]],
  ["v1.54","28/11/2026",["🚨 FLASH: si hay algo muy grave en un sistema imprescindible (nivel 1 o 2) con dato reciente, sale un cartel rojo arriba en La Crónica y en Hoy, al momento y sin gastar tokens. Si sigue activo 1 h y hace 10 h o más del último parte, llega un SITREP FLASH de la IA (parte extraordinario)","🛡 Operaciones propias: lo que escribe el almirante en operaciones.txt (p. ej. apoyar a Beasts en Burr) sale como OPERACIÓN PROPIA en vez de bajada o posible ataque, no hace saltar el FLASH y la IA lo explica","Secciones de La Crónica sin noticias: sello «SIN NOVEDAD» con una frase (verde en Conflictos y Thargoides, porque ahí es buena noticia)","Anarquías: el botón «Anárquicos» ya no sale cortado"]],

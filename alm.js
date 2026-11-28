@@ -312,7 +312,7 @@ const CSS = `body.almOn>*:not(#alm){display:none!important}#alm{min-height:100vh
 .almK{margin-left:auto;font-size:13px;color:#4cd964}.almK a{color:#ffb347}.almMsg{margin:12px 24px 0;padding:10px 14px;border:1px solid #66cbff;border-radius:8px;background:rgba(102,203,255,.08)}
 .almTabs{display:flex;gap:8px;padding:14px 24px 0;flex-wrap:wrap}.almTabs button{background:#1a1208;color:#e8d9b8;border:1px solid #5a4020;border-radius:8px 8px 0 0;padding:9px 16px;font-weight:700;font-size:14px;cursor:pointer}.almTabs .on{background:#ff8c00;color:#1a1208;border-color:#ff8c00}
 .almBox{margin:0 24px;border:1px solid #5a4020;border-radius:0 8px 8px 8px;background:#1a1208;padding:16px 18px;max-width:1300px}.almAy{font-size:13px;opacity:.75;margin:0 0 12px}
-.almT{width:100%;border-collapse:collapse;font-size:14px}.almT th{text-align:left;color:#ffd228;border-bottom:1px solid #5a4020;padding:8px 6px}.almT td{padding:5px 6px;border-bottom:1px solid #2a1e10}
+.almT{width:100%;min-width:0!important;border-collapse:collapse;font-size:14px;table-layout:fixed}.almT th{text-align:left;color:#ffd228;border-bottom:1px solid #5a4020;padding:8px 6px}.almT td{padding:5px 6px;border-bottom:1px solid #2a1e10}
 #alm input,#alm textarea{background:#120c05;color:#e8d9b8;border:1px solid #5a4020;border-radius:6px;padding:7px 9px;font-size:14px;width:100%;box-sizing:border-box}#alm input.ok{border-color:#3a7a3a}#alm input.mal{border-color:#ff3b30}
 .almTA{min-height:340px;font:13px/1.5 ui-monospace,Consolas,monospace!important}.almErr{color:#ff6a60;font-size:13px;margin:3px 0}.almAv{color:#ffd228;font-size:13px;margin:3px 0}.almChk{margin-top:12px}
 .almDel{background:none;border:1px solid #5a2020;color:#ff6a60;border-radius:6px;padding:6px 10px;cursor:pointer}.almRow{display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap}.almRow input{width:auto}
@@ -320,6 +320,8 @@ const CSS = `body.almOn>*:not(#alm){display:none!important}#alm{min-height:100vh
 .almDif{margin-top:16px;border:1px dashed #66cbff;border-radius:8px;padding:10px 14px;font:13px ui-monospace,Consolas,monospace}.almDT{color:#66cbff;font-weight:700;margin-bottom:6px;letter-spacing:.08em}.almMas{color:#4cd964;white-space:pre-wrap}.almMenos{color:#ff6a60;white-space:pre-wrap}
 .almCols{display:grid;grid-template-columns:1fr 1fr;gap:18px}.almCol h3{margin:0 0 8px;color:#ffd228;font-size:15px}.almIt{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #2a1e10}.almIt span{flex:1}
 .almMie{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 16px}.almNf{display:grid;grid-template-columns:1fr 1fr;gap:18px}.almTok{border:1px solid #ffd228;border-radius:8px;padding:12px 16px;margin-bottom:14px;background:rgba(255,210,40,.05)}.almTok a{color:#66cbff}.almTok li{margin:3px 0}
+.almTabs,.almBox,.almMsg{max-width:1000px;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box}.almTabs{padding:14px 0 0}.almTop{justify-content:center}.almTop>*{max-width:1000px}
+@media(max-width:1040px){.almTabs,.almBox,.almMsg{margin-left:12px!important;margin-right:12px!important}}
 @media(max-width:800px){.almCols,.almNf{grid-template-columns:1fr}.almBox,.almMsg{margin:0 8px}.almTabs{padding:10px 8px 0}}`;
 function abre() {
   if (!$("#almCss")) { const s = document.createElement("style"); s.id = "almCss"; s.textContent = CSS; document.head.appendChild(s); }
