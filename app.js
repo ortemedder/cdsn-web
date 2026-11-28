@@ -1,8 +1,9 @@
 // app.js - CDSN BGS (la pagina index.html solo tiene la estructura)
-const VERSION="v1.58";
+const VERSION="v1.59";
 const FONDO="fondo.jpg";   // v1.48: fondo de la web. Para quitarlo, dejarlo vacío: const FONDO="";
 if(FONDO)document.body.classList.add("confondo");
 const NOVEDADES=[
+ ["v1.59","28/11/2026",["Nuevo fondo de la web: los tres emblemas Elite, muy oscurecidos para no molestar la lectura (en el PC, centrado y sin estirar)"]],
  ["v1.58","28/11/2026",["Comunicados del almirante: el último, arriba y recortado a dos líneas («▸ leer completo»); los demás en «📌 Más comunicados» con enlace a la Hemeroteca","Portada un par de segundos más (mientras cargan los datos) y con el correo ortemedder@gmail.com abajo","Los ojos del logo usan el último parte si tiene menos de 24 h (antes se apagaban a medianoche hasta el parte siguiente)"]],
  ["v1.57","28/11/2026",["Almirantazgo más recogido: centrado y con un ancho máximo, para ver Sistema, Qué hacemos y Hasta de un vistazo"]],
  ["v1.56","28/11/2026",["🔑 ACCESO: ALMIRANTAZGO (…/cdsn-web/#almirantazgo): el almirante edita desde la web operaciones, noticia fija, imprescindibles, arquitectos y miembros, con autocompletado de sistemas, comprobación de errores y vista de los cambios antes de subirlos a GitHub. Solo guarda con su token"]],

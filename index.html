@@ -86,8 +86,8 @@ body.lectura:not(.menuAb) .tabs{display:none}body.lectura.menuAb .tabs{padding-t
 body.lectura #vCro{padding-top:6px!important}
 @media (min-width:900px){body.lectura .cro{max-width:1100px;font-size:16px}}
 /* v1.48: FONDO DE LA WEB (foto del almirante). Para quitarlo: en app.js poner  const FONDO="";  (o borrar fondo.jpg) */
-body.confondo::before{content:"";position:fixed;inset:0;z-index:-2;background:url(fondo.jpg) 47% center/cover no-repeat}
-body.confondo::after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(13,9,4,.15),rgba(13,9,4,.5))}
+body.confondo::before{content:"";position:fixed;inset:0;z-index:-2;background:#0c0c0c url(fondo.jpg) center center/contain no-repeat}
+body.confondo::after{content:"";position:fixed;inset:0;z-index:-1;background:rgba(13,9,4,.25)}
 body.confondo header,body.confondo .tabs{background:transparent}
 body.confondo .hoy,body.confondo .fija,body.confondo #ataque,body.confondo #princ,body.confondo #inusual,body.confondo .tabs button:not(.on),body.confondo .card,body.confondo .rC{background:rgba(26,18,8,.78)!important;backdrop-filter:blur(3px)}
 #princ{border-radius:8px;margin:0 16px 10px;padding:8px 12px;cursor:pointer;font-weight:600;border:2px solid}#princ[hidden]{display:none}
